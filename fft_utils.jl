@@ -1,7 +1,6 @@
-using LinearAlgebra;
-using FFTW;
-using Random, Distributions;
-
+using LinearAlgebra
+using FFTW
+using Random, Distributions
 
 # compute M_{\perp}^{\top}z
 

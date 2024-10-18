@@ -1,13 +1,13 @@
-using NLPModels
+using NLPModels, FFTW
 
 include("fft_utils.jl")
 include("punching_centering.jl")
 
 mutable struct FFTParameters
-    paramB
-    eps_NT
-    paramLS
-    paramf
+    paramB  # ::Tuple{Float64, Int64}
+    eps_NT  # ::Float64
+    paramLS # ::Tuple{Float64, Float64}
+    paramf  # ::Tuple{Int64, Tuple{Int64}, Vector{Float64}, Int64, Vector{Int64}}
 end
 
 function FFTParameters(DFTdim, DFTsize, M_perptz, lambda, index_missing, alpha_LS, gamma_LS, eps_NT, mu_barrier, eps_barrier)
@@ -24,24 +24,35 @@ mutable struct FFTNLPModel <: AbstractNLPModel{Float64, Vector{Float64}}
     counters::Counters
 end
 
-meta = NLPModelMeta(
-nvar,
-x0 = x0,
-lvar = lvar,
-uvar = uvar,
-ncon = ncon,
-y0 = zeros(ncon),
-lcon = lcon,
-ucon = ucon,
-nnzj = nnzj,
-nnzh = nnzh,
-lin = collect(1:nlin),
-lin_nnzj = lincon.nnzj,
-nln_nnzj = quadcon.nnzj + nlcon.nnzj,
-minimize = MOI.get(moimodel, MOI.ObjectiveSense()) == MOI.MIN_SENSE,
-islp = (obj.type == "LINEAR") && (nnln == 0) && (quadcon.nquad == 0),
-name = name,
-)
+function FFTNLPModel(parameters::FFTParameters)
+    DFTdim = parameters.paramf[1]   # problem size (1, 2, 3)
+    DFTsize = parameters.paramf[2]  # problem dimension
+    nvar = 2 * prod(DFTsize)
+    ncon = nvar
+    x0 = zeros(Float64, nvar)
+    y0 = zeros(Float64, ncon)
+    c = zeros(Float64, ncon)
+    lvar = -Inf * ones(Float64, nvar)
+    uvar =  Inf * ones(Float64, nvar)
+    lcon = -Inf * ones(Float64, ncon)
+    ucon =  Inf * ones(Float64, ncon)
+    meta = NLPModelMeta(
+        nvar,
+        x0 = x0,
+        lvar = lvar,
+        uvar = uvar,
+        ncon = ncon,
+        y0 = y0,
+        lcon = lcon,
+        ucon = ucon,
+        nnzj = nvar * ncon,
+        nnzh = nvar * nvar,
+        minimize = true,
+        islp = false,
+        name = "CompressedSensing-$(DFTdim)D",
+    )
+    return FFTNLPModel(meta, parameters, c, Counters())
+end
 
 function NLPModels.cons!(nlp::FFTNLPModel, x::AbstractVector, c::AbstractVector)
   increment!(nlp, :neval_cons)
@@ -81,6 +92,8 @@ function NLPModels.obj(nlp::FFTNLPModel, x::AbstractVector)
     # Mt = nlp.parameters.paramf[6]
 
     fft_val = M_perp_beta_wei(DFTdim, DFTsize, x, index_missing)
+    n = prod(DFTsize)
+    beta = view(x, 1:n)
     fval = 0.5 * dot(fft_val, fft_val) - dot(beta, M_perptz) + lambda * sum(nlp.c)
     return fval
 end
@@ -94,10 +107,12 @@ function NLPModels.grad!(nlp::FFTNLPModel, x::AbstractVector, g::AbstractVector)
   index_missing = nlp.parameters.paramf[5]
   # Mt = nlp.parameters.paramf[6]
 
-  n = prod(DFTdim)
+  n = prod(DFTsize)
   g_b = view(g, 1:n)
   g_c = view(g, n+1:2*n)
-  g_b .= M_perpt_M_perp_vec_wei(DFTdim, DFTsize, x, index_missing) .- Mperptz
+  beta = view(x, 1:n)
+  res = M_perpt_M_perp_vec_wei(DFTdim, DFTsize, beta, index_missing)
+  g_b .= res .- M_perptz
   g_c .= lambda .* ones(Float64, n)
   return g
 end
@@ -118,10 +133,10 @@ function NLPModels.hprod!(
   index_missing = nlp.parameters.paramf[5]
   # Mt = nlp.parameters.paramf[6]
 
-  n = prod(DFTdim)
+  n = prod(DFTsize)
   hv_b = view(hv, 1:n)
   hv_c = view(hv, n+1:2*n)
-  hv_b .= M_perpt_M_perp_vec_wei(DFTdim, DFTsize, v, index_missing) .- Mperptz
+  hv_b .= M_perpt_M_perp_vec_wei(DFTdim, DFTsize, v[1:n], index_missing) .- M_perptz
   hv_c .= 0.0
   return hv
 end
