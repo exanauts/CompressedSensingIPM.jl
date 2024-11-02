@@ -28,12 +28,6 @@ function M_perp_tz_wei(dim, size, z_zero)
     return beta
 end
 
-function M_perp_tz_wei2(dim, size, z_zero)
-    N = prod(size);
-    beta = real.(rfft(z_zero))
-    return beta
-end
-
 function M_perp_beta_wei(dim, size, beta, idx_missing)
     N = prod(size);
     v = beta_to_DFT(dim, size, beta);
@@ -42,11 +36,16 @@ function M_perp_beta_wei(dim, size, beta, idx_missing)
     return temp
 end
 
+function M_perp_tz_wei2(dim, size, z_zero)
+    N = prod(size)
+    beta = real.(rfft(z_zero)) ./ sqrt(N)
+    return beta
+end
+
 function M_perp_beta_wei2(dim, size, beta, idx_missing)
-    N = prod(size);
-    M = 2 * (N - 1)
-    temp = irfft(beta, M)
-    temp[idx_missing] .= 0;
+    N = prod(size)
+    temp = irfft(beta, N) .* sqrt(N)
+    temp[idx_missing] .= 0
     return temp
 end
 

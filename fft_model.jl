@@ -21,21 +21,23 @@ mutable struct FFTNLPModel <: AbstractNLPModel{Float64, Vector{Float64}}
     meta::NLPModelMeta{Float64, Vector{Float64}}
     parameters::FFTParameters
     c::Vector{Float64}
+    N::Int
     counters::Counters
 end
 
 function FFTNLPModel(parameters::FFTParameters)
     DFTdim = parameters.paramf[1]   # problem size (1, 2, 3)
     DFTsize = parameters.paramf[2]  # problem dimension
-    nvar = 2 * prod(DFTsize)
-    ncon = nvar
+    N = prod(DFTsize)
+    nvar = 2 * N
+    ncon = 3 * N + 1
     x0 = zeros(Float64, nvar)
     y0 = zeros(Float64, ncon)
     c = zeros(Float64, ncon)
     lvar = -Inf * ones(Float64, nvar)
     uvar =  Inf * ones(Float64, nvar)
     lcon = -Inf * ones(Float64, ncon)
-    ucon =  Inf * ones(Float64, ncon)
+    ucon = zeros(Float64, ncon)
     meta = NLPModelMeta(
         nvar,
         x0 = x0,
@@ -51,12 +53,19 @@ function FFTNLPModel(parameters::FFTParameters)
         islp = false,
         name = "CompressedSensing-$(DFTdim)D",
     )
-    return FFTNLPModel(meta, parameters, c, Counters())
+    return FFTNLPModel(meta, parameters, c, N, Counters())
 end
 
 function NLPModels.cons!(nlp::FFTNLPModel, x::AbstractVector, c::AbstractVector)
   increment!(nlp, :neval_cons)
-  # ...
+  N = nlp.N
+  for i = 1:N
+    c[i]     = -x[i] - x[i+N]  # -βᵢ - cᵢ
+    c[N+i]   =  x[i] - x[i+N]  #  βᵢ - cᵢ
+    c[2*N+i] =       - x[i+N]  #     - cᵢ
+  end
+  d = 0.0 # What is d?!
+  c[3*N+1] = sum(x[i] for i=N+1:2*N) - d  # Σcᵢ + d
   return c
 end
 
@@ -67,7 +76,13 @@ function NLPModels.jprod!(
   Jv::AbstractVector,
 )
   increment!(nlp, :neval_jprod)
-  # ...
+  N = nlp.N
+  for i = 1:N
+    Jv[i]     = -v[i] - v[i+N]
+    Jv[N+i]   =  v[i] - v[i+N]
+    Jv[2*N+i] =       - v[i+N]
+  end
+  Jv[3*N+1] = sum(v[i + N] for i = 1:N)
   return Jv
 end
 
@@ -78,7 +93,14 @@ function NLPModels.jtprod!(
   Jtv::AbstractVector,
 )
   increment!(nlp, :neval_jtprod)
-  # ...
+  N = nlp.N
+  for i = 1:N
+    Jtv[i]   = -v[i] + v[N+i]
+    Jtv[i+N] = -v[i] - v[N+i] - v[2*N+i]
+  end
+  for i = 1:N
+    Jtv[i+N] += v[3*N+1]
+  end
   return Jtv
 end
 

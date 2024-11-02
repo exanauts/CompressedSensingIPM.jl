@@ -8,9 +8,9 @@ Nt = 100
 # Nt = 10^5
 t = collect(0:(Nt-1))
 
-x1 = 2*cos.(2*pi*t*6/Nt).+ 3*sin.(2*pi*t*6/Nt)
-x2 = 4*cos.(2*pi*t*10/Nt).+ 5*sin.(2*pi*t*10/Nt)
-x3 = 6*cos.(2*pi*t*40/Nt).+ 7*sin.(2*pi*t*40/Nt)
+x1 = 2 * cos.(2*pi*t*6/Nt)  .+ 3 * sin.(2*pi*t*6/Nt)
+x2 = 4 * cos.(2*pi*t*10/Nt) .+ 5 * sin.(2*pi*t*10/Nt)
+x3 = 6 * cos.(2*pi*t*40/Nt) .+ 7 * sin.(2*pi*t*40/Nt)
 x = x1 .+ x2 .+ x3  # signal
 
 y = x + randn(Nt)  # noisy signal
@@ -42,14 +42,22 @@ beta_init = ones(Nt) ./ 2
 c_init = ones(Nt)
 
 nlp = FFTNLPModel(parameters)
+nvar = get_nvar(nlp)
+ncon = get_ncon(nlp)
 d = [beta_init; c_init]
 obj(nlp, d)
+cons(nlp, d)
 grad(nlp, d)
 N = prod(DFTsize)
-y = ones(Float64, 2 * N)
-hv = zeros(Float64, 2 * N)
-v = rand(Float64, 2 * N)
+y = ones(Float64, ncon)
+hv = zeros(Float64, nvar)
+v = rand(Float64, nvar)
 hprod!(nlp, d, y, v, hv)
+Jv = zeros(Float64, ncon)
+jprod!(nlp, d, v, Jv)
+Jtv = zeros(Float64, nvar)
+w = rand(Float64, ncon)
+jtprod!(nlp, d, w, Jtv)
 
 # beta_MadNLP, c_MadNLP, subgrad_MadNLP, time_MadNLP = barrier_mtd(beta_init, c_init, t_init, paramset)
 # println("Number of calls to CG: $(nkrylov_ipm).")
