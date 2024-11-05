@@ -34,7 +34,7 @@ function FFTNLPModel(parameters::FFTParameters)
     y0 = zeros(Float64, ncon)
     lvar = -Inf * ones(Float64, nvar)
     for i = N+1:2N
-      lvar[i] = zero(Float64)  # cᵢ ≥ 0
+        lvar[i] = zero(Float64)  # cᵢ ≥ 0
     end
     uvar =  Inf * ones(Float64, nvar)
     lcon = -Inf * ones(Float64, ncon)
@@ -48,8 +48,8 @@ function FFTNLPModel(parameters::FFTParameters)
         y0 = y0,
         lcon = lcon,
         ucon = ucon,
-        nnzj = nvar * ncon,
-        nnzh = nvar * nvar,
+        nnzj = ncon * 2,
+        nnzh = 0, #nvar * nvar,
         minimize = true,
         islp = false,
         name = "CompressedSensing-$(DFTdim)D",
@@ -58,43 +58,77 @@ function FFTNLPModel(parameters::FFTParameters)
 end
 
 function NLPModels.cons!(nlp::FFTNLPModel, x::AbstractVector, c::AbstractVector)
-  increment!(nlp, :neval_cons)
-  N = nlp.N
-  for i = 1:N
-    c[i]     = -x[i] - x[i+N]  # -βᵢ - cᵢ
-    c[N+i]   =  x[i] - x[i+N]  #  βᵢ - cᵢ
-  end
-  return c
+    increment!(nlp, :neval_cons)
+    N = nlp.N
+    for i = 1:N
+        c[i]     = -x[i] - x[i+N]  # -βᵢ - cᵢ
+        c[N+i]   =  x[i] - x[i+N]  #  βᵢ - cᵢ
+    end
+    return c
+end
+
+function NLPModels.jac_structure!(nlp::FFTNLPModel, rows::Vector{Int}, cols::Vector{Int})
+    N = nlp.N
+    k = 0
+    for i = 1:N
+        # -βᵢ - cᵢ
+        rows[k+1] = i
+        cols[k+1] = i
+        rows[k+2] = i
+        cols[k+2] = i + N
+        #  βᵢ - cᵢ
+        rows[k+3] = i + N
+        cols[k+3] = i
+        rows[k+4] = i + N
+        cols[k+4] = i + N
+        k += 4
+    end
+    return (rows, cols)
+end
+
+function NLPModels.jac_coord!(nlp::FFTNLPModel, x::AbstractVector{T}, vals::AbstractVector{T}) where T
+    increment!(nlp, :neval_jac)
+    N = nlp.N
+    k = 0
+    for i = 1:N
+        # -βᵢ - cᵢ
+        vals[k+1] = -one(T)
+        vals[k+2] = -one(T)
+        #  βᵢ - cᵢ
+        vals[k+3] =  one(T)
+        vals[k+4] = -one(T)
+        k += 4
+    end
 end
 
 function NLPModels.jprod!(
-  nlp::FFTNLPModel,
-  x::AbstractVector,
-  v::AbstractVector,
-  Jv::AbstractVector,
+    nlp::FFTNLPModel,
+    x::AbstractVector,
+    v::AbstractVector,
+    Jv::AbstractVector,
 )
-  increment!(nlp, :neval_jprod)
-  N = nlp.N
-  for i = 1:N
-    Jv[i]   = -v[i] - v[i+N]
-    Jv[N+i] =  v[i] - v[i+N]
-  end
-  return Jv
+    increment!(nlp, :neval_jprod)
+    N = nlp.N
+    for i = 1:N
+        Jv[i]   = -v[i] - v[i+N]
+        Jv[N+i] =  v[i] - v[i+N]
+    end
+    return Jv
 end
 
 function NLPModels.jtprod!(
-  nlp::FFTNLPModel,
-  x::AbstractVector,
-  v::AbstractVector,
-  Jtv::AbstractVector,
+    nlp::FFTNLPModel,
+    x::AbstractVector,
+    v::AbstractVector,
+    Jtv::AbstractVector,
 )
-  increment!(nlp, :neval_jtprod)
-  N = nlp.N
-  for i = 1:N
-    Jtv[i]   = -v[i] + v[N+i]
-    Jtv[i+N] = -v[i] - v[N+i]
-  end
-  return Jtv
+    increment!(nlp, :neval_jtprod)
+    N = nlp.N
+    for i = 1:N
+        Jtv[i]   = -v[i] + v[N+i]
+        Jtv[i+N] = -v[i] - v[N+i]
+    end
+    return Jtv
 end
 
 function NLPModels.obj(nlp::FFTNLPModel, x::AbstractVector)
@@ -115,44 +149,44 @@ function NLPModels.obj(nlp::FFTNLPModel, x::AbstractVector)
 end
 
 function NLPModels.grad!(nlp::FFTNLPModel, x::AbstractVector, g::AbstractVector)
-  increment!(nlp, :neval_grad)
-  DFTdim = nlp.parameters.paramf[1]
-  DFTsize = nlp.parameters.paramf[2]
-  M_perptz = nlp.parameters.paramf[3]
-  lambda = nlp.parameters.paramf[4]
-  index_missing = nlp.parameters.paramf[5]
-  # Mt = nlp.parameters.paramf[6]
+    increment!(nlp, :neval_grad)
+    DFTdim = nlp.parameters.paramf[1]
+    DFTsize = nlp.parameters.paramf[2]
+    M_perptz = nlp.parameters.paramf[3]
+    lambda = nlp.parameters.paramf[4]
+    index_missing = nlp.parameters.paramf[5]
+    # Mt = nlp.parameters.paramf[6]
 
-  n = prod(DFTsize)
-  g_b = view(g, 1:n)
-  g_c = view(g, n+1:2*n)
-  beta = view(x, 1:n)
-  res = M_perpt_M_perp_vec_wei(DFTdim, DFTsize, beta, index_missing)
-  g_b .= res .- M_perptz
-  g_c .= lambda .* ones(Float64, n)
-  return g
+    n = prod(DFTsize)
+    g_b = view(g, 1:n)
+    g_c = view(g, n+1:2*n)
+    beta = view(x, 1:n)
+    res = M_perpt_M_perp_vec_wei(DFTdim, DFTsize, beta, index_missing)
+    g_b .= res .- M_perptz
+    g_c .= lambda .* ones(Float64, n)
+    return g
 end
 
 function NLPModels.hprod!(
-  nlp::FFTNLPModel,
-  x::AbstractVector,
-  y::AbstractVector,
-  v::AbstractVector,
-  hv::AbstractVector;
-  obj_weight::Float64 = 1.0,
+    nlp::FFTNLPModel,
+    x::AbstractVector,
+    y::AbstractVector,
+    v::AbstractVector,
+    hv::AbstractVector;
+    obj_weight::Float64 = 1.0,
 )
-  increment!(nlp, :neval_hprod)
-  DFTdim = nlp.parameters.paramf[1]
-  DFTsize = nlp.parameters.paramf[2]
-  M_perptz = nlp.parameters.paramf[3]
-  lambda = nlp.parameters.paramf[4]
-  index_missing = nlp.parameters.paramf[5]
-  # Mt = nlp.parameters.paramf[6]
+    increment!(nlp, :neval_hprod)
+    DFTdim = nlp.parameters.paramf[1]
+    DFTsize = nlp.parameters.paramf[2]
+    M_perptz = nlp.parameters.paramf[3]
+    lambda = nlp.parameters.paramf[4]
+    index_missing = nlp.parameters.paramf[5]
+    # Mt = nlp.parameters.paramf[6]
 
-  n = prod(DFTsize)
-  hv_b = view(hv, 1:n)
-  hv_c = view(hv, n+1:2*n)
-  hv_b .= M_perpt_M_perp_vec_wei(DFTdim, DFTsize, v[1:n], index_missing) .- M_perptz
-  hv_c .= 0.0
-  return hv
+    n = prod(DFTsize)
+    hv_b = view(hv, 1:n)
+    hv_c = view(hv, n+1:2*n)
+    hv_b .= M_perpt_M_perp_vec_wei(DFTdim, DFTsize, v[1:n], index_missing)
+    hv_c .= 0.0
+    return hv
 end

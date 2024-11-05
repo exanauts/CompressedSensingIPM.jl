@@ -1,4 +1,6 @@
 using Random, Distributions
+using MadNLP
+
 Random.seed!(1)
 
 include("fft_model.jl")
@@ -56,8 +58,18 @@ hprod!(nlp, d, y, v, hv)
 Jv = zeros(Float64, ncon)
 jprod!(nlp, d, v, Jv)
 Jtv = zeros(Float64, nvar)
-w = rand(Float64, ncon)
-jtprod!(nlp, d, w, Jtv)
+# w = rand(Float64, ncon)
+
+nnzj = NLPModels.get_nnzj(nlp)
+rows, cols = NLPModels.jac_structure(nlp)
+vals = zeros(nnzj)
+jac_coord!(nlp, d, vals)
+
+# Solve with MadNLP/LBFGS
+solver = MadNLP.MadNLPSolver(nlp; hessian_approximation=MadNLP.CompactLBFGS)
+results = MadNLP.solve!(solver)
+beta_MadNLP = results.solution[1:Nt]
+
 
 # beta_MadNLP, c_MadNLP, subgrad_MadNLP, time_MadNLP = barrier_mtd(beta_init, c_init, t_init, paramset)
 # println("Number of calls to CG: $(nkrylov_ipm).")
