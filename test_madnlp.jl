@@ -1,0 +1,59 @@
+
+using Random, Distributions
+using MadNLP
+
+Random.seed!(1)
+
+include("fft_model.jl")
+include("kkt.jl")
+
+# 1D
+Nt = 100
+# Nt = 10^5
+t = collect(0:(Nt-1))
+
+# Generate data
+x1 = 2 * cos.(2*pi*t*6/Nt)  .+ 3 * sin.(2*pi*t*6/Nt)
+x2 = 4 * cos.(2*pi*t*10/Nt) .+ 5 * sin.(2*pi*t*10/Nt)
+x3 = 6 * cos.(2*pi*t*40/Nt) .+ 7 * sin.(2*pi*t*40/Nt)
+x = x1 .+ x2 .+ x3  # signal
+
+y = x + randn(Nt)  # noisy signal
+graphics = false
+
+w = fft(x) ./ sqrt(Nt)  # true DFT
+DFTsize = size(x)  # problem dim
+DFTdim = length(DFTsize)  # problem size
+missing_prob = 0.15
+centers = centering(DFTdim, DFTsize, missing_prob)
+radius = 1
+index_missing, z_zero = punching(DFTdim, DFTsize, centers, radius, y)
+M_perptz = M_perp_tz_wei(DFTdim, DFTsize, z_zero) # M_perptz
+
+lambda = 10.0
+
+alpha_LS = 0.1
+gamma_LS = 0.8
+eps_NT = 1e-6
+eps_barrier = 1e-6
+mu_barrier = 10
+
+parameters = FFTParameters(DFTdim, DFTsize, M_perptz, lambda, index_missing, alpha_LS, gamma_LS, eps_NT, mu_barrier, eps_barrier)
+
+nlp = FFTNLPModel(parameters)
+
+#=
+    Launch solution with MadNLP using custom KKT system.
+=#
+
+solver = MadNLP.MadNLPSolver(
+    nlp;
+    max_iter=20,
+    kkt_system=FFTKKTSystem,
+    print_level=MadNLP.INFO,
+    dual_initialized=true,
+    richardson_max_iter=10,
+    tol=1e-5,
+    richardson_tol=1e-8,
+)
+MadNLP.solve!(solver)
