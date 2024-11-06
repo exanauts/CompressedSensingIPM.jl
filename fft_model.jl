@@ -33,9 +33,6 @@ function FFTNLPModel(parameters::FFTParameters)
     x0 = zeros(Float64, nvar)
     y0 = zeros(Float64, ncon)
     lvar = -Inf * ones(Float64, nvar)
-    for i = N+1:2N
-        lvar[i] = zero(Float64)  # cᵢ ≥ 0
-    end
     uvar =  Inf * ones(Float64, nvar)
     lcon = -Inf * ones(Float64, ncon)
     ucon = zeros(Float64, ncon)
@@ -49,7 +46,7 @@ function FFTNLPModel(parameters::FFTParameters)
         lcon = lcon,
         ucon = ucon,
         nnzj = ncon * 2,
-        nnzh = 0, #nvar * nvar,
+        nnzh = div(N * (N + 1), 2),
         minimize = true,
         islp = false,
         name = "CompressedSensing-$(DFTdim)D",
@@ -189,4 +186,51 @@ function NLPModels.hprod!(
     hv_b .= M_perpt_M_perp_vec_wei(DFTdim, DFTsize, v[1:n], index_missing)
     hv_c .= 0.0
     return hv
+end
+
+function NLPModels.hess_structure!(nlp::FFTNLPModel, rows, cols)
+    nβ = nlp.N
+    cnt = 1
+    for i in 1:nβ
+        for j in 1:i
+            rows[cnt] = i
+            cols[cnt] = j
+            cnt += 1
+        end
+    end
+    return rows, cols
+end
+
+function NLPModels.hess_coord!(
+    nlp::FFTNLPModel,
+    x::AbstractVector,
+    y::AbstractVector,
+    hess::AbstractVector;
+    obj_weight::Float64 = 1.0,
+)
+    increment!(nlp, :neval_hess)
+    DFTdim = nlp.parameters.paramf[1]
+    DFTsize = nlp.parameters.paramf[2]
+    M_perptz = nlp.parameters.paramf[3]
+    lambda = nlp.parameters.paramf[4]
+    index_missing = nlp.parameters.paramf[5]
+
+    nβ = nlp.N
+    H = zeros(nβ, nβ)
+    v = zeros(nβ)
+    for i in 1:nβ
+        fill!(v, 0.0)
+        v[i] = 1.0
+        H[:, i] .= M_perpt_M_perp_vec_wei(DFTdim, DFTsize, v, index_missing)
+    end
+
+    cnt = 1
+    for i in 1:nβ
+        for j in 1:i
+            hess[cnt] = H[i, j]
+            cnt += 1
+        end
+    end
+
+    return hess
 end
