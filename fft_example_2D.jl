@@ -4,20 +4,17 @@ Random.seed!(1)
 include("fft_model.jl")
 
 ## 2D
-# Nt = 20
-# Ns = 24
-Nt = 4
-Ns = 4
+Nt = 20
+Ns = 24
 t = collect(0:(Nt-1))
 s = collect(0:(Ns-1))
 x = (cos.(2*pi*2/Nt*t)+ 2*sin.(2*pi*2/Nt*t))*(cos.(2*pi*3/Ns*s) + 2*sin.(2*pi*3/Ns*s))'
 
-y = x + randn(Nt,Ns)  #noisy signal
-graphics = false
+y = x + randn(Nt,Ns)  # noisy signal
 
 w = fft(x) ./ sqrt(Nt*Ns)  # true DFT
-DFTsize = size(x) # problem dim
-DFTdim = length(DFTsize) # problem size
+DFTsize = size(x)  # problem dim
+DFTdim = length(DFTsize)  # problem size
 beta_true = DFT_to_beta(DFTdim, DFTsize, w)
 sum(abs.(beta_true))
 
@@ -45,32 +42,22 @@ beta_init = zeros(prod(DFTsize))
 c_init = ones(prod(DFTsize))
 
 nlp = FFTNLPModel(parameters)
-nvar = get_nvar(nlp)
-ncon = get_ncon(nlp)
-d = [beta_init; c_init]
-obj(nlp, d)
-cons(nlp, d)
-grad(nlp, d)
-N = prod(DFTsize)
-y = ones(Float64, ncon)
-hv = zeros(Float64, nvar)
-v = rand(Float64, nvar)
-hprod!(nlp, d, y, v, hv)
-Jv = zeros(Float64, ncon)
-jprod!(nlp, d, v, Jv)
-Jtv = zeros(Float64, nvar)
-w = rand(Float64, ncon)
-jtprod!(nlp, d, w, Jtv)
 
-# beta_MadNLP, c_MadNLP, subgrad_MadNLP, time_MadNLP = barrier_mtd(beta_init, c_init, t_init, paramset)
+# Solve with MadNLP/LBFGS
+# solver = MadNLP.MadNLPSolver(nlp; hessian_approximation=MadNLP.CompactLBFGS)
+# results = MadNLP.solve!(solver)
+# beta_MadNLP = results.solution[1:Nt]
 
-# #### comparison with orginal data
-# w_est = beta_to_DFT(DFTdim, DFTsize, beta_MadNLP)
-# norm(w .- w_est)
-# #############
-
-# if graphics
-#     plot(subgrad_MadNLP, time_MadNLP, seriestype=:scatter, title = "IP: 2d (20*24) time vs subgrad", xlab = "subgrad", ylab = "time", legend = false)
-#     plot(log.(subgrad_MadNLP), time_MadNLP, seriestype=:scatter, title = "IP: 2d (20*24) time vs log(subgrad)", xlab = "log(subgrad)", ylab = "time", legend = false)
-#     plot(log.(subgrad_MadNLP), title = "IP: 2d (20*24) log(subgrad)", xlabel = "iter", ylabel = "log(subgrad)", legend = false)
-# end
+# Solve with MadNLP/CG
+solver = MadNLP.MadNLPSolver(
+    nlp;
+    max_iter=20,
+    kkt_system=FFTKKTSystem,
+    print_level=MadNLP.INFO,
+    dual_initialized=true,
+    richardson_max_iter=10,
+    tol=1e-8,
+    richardson_tol=1e-8,
+)
+results = MadNLP.solve!(solver)
+beta_MadNLP = results.solution[1:Nt]

@@ -1,8 +1,5 @@
 using NLPModels, FFTW
 
-include("fft_utils.jl")
-include("punching_centering.jl")
-
 mutable struct FFTParameters
     paramB  # ::Tuple{Float64, Int64}
     eps_NT  # ::Float64
@@ -53,6 +50,10 @@ function FFTNLPModel(parameters::FFTParameters)
     )
     return FFTNLPModel(meta, parameters, N, Counters())
 end
+
+include("kkt.jl")
+include("fft_utils.jl")
+include("punching_centering.jl")
 
 function NLPModels.cons!(nlp::FFTNLPModel, x::AbstractVector, c::AbstractVector)
     increment!(nlp, :neval_cons)
