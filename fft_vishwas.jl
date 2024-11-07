@@ -70,7 +70,7 @@ nlp = FFTNLPModel(parameters)
 # Solve with MadNLP/CG
 solver = MadNLP.MadNLPSolver(
     nlp;
-    max_iter=20,
+    max_iter=200,
     kkt_system=FFTKKTSystem,
     print_level=MadNLP.INFO,
     dual_initialized=true,
