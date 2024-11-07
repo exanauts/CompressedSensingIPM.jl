@@ -4,9 +4,9 @@ Random.seed!(1)
 include("fft_model.jl")
 
 ## 3D
-N1 = 40
-N2 = 40
-N3 = 40
+N1 = 4
+N2 = 4
+N3 = 4
 
 idx1 = collect(0:(N1-1))
 idx2 = collect(0:(N2-1))

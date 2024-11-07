@@ -43,7 +43,7 @@ function FFTNLPModel(parameters::FFTParameters)
         lcon = lcon,
         ucon = ucon,
         nnzj = ncon * 2,
-        nnzh = div(N * (N + 1), 2),
+        nnzh = 0, # div(N * (N + 1), 2),
         minimize = true,
         islp = false,
         name = "CompressedSensing-$(DFTdim)D",

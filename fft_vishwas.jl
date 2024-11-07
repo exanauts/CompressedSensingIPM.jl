@@ -38,10 +38,10 @@ index_missing_2D = CartesianIndex{3}[]
 for i=0:4.
     for j=0:6.
         for k = 0:6.
-            center =[i,j,k];
-            absolute_indices1 = punch_3D_cart(center, radius, x, y, z);
-            punched_pmn[absolute_indices1] .= 0;
-            append!(index_missing_2D, absolute_indices1);
+            center =[i,j,k]
+            absolute_indices1 = punch_3D_cart(center, radius, x, y, z)
+            punched_pmn[absolute_indices1] .= 0
+            append!(index_missing_2D, absolute_indices1)
         end
     end
 end
@@ -67,11 +67,6 @@ c_init = ones(Nt)
 
 nlp = FFTNLPModel(parameters)
 
-# Solve with MadNLP/LBFGS
-# solver = MadNLP.MadNLPSolver(nlp; hessian_approximation=MadNLP.CompactLBFGS)
-# results = MadNLP.solve!(solver)
-# beta_MadNLP = results.solution[1:Nt]
-
 # Solve with MadNLP/CG
 solver = MadNLP.MadNLPSolver(
     nlp;
@@ -85,3 +80,8 @@ solver = MadNLP.MadNLPSolver(
 )
 results = MadNLP.solve!(solver)
 beta_MadNLP = results.solution[1:Nt]
+
+# using DelimitedFiles
+# open("sol_vishwas.txt", "w") do io
+#     writedlm(io, beta_MadNLP)
+# end

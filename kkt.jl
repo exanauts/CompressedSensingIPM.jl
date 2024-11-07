@@ -348,7 +348,7 @@ function MadNLP.solve!(kkt::FFTKKTSystem, w::MadNLP.AbstractKKTVector)
     bz .= w2 .- w3 .- w4 .- Σ1 .* w5 .- Σ2 .* w6
 
     # Solve with CG
-    Krylov.cg!(kkt.linear_solver, kkt.K, b, M=kkt.P, atol=1e-12, rtol=0.0, verbose=0)
+    Krylov.solve!(kkt.linear_solver, kkt.K, b, M=kkt.P, atol=1e-12, rtol=0.0, verbose=0)
     x = Krylov.solution(kkt.linear_solver)
 
     # Unpack solution
