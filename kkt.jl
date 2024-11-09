@@ -11,12 +11,16 @@ using Krylov
 
 =#
 
-struct CondensedFFTKKT{T, VT} <: AbstractMatrix{T}
+struct CondensedFFTKKT{T, VT, FFT, R, C} <: AbstractMatrix{T}
     nβ::Int
     params::FFTParameters  # for MᵀM
     buf1::VT
     Λ1::VT  # Σ₁ + Σ₂
     Λ2::VT  # Σ₁ - Σ₂
+    op::FFT # FFT operator
+    buffer_real::R      # Buffer for fft and ifft
+    buffer_complex1::C  # Buffer for fft and ifft
+    buffer_complex2::C  # Buffer for fft and ifft
 end
 
 function CondensedFFTKKT{T, VT}(nlp::FFTNLPModel) where {T, VT}
@@ -24,7 +28,17 @@ function CondensedFFTKKT{T, VT}(nlp::FFTNLPModel) where {T, VT}
     buf1 = VT(undef, nβ)
     Λ1 = VT(undef, nβ)
     Λ2 = VT(undef, nβ)
-    return CondensedFFTKKT{T, VT}(nβ, nlp.parameters, buf1, Λ1, Λ2)
+
+    # FFT operator
+    A_vec = VT(undef, nβ)
+    DFTsize = parameters.paramf[2]
+    A = reshape(A_vec, DFTsize)
+    op = plan_fft(A)
+    buffer_real = A
+    buffer_complex1 = Complex{T}.(A)  # <-- should be adapted on GPU
+    buffer_complex2 = copy(buffer_complex1)
+
+    return CondensedFFTKKT{T, VT, typeof(op), typeof(buffer_real), typeof(buffer_complex1)}(nβ, nlp.parameters, buf1, Λ1, Λ2, op, buffer_real, buffer_complex1, buffer_complex2)
 end
 
 Base.size(K::CondensedFFTKKT) = (2*K.nβ, 2*K.nβ)
@@ -47,7 +61,7 @@ function LinearAlgebra.mul!(y::AbstractVector, K::CondensedFFTKKT, x::AbstractVe
     xz  = view(x, nβ+1:2*nβ)
 
     # Evaluate Mᵀ M xβ
-    Mβ .= M_perpt_M_perp_vec_wei(DFTdim, DFTsize, xβ, index_missing)
+    Mβ .= M_perpt_M_perp_vec(K.buffer_real, K.buffer_complex1, K.buffer_complex2, K.op, DFTdim, DFTsize, xβ, index_missing)
 
     yβ .= beta .* yβ .+ alpha .* (Mβ .+ K.Λ1 .* xβ .+ K.Λ2 .* xz)
     yz .= beta .* yz .+ alpha .* (K.Λ2 .* xβ .+ K.Λ1 .* xz)
@@ -251,7 +265,7 @@ function MadNLP.mul!(y::VT, kkt::FFTKKTSystem, x::VT, alpha::Number, beta::Numbe
     xy2 = view(_x, 5*nβ+1:6*nβ)
 
     # Evaluate (MᵀM) * xβ
-    Mβ .= M_perpt_M_perp_vec_wei(DFTdim, DFTsize, xβ, index_missing)
+    Mβ .= M_perpt_M_perp_vec(kkt.K.buffer_real, kkt.K.buffer_complex1, kkt.K.buffer_complex2, kkt.K.op, DFTdim, DFTsize, xβ, index_missing)
     yβ .= beta .* yβ .+ alpha .* (Mβ .- xy1 .+ xy2)
     yz .= beta .* yz .- alpha .* (xy1 .+ xy2)
     ys1 .= beta .* ys1 .- alpha .* xy1

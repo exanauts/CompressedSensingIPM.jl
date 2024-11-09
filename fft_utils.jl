@@ -41,6 +41,37 @@ function M_perpt_M_perp_vec_wei(dim, size, vec, idx_missing)
     return temp
 end
 
+# Preallocated variants
+function M_perp_tz(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, z_zero)
+    N = prod(_size)
+    # println("-- M_perp_tz --")
+    # println(_size)
+    # println("z_zero | ", z_zero |> size, " | ", typeof(z_zero))
+    buffer_complex2 .= z_zero  # z_zero should be store in a complex buffer for mul!
+    temp = mul!(buffer_complex1, op, buffer_complex2)
+    temp ./= sqrt(N)
+    beta = DFT_to_beta(dim, _size, temp)
+    return beta
+end
+
+function M_perp_beta(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, beta, idx_missing)
+    N = prod(_size)
+    v = beta_to_DFT(dim, _size, beta)
+    # println("-- M_perp_beta --")
+    # println(_size)
+    # println("v | ", v |> size, " | ", typeof(v))
+    temp = ldiv!(buffer_complex1, op, v)
+    buffer_real .= real.(temp) .* sqrt(N)
+    buffer_real[idx_missing] .= 0
+    return buffer_real
+end
+
+function M_perpt_M_perp_vec(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, vec, idx_missing)
+    temp = M_perp_beta(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, vec, idx_missing)
+    temp = M_perp_tz(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, temp)
+    return temp
+end
+
 # mapping between DFT and real vector beta
 
 # mapping DFT to beta

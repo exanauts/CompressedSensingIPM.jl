@@ -1,4 +1,6 @@
 using Random, Distributions
+using MadNLP
+
 Random.seed!(1)
 
 include("fft_model.jl")
