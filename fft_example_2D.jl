@@ -1,6 +1,4 @@
 using Random, Distributions
-using MadNLP
-
 Random.seed!(1)
 
 include("fft_model.jl")
@@ -48,7 +46,7 @@ nlp = FFTNLPModel(parameters)
 # Solve with MadNLP/LBFGS
 # solver = MadNLP.MadNLPSolver(nlp; hessian_approximation=MadNLP.CompactLBFGS)
 # results = MadNLP.solve!(solver)
-# beta_MadNLP = results.solution[1:Nt]
+# beta_MadNLP = results.solution[1:Nt*Ns]
 
 # Solve with MadNLP/CG
 solver = MadNLP.MadNLPSolver(
@@ -62,4 +60,4 @@ solver = MadNLP.MadNLPSolver(
     richardson_tol=1e-8,
 )
 results = MadNLP.solve!(solver)
-beta_MadNLP = results.solution[1:Nt]
+beta_MadNLP = results.solution[1:Nt*Ns]

@@ -1,7 +1,6 @@
 using Random, Distributions
 using LinearAlgebra, SparseArrays
 using LaplaceInterpolation, NPZ
-using MadNLP
 
 include("fft_model.jl")
 
@@ -70,13 +69,13 @@ nlp = FFTNLPModel(parameters)
 # Solve with MadNLP/CG
 solver = MadNLP.MadNLPSolver(
     nlp;
-    max_iter=200,
+    max_iter=2000,
     kkt_system=FFTKKTSystem,
     print_level=MadNLP.INFO,
     dual_initialized=true,
-    richardson_max_iter=10,
+    richardson_max_iter=0,
     tol=1e-8,
-    richardson_tol=1e-8,
+    richardson_tol=Inf,
 )
 results = MadNLP.solve!(solver)
 beta_MadNLP = results.solution[1:Nt]

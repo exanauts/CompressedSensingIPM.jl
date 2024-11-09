@@ -1,6 +1,4 @@
 using Random, Distributions
-using MadNLP
-
 Random.seed!(1)
 
 include("fft_model.jl")
@@ -34,6 +32,12 @@ index_missing_Cartesian, z_zero = punching(DFTdim, DFTsize, centers, radius, y)
 M_perptz = M_perp_tz_wei(DFTdim, DFTsize, z_zero)
 lambda = 5
 
+alpha_LS = 0.1
+gamma_LS = 0.8
+eps_NT = 1e-6
+eps_barrier = 1e-6
+mu_barrier = 10
+
 parameters = FFTParameters(DFTdim, DFTsize, M_perptz, lambda, index_missing_Cartesian, alpha_LS, gamma_LS, eps_NT, mu_barrier, eps_barrier)
 
 t_init = 1
@@ -45,7 +49,7 @@ nlp = FFTNLPModel(parameters)
 # Solve with MadNLP/LBFGS
 # solver = MadNLP.MadNLPSolver(nlp; hessian_approximation=MadNLP.CompactLBFGS)
 # results = MadNLP.solve!(solver)
-# beta_MadNLP = results.solution[1:Nt]
+# beta_MadNLP = results.solution[1:N1*N2*N3]
 
 # Solve with MadNLP/CG
 solver = MadNLP.MadNLPSolver(
@@ -59,4 +63,4 @@ solver = MadNLP.MadNLPSolver(
     richardson_tol=1e-8,
 )
 results = MadNLP.solve!(solver)
-beta_MadNLP = results.solution[1:Nt]
+beta_MadNLP = results.solution[1:N1*N2*N3]

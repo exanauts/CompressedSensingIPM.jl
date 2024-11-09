@@ -2,6 +2,7 @@
 using LinearAlgebra
 using SparseArrays
 using Krylov
+using MadNLP
 
 #=
     Operator for matrix
