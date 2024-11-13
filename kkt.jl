@@ -188,6 +188,7 @@ MadNLP.is_inertia(::Krylov.CgSolver) = true
 MadNLP.inertia(::Krylov.CgSolver) = (0, 0, 0)
 MadNLP.introduce(::Krylov.CgSolver) = "CG"
 MadNLP.improve!(::Krylov.CgSolver) = true
+MadNLP.factorize!(::Krylov.CgSolver) = nothing
 
 MadNLP.is_inertia_correct(kkt::FFTKKTSystem, p, n, z) = true
 
