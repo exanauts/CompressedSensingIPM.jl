@@ -90,6 +90,9 @@ function NLPModels.jac_structure!(nlp::FFTNLPModel, rows::AbstractVector{Int}, c
             cols[k+4] = i + N
             k += 4
         end
+    else
+        fill!(rows, 1)
+        fill!(cols, 1)
     end
     return (rows, cols)
 end
