@@ -48,7 +48,7 @@ function FFTNLPModel{T,VT}(parameters::FFTParameters) where {T,VT}
         y0 = y0,
         lcon = lcon,
         ucon = ucon,
-        nnzj = ncon * 2,
+        nnzj = 0, # ncon * 2,
         nnzh = 0, # div(N * (N + 1), 2),
         minimize = true,
         islp = false,
@@ -73,39 +73,43 @@ function NLPModels.cons!(nlp::FFTNLPModel, x::AbstractVector, c::AbstractVector)
     return c
 end
 
-function NLPModels.jac_structure!(nlp::FFTNLPModel, rows::Vector{Int}, cols::Vector{Int})
-    N = nlp.N
-    k = 0
-    for i = 1:N
-        # -βᵢ - cᵢ
-        rows[k+1] = i
-        cols[k+1] = i
-        rows[k+2] = i
-        cols[k+2] = i + N
-        #  βᵢ - cᵢ
-        rows[k+3] = i + N
-        cols[k+3] = i
-        rows[k+4] = i + N
-        cols[k+4] = i + N
-        k += 4
+function NLPModels.jac_structure!(nlp::FFTNLPModel, rows::AbstractVector{Int}, cols::AbstractVector{Int})
+    if nlp.meta.nnzj != 0
+        N = nlp.N
+        k = 0
+        for i = 1:N
+            # -βᵢ - cᵢ
+            rows[k+1] = i
+            cols[k+1] = i
+            rows[k+2] = i
+            cols[k+2] = i + N
+            #  βᵢ - cᵢ
+            rows[k+3] = i + N
+            cols[k+3] = i
+            rows[k+4] = i + N
+            cols[k+4] = i + N
+            k += 4
+        end
     end
     return (rows, cols)
 end
 
 function NLPModels.jac_coord!(nlp::FFTNLPModel, x::AbstractVector{T}, vals::AbstractVector{T}) where T
-    increment!(nlp, :neval_jac)
-    N = nlp.N
-    k = 0
-    vals1 = view(vals, 1:4:N-3)
-    vals2 = view(vals, 2:4:N-2)
-    vals3 = view(vals, 3:4:N-1)
-    vals4 = view(vals, 4:4:N)
-    # -βᵢ - cᵢ
-    fill!(vals1, -one(T))
-    fill!(vals2, -one(T))
-    #  βᵢ - cᵢ
-    fill!(vals1,  one(T))
-    fill!(vals2, -one(T))
+    if nlp.meta.nnzj != 0
+        increment!(nlp, :neval_jac)
+        N = nlp.N
+        k = 0
+        vals1 = view(vals, 1:4:N-3)
+        vals2 = view(vals, 2:4:N-2)
+        vals3 = view(vals, 3:4:N-1)
+        vals4 = view(vals, 4:4:N)
+        # -βᵢ - cᵢ
+        fill!(vals1, -one(T))
+        fill!(vals2, -one(T))
+        #  βᵢ - cᵢ
+        fill!(vals1,  one(T))
+        fill!(vals2, -one(T))
+    end
 end
 
 function NLPModels.jprod!(
@@ -202,14 +206,16 @@ function NLPModels.hprod!(
     return hv
 end
 
-function NLPModels.hess_structure!(nlp::FFTNLPModel, rows::Vector{Int}, cols::Vector{Int})
-    nβ = nlp.N
-    cnt = 1
-    for i in 1:nβ
-        for j in 1:i
-            rows[cnt] = i
-            cols[cnt] = j
-            cnt += 1
+function NLPModels.hess_structure!(nlp::FFTNLPModel, rows::AbstractVector{Int}, cols::AbstractVector{Int})
+    if nlp.meta.nnzh != 0
+        nβ = nlp.N
+        cnt = 1
+        for i in 1:nβ
+            for j in 1:i
+                rows[cnt] = i
+                cols[cnt] = j
+                cnt += 1
+            end
         end
     end
     return rows, cols
@@ -222,27 +228,29 @@ function NLPModels.hess_coord!(
     hess::AbstractVector;
     obj_weight::Float64 = 1.0,
 )
-    increment!(nlp, :neval_hess)
-    DFTdim = nlp.parameters.paramf[1]
-    DFTsize = nlp.parameters.paramf[2]
-    M_perptz = nlp.parameters.paramf[3]
-    lambda = nlp.parameters.paramf[4]
-    index_missing = nlp.parameters.paramf[5]
+    if nlp.meta.nnzh != 0
+        increment!(nlp, :neval_hess)
+        DFTdim = nlp.parameters.paramf[1]
+        DFTsize = nlp.parameters.paramf[2]
+        M_perptz = nlp.parameters.paramf[3]
+        lambda = nlp.parameters.paramf[4]
+        index_missing = nlp.parameters.paramf[5]
 
-    nβ = nlp.N
-    H = zeros(nβ, nβ)
-    v = zeros(nβ)
-    for i in 1:nβ
-        fill!(v, 0.0)
-        v[i] = 1.0
-        H[:, i] .= M_perpt_M_perp_vec_wei(DFTdim, DFTsize, v, index_missing)
-    end
+        nβ = nlp.N
+        H = zeros(nβ, nβ)
+        v = zeros(nβ)
+        for i in 1:nβ
+            fill!(v, 0.0)
+            v[i] = 1.0
+            H[:, i] .= M_perpt_M_perp_vec_wei(DFTdim, DFTsize, v, index_missing)
+        end
 
-    cnt = 1
-    for i in 1:nβ
-        for j in 1:i
-            hess[cnt] = H[i, j]
-            cnt += 1
+        cnt = 1
+        for i in 1:nβ
+            for j in 1:i
+                hess[cnt] = H[i, j]
+                cnt += 1
+            end
         end
     end
 
