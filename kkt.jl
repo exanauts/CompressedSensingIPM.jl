@@ -227,7 +227,7 @@ function MadNLP.eval_lag_hess_wrapper!(
     solver::MadNLP.MadNLPSolver,
     kkt::FFTKKTSystem,
     x::MadNLP.PrimalVector{T},
-    l::Vector{T};
+    l::AbstractVector{T};
     is_resto=false,
 ) where T
     return
