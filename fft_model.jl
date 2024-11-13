@@ -14,25 +14,31 @@ function FFTParameters(DFTdim, DFTsize, M_perptz, lambda, index_missing, alpha_L
     FFTParameters(paramB, eps_NT, paramLS, paramf)
 end
 
-mutable struct FFTNLPModel <: AbstractNLPModel{Float64, Vector{Float64}}
-    meta::NLPModelMeta{Float64, Vector{Float64}}
+mutable struct FFTNLPModel{T,VT} <: AbstractNLPModel{T,VT}
+    meta::NLPModelMeta{T,VT}
     parameters::FFTParameters
     N::Int
     counters::Counters
 end
 
-function FFTNLPModel(parameters::FFTParameters)
+function FFTNLPModel{T,VT}(parameters::FFTParameters) where {T,VT}
     DFTdim = parameters.paramf[1]   # problem size (1, 2, 3)
     DFTsize = parameters.paramf[2]  # problem dimension
     N = prod(DFTsize)
     nvar = 2 * N
     ncon = 2 * N
-    x0 = zeros(Float64, nvar)
-    y0 = zeros(Float64, ncon)
-    lvar = -Inf * ones(Float64, nvar)
-    uvar =  Inf * ones(Float64, nvar)
-    lcon = -Inf * ones(Float64, ncon)
-    ucon = zeros(Float64, ncon)
+    x0 = VT(undef, nvar)
+    y0 = VT(undef, ncon)
+    lvar = VT(undef, nvar)
+    uvar = VT(undef, nvar)
+    lcon = VT(undef, ncon)
+    ucon = VT(undef, ncon)
+    fill!(x0, zero(T))
+    fill!(y0, zero(T))
+    fill!(lvar, -Inf)
+    fill!(uvar, Inf)
+    fill!(lcon, -Inf)
+    fill!(ucon, zero(T))
     meta = NLPModelMeta(
         nvar,
         x0 = x0,
@@ -58,10 +64,12 @@ include("punching_centering.jl")
 function NLPModels.cons!(nlp::FFTNLPModel, x::AbstractVector, c::AbstractVector)
     increment!(nlp, :neval_cons)
     N = nlp.N
-    for i = 1:N
-        c[i]     = -x[i] - x[i+N]  # -βᵢ - cᵢ
-        c[N+i]   =  x[i] - x[i+N]  #  βᵢ - cᵢ
-    end
+    xβ = view(x, 1:N)
+    xc = view(x, N+1:2*N)
+    cβ = view(c, 1:N)
+    cc = view(c, N+1:2*N)
+    cβ .= .- xβ .- xc  # -βᵢ - cᵢ for 1 ≤ i ≤ N
+    cc .=    xβ .- xc  #  βᵢ - cᵢ for N+1 ≤ i ≤ 2N
     return c
 end
 
@@ -88,15 +96,16 @@ function NLPModels.jac_coord!(nlp::FFTNLPModel, x::AbstractVector{T}, vals::Abst
     increment!(nlp, :neval_jac)
     N = nlp.N
     k = 0
-    for i = 1:N
-        # -βᵢ - cᵢ
-        vals[k+1] = -one(T)
-        vals[k+2] = -one(T)
-        #  βᵢ - cᵢ
-        vals[k+3] =  one(T)
-        vals[k+4] = -one(T)
-        k += 4
-    end
+    vals1 = view(vals, 1:4:N-3)
+    vals2 = view(vals, 2:4:N-2)
+    vals3 = view(vals, 3:4:N-1)
+    vals4 = view(vals, 4:4:N)
+    # -βᵢ - cᵢ
+    fill!(vals1, -one(T))
+    fill!(vals2, -one(T))
+    #  βᵢ - cᵢ
+    fill!(vals1,  one(T))
+    fill!(vals2, -one(T))
 end
 
 function NLPModels.jprod!(
@@ -107,10 +116,12 @@ function NLPModels.jprod!(
 )
     increment!(nlp, :neval_jprod)
     N = nlp.N
-    for i = 1:N
-        Jv[i]   = -v[i] - v[i+N]
-        Jv[N+i] =  v[i] - v[i+N]
-    end
+    vβ = view(v, 1:N)
+    vc = view(v, N+1:2*N)
+    Jvβ = view(Jv, 1:N)
+    Jvc = view(Jv, N+1:2*N)
+    Jvβ .= .-vβ .- vc
+    Jvc .=   vβ .- vc
     return Jv
 end
 
@@ -122,10 +133,12 @@ function NLPModels.jtprod!(
 )
     increment!(nlp, :neval_jtprod)
     N = nlp.N
-    for i = 1:N
-        Jtv[i]   = -v[i] + v[N+i]
-        Jtv[i+N] = -v[i] - v[N+i]
-    end
+    vβ = view(v, 1:N)
+    vc = view(v, N+1:2*N)
+    Jtvβ = view(Jtv, 1:N)
+    Jtvc = view(Jtv, N+1:2*N)
+    Jtvβ .= .-vβ .+ vc
+    Jtvc .= .-vβ .- vc
     return Jtv
 end
 
@@ -161,7 +174,7 @@ function NLPModels.grad!(nlp::FFTNLPModel, x::AbstractVector, g::AbstractVector)
     beta = view(x, 1:n)
     res = M_perpt_M_perp_vec_wei(DFTdim, DFTsize, beta, index_missing)
     g_b .= res .- M_perptz
-    g_c .= lambda .* ones(Float64, n)
+    fill!(g_c, lambda)
     return g
 end
 
@@ -185,11 +198,11 @@ function NLPModels.hprod!(
     hv_b = view(hv, 1:n)
     hv_c = view(hv, n+1:2*n)
     hv_b .= M_perpt_M_perp_vec_wei(DFTdim, DFTsize, v[1:n], index_missing)
-    hv_c .= 0.0
+    fill!(hv_c, 0.0)
     return hv
 end
 
-function NLPModels.hess_structure!(nlp::FFTNLPModel, rows, cols)
+function NLPModels.hess_structure!(nlp::FFTNLPModel, rows::Vector{Int}, cols::Vector{Int})
     nβ = nlp.N
     cnt = 1
     for i in 1:nβ

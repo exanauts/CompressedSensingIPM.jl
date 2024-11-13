@@ -64,7 +64,7 @@ t_init = 1
 beta_init = ones(Nt) ./ 2
 c_init = ones(Nt)
 
-nlp = FFTNLPModel(parameters)
+nlp = FFTNLPModel{Float64, Vector{Float64}}(parameters)
 
 # Solve with MadNLP/CG
 solver = MadNLP.MadNLPSolver(

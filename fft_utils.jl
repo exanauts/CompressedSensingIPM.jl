@@ -51,11 +51,15 @@ function M_perp_tz(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size
     temp = mul!(buffer_complex1, op, buffer_complex2)
     temp ./= sqrt(N)
     beta = DFT_to_beta(dim, _size, temp)
+    # println("beta | ", beta |> size, " | ", typeof(beta))
+    # display(beta)
     return beta
 end
 
 function M_perp_beta(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, beta, idx_missing)
     N = prod(_size)
+    # println("beta | ", beta |> size, " | ", typeof(beta))
+    # display(beta)
     v = beta_to_DFT(dim, _size, beta)
     # println("-- M_perp_beta --")
     # println(_size)

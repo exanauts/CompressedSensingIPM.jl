@@ -4,8 +4,8 @@ Random.seed!(1)
 include("fft_model.jl")
 
 ## 2D
-Nt = 20
-Ns = 24
+Nt = 4
+Ns = 4
 t = collect(0:(Nt-1))
 s = collect(0:(Ns-1))
 x = (cos.(2*pi*2/Nt*t)+ 2*sin.(2*pi*2/Nt*t))*(cos.(2*pi*3/Ns*s) + 2*sin.(2*pi*3/Ns*s))'
@@ -41,7 +41,7 @@ t_init = 1
 beta_init = zeros(prod(DFTsize))
 c_init = ones(prod(DFTsize))
 
-nlp = FFTNLPModel(parameters)
+nlp = FFTNLPModel{Float64, Vector{Float64}}(parameters)
 
 # Solve with MadNLP/LBFGS
 # solver = MadNLP.MadNLPSolver(nlp; hessian_approximation=MadNLP.CompactLBFGS)

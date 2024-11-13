@@ -5,7 +5,7 @@ include("fft_model.jl")
 
 # 1D
 # Nt = 100
-Nt = 10^2
+Nt = 8
 t = collect(0:(Nt-1))
 
 x1 = 2 * cos.(2*pi*t*6/Nt)  .+ 3 * sin.(2*pi*t*6/Nt)
@@ -40,7 +40,7 @@ t_init = 1
 beta_init = ones(Nt) ./ 2
 c_init = ones(Nt)
 
-nlp = FFTNLPModel(parameters)
+nlp = FFTNLPModel{Float64, Vector{Float64}}(parameters)
 
 # Solve with MadNLP/LBFGS
 # solver = MadNLP.MadNLPSolver(nlp; hessian_approximation=MadNLP.CompactLBFGS)

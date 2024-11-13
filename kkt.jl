@@ -24,7 +24,7 @@ struct CondensedFFTKKT{T, VT, FFT, R, C} <: AbstractMatrix{T}
     buffer_complex2::C  # Buffer for fft and ifft
 end
 
-function CondensedFFTKKT{T, VT}(nlp::FFTNLPModel) where {T, VT}
+function CondensedFFTKKT{T, VT}(nlp::FFTNLPModel{T, VT}) where {T, VT}
     nβ = nlp.N
     buf1 = VT(undef, nβ)
     Λ1 = VT(undef, nβ)
@@ -36,7 +36,7 @@ function CondensedFFTKKT{T, VT}(nlp::FFTNLPModel) where {T, VT}
     A = reshape(A_vec, DFTsize)
     op = plan_fft(A)
     buffer_real = A
-    buffer_complex1 = Complex{T}.(A)  # <-- should be adapted on GPU
+    buffer_complex1 = Complex{T}.(A)
     buffer_complex2 = copy(buffer_complex1)
 
     return CondensedFFTKKT{T, VT, typeof(op), typeof(buffer_real), typeof(buffer_complex1)}(nβ, nlp.parameters, buf1, Λ1, Λ2, op, buffer_real, buffer_complex1, buffer_complex2)
