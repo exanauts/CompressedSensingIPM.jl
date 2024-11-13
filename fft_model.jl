@@ -49,7 +49,7 @@ function FFTNLPModel{T,VT}(parameters::FFTParameters) where {T,VT}
         lcon = lcon,
         ucon = ucon,
         nnzj = 1, # ncon * 2,
-        nnzh = 0, # div(N * (N + 1), 2),
+        nnzh = 1, # div(N * (N + 1), 2),
         minimize = true,
         islp = false,
         name = "CompressedSensing-$(DFTdim)D",
@@ -94,7 +94,7 @@ function NLPModels.jac_structure!(nlp::FFTNLPModel, rows::AbstractVector{Int}, c
         fill!(rows, 1)
         fill!(cols, 1)
     end
-    return (rows, cols)
+    return rows, cols
 end
 
 function NLPModels.jac_coord!(nlp::FFTNLPModel, x::AbstractVector{T}, vals::AbstractVector{T}) where T
@@ -211,7 +211,7 @@ function NLPModels.hprod!(
 end
 
 function NLPModels.hess_structure!(nlp::FFTNLPModel, rows::AbstractVector{Int}, cols::AbstractVector{Int})
-    if nlp.meta.nnzh != 0
+    if nlp.meta.nnzh > 1
         nβ = nlp.N
         cnt = 1
         for i in 1:nβ
@@ -221,6 +221,9 @@ function NLPModels.hess_structure!(nlp::FFTNLPModel, rows::AbstractVector{Int}, 
                 cnt += 1
             end
         end
+    else
+        fill!(rows, 1)
+        fill!(cols, 1)
     end
     return rows, cols
 end
@@ -232,7 +235,7 @@ function NLPModels.hess_coord!(
     hess::AbstractVector;
     obj_weight::Float64 = 1.0,
 )
-    if nlp.meta.nnzh != 0
+    if nlp.meta.nnzh > 1
         increment!(nlp, :neval_hess)
         DFTdim = nlp.parameters.paramf[1]
         DFTsize = nlp.parameters.paramf[2]
