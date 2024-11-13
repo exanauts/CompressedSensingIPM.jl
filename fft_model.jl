@@ -48,7 +48,7 @@ function FFTNLPModel{T,VT}(parameters::FFTParameters) where {T,VT}
         y0 = y0,
         lcon = lcon,
         ucon = ucon,
-        nnzj = 0, # ncon * 2,
+        nnzj = 1, # ncon * 2,
         nnzh = 0, # div(N * (N + 1), 2),
         minimize = true,
         islp = false,
@@ -74,7 +74,7 @@ function NLPModels.cons!(nlp::FFTNLPModel, x::AbstractVector, c::AbstractVector)
 end
 
 function NLPModels.jac_structure!(nlp::FFTNLPModel, rows::AbstractVector{Int}, cols::AbstractVector{Int})
-    if nlp.meta.nnzj != 0
+    if nlp.meta.nnzj > 1
         N = nlp.N
         k = 0
         for i = 1:N
@@ -95,7 +95,7 @@ function NLPModels.jac_structure!(nlp::FFTNLPModel, rows::AbstractVector{Int}, c
 end
 
 function NLPModels.jac_coord!(nlp::FFTNLPModel, x::AbstractVector{T}, vals::AbstractVector{T}) where T
-    if nlp.meta.nnzj != 0
+    if nlp.meta.nnzj > 1
         increment!(nlp, :neval_jac)
         N = nlp.N
         k = 0
@@ -110,6 +110,7 @@ function NLPModels.jac_coord!(nlp::FFTNLPModel, x::AbstractVector{T}, vals::Abst
         fill!(vals1,  one(T))
         fill!(vals2, -one(T))
     end
+    return vals
 end
 
 function NLPModels.jprod!(
