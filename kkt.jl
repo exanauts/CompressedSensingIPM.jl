@@ -3,6 +3,7 @@ using LinearAlgebra
 using SparseArrays
 using Krylov
 using MadNLP
+using CUDA
 
 #=
     Operator for matrix
