@@ -386,6 +386,14 @@ function MadNLP.factorize_wrapper!(
     return true
 end
 
+function MadNLP.factorize_wrapper!(
+    solver::MadNLP.MadNLPSolver{T,CuVector{T},CuVector{Int},KKT}
+    ) where {T,KKT<:FFTKKTSystem{T,CuVector{Int},CuVector{T}}}
+    MadNLP.build_kkt!(solver.kkt)
+    # No factorization needed
+    return true
+end
+
 #=
     Uncomment to have custom control on iterative refinement
 =#
