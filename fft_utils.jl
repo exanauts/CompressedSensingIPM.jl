@@ -1,5 +1,5 @@
 using LinearAlgebra
-using FFTW
+using FFTW, CUDA
 using Random, Distributions
 
 # compute M_{\perp}^{\top}z
@@ -24,13 +24,25 @@ using Random, Distributions
 function M_perp_tz_wei(dim, size, z_zero)
     N = prod(size)
     temp = fft(z_zero) ./ sqrt(N)
-    beta = DFT_to_beta(dim, size, temp)
+    if temp isa StridedCuArray
+        temp2 = Array(temp)
+        beta = DFT_to_beta(dim, size, temp2)
+        beta = CuArray(beta)
+    else
+        beta = DFT_to_beta(dim, size, temp)
+    end
     return beta
 end
 
 function M_perp_beta_wei(dim, size, beta, idx_missing)
-    N = prod(size);
-    v = beta_to_DFT(dim, size, beta)
+    N = prod(size)
+    if beta isa StridedCuArray
+        beta2 = Array(beta)
+        v = beta_to_DFT(dim, size, beta2)
+        v = CuArray(v)
+    else
+        v = beta_to_DFT(dim, size, beta)
+    end
     temp = real.(ifft(v)) .* sqrt(N)
     temp[idx_missing] .= 0
     return temp
@@ -50,7 +62,13 @@ function M_perp_tz(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size
     buffer_complex2 .= z_zero  # z_zero should be store in a complex buffer for mul!
     temp = mul!(buffer_complex1, op, buffer_complex2)
     temp ./= sqrt(N)
-    beta = DFT_to_beta(dim, _size, temp)
+    if temp isa StridedCuArray
+        temp2 = Array(temp)
+        beta = DFT_to_beta(dim, _size, temp2)
+        beta = CuArray(beta)
+    else
+        beta = DFT_to_beta(dim, _size, temp)
+    end
     # println("beta | ", beta |> size, " | ", typeof(beta))
     # display(beta)
     return beta
@@ -60,7 +78,13 @@ function M_perp_beta(buffer_real, buffer_complex1, buffer_complex2, op, dim, _si
     N = prod(_size)
     # println("beta | ", beta |> size, " | ", typeof(beta))
     # display(beta)
-    v = beta_to_DFT(dim, _size, beta)
+    if beta isa StridedCuArray
+        beta2 = Array(beta)
+        v = beta_to_DFT(dim, _size, beta2)
+        v = CuArray(v)
+    else
+        v = beta_to_DFT(dim, _size, beta)
+    end
     # println("-- M_perp_beta --")
     # println(_size)
     # println("v | ", v |> size, " | ", typeof(v))
