@@ -97,7 +97,7 @@ end
 
 function DFT_to_beta(dim, size, v)
     cpu = v isa Array
-    if !cpu && (dim != 1)
+    if !cpu && (dim == 3)
         v = Array(v)
     end
     if (dim == 1)
@@ -107,7 +107,7 @@ function DFT_to_beta(dim, size, v)
     else
         beta = DFT_to_beta_3d(v, size)
     end
-    if !cpu && (dim != 1)
+    if !cpu && (dim == 3)
         beta = CuArray(beta)
     end
     return beta
@@ -158,7 +158,7 @@ function DFT_to_beta_1d(v::CuArray{ComplexF64}, size)
 end
 
 # dim = 2
-function DFT_to_beta_2d(v, size)
+function DFT_to_beta_2d_wei(v, size)
     N1 = size[1]
     N2 = size[2]
     M1 = N1 ÷ 2
@@ -182,13 +182,129 @@ function DFT_to_beta_2d(v, size)
     return beta
 end
 
-#
-# function DFT_to_beta_2d(v, size)
-#     N1 = size[1]
-#     N2 = size[2]
-#     beta = Vector{Float64}(undef, N1 * N2)
-#     DFT_to_beta_2d!(beta, v, size)
-# end
+function DFT_to_beta_2d!(beta::Array{Float64}, v, size)
+    N1 = size[1]
+    N2 = size[2]
+    M1 = N1 ÷ 2
+    M2 = N2 ÷ 2
+    P1 = M1 - 1
+    P2 = M2 - 1
+    PP = P1 * P2
+    beta[1] = v[1, 1]
+    beta[2] = v[1, M2+1]
+    beta[3] = v[M1+1, 1]
+    beta[4] = v[M1+1, M2+1]
+    k1 = 4
+    k2 = 4 + P2
+    for i = k1+1 : k2
+        u = view(v, 1, 2:M2)
+        beta[i] = sqrt(2) * real(u[i-k1])
+    end
+    k1 = k2
+    k2 = k1 + P2
+    for i = k1+1 : k2
+        u = view(v, 1, 2:M2)
+        beta[i] = sqrt(2) * imag(u[i-k1])
+    end
+    k1 = k2
+    k2 = k1 + P2
+    for i = k1+1 : k2
+        u = view(v, M1+1, 2:M2)
+        beta[i] = sqrt(2) * real(u[i-k1])
+    end
+    k1 = k2
+    k2 = k1 + P2
+    for i = k1+1 : k2
+        u = view(v, M1+1, 2:M2)
+        beta[i] = sqrt(2) * imag(u[i-k1])
+    end
+    k1 = k2
+    k2 = k1 + P1
+    for i = k1+1 : k2
+        u = view(v, 2:M1, 1)
+        beta[i] = sqrt(2) * real(u[i-k1])
+    end
+    k1 = k2
+    k2 = k1 + P1
+    for i = k1+1 : k2
+        u = view(v, 2:M1, 1)
+        beta[i] = sqrt(2) * imag(u[i-k1])
+    end
+    k1 = k2
+    k2 = k1 + P1
+    for i = k1+1 : k2
+        u = view(v, 2:M1, M2+1)
+        beta[i] = sqrt(2) * real(u[i-k1])
+    end
+    k1 = k2
+    k2 = k1 + P1
+    for i = k1+1 : k2
+        u = view(v, 2:M1, M2+1)
+        beta[i] = sqrt(2) * imag(u[i-k1])
+    end
+    k1 = k2
+    k2 = k1 + PP
+    for i = k1+1 : k2
+        u = view(v, 2:M1, 2:M2) |> vec
+        beta[i] = sqrt(2) * real(u[i-k1])
+    end
+    k1 = k2
+    k2 = k1 + PP
+    for i = k1+1 : k2
+        u = view(v, 2:M1, 2:M2) |> vec
+        beta[i] = sqrt(2) * imag(u[i-k1])
+    end
+    k1 = k2
+    k2 = k1 + PP
+    for i = k1+1 : k2
+        u = view(v, 2:M1, M2+2:N2) |> vec
+        beta[i] = sqrt(2) * real(u[i-k1])
+    end
+    k1 = k2
+    k2 = k1 + PP
+    for i = k1+1 : k2
+        u = view(v, 2:M1, M2+2:N2) |> vec
+        beta[i] = sqrt(2) * imag(u[i-k1])
+    end
+    return beta
+end
+
+function DFT_to_beta_2d!(beta::CuArray{Float64}, v, size)
+    N1 = size[1]
+    N2 = size[2]
+    M1 = N1 ÷ 2
+    M2 = N2 ÷ 2
+    P1 = M1 - 1
+    P2 = M2 - 1
+    PP = P1 * P2
+    view(beta, 1:2) .= view(v, 1   , 1:M2:M2+1)
+    view(beta, 3:4) .= view(v, M1+1, 1:M2:M2+1)
+    view(beta, 5               :4+  P2          ) .= sqrt(2) .* real.(view(v, 1, 2:M2))
+    view(beta, 5+  P2          :4+2*P2          ) .= sqrt(2) .* imag.(view(v, 1, 2:M2))
+    view(beta, 5+2*P2          :4+3*P2          ) .= sqrt(2) .* real.(view(v, M1+1, 2:M2))
+    view(beta, 5+3*P2          :4+4*P2          ) .= sqrt(2) .* imag.(view(v, M1+1, 2:M2))
+    view(beta, 5+4*P2          :4+4*P2+P1       ) .= sqrt(2) .* real.(view(v, 2:M1, 1))
+    view(beta, 5+4*P2+  P1     :4+4*P2+2*P1     ) .= sqrt(2) .* imag.(view(v, 2:M1, 1))
+    view(beta, 5+4*P2+2*P1     :4+4*P2+3*P1     ) .= sqrt(2) .* real.(view(v, 2:M1, M2+1))
+    view(beta, 5+4*P2+3*P1     :4+4*P2+4*P1     ) .= sqrt(2) .* imag.(view(v, 2:M1, M2+1))
+    view(beta, 5+4*P2+4*P1     :4+4*P2+4*P1+  PP) .= sqrt(2) .* real.(view(v, 2:M1, 2:M2) |> vec)
+    view(beta, 5+4*P2+4*P1+  PP:4+4*P2+4*P1+2*PP) .= sqrt(2) .* imag.(view(v, 2:M1, 2:M2) |> vec)
+    view(beta, 5+4*P2+4*P1+2*PP:4+4*P2+4*P1+3*PP) .= sqrt(2) .* real.(view(v, 2:M1, M2+2:N2) |> vec)
+    view(beta, 5+4*P2+4*P1+3*PP:4+4*P2+4*P1+4*PP) .= sqrt(2) .* imag.(view(v, 2:M1, M2+2:N2) |> vec)
+    return beta
+end
+
+function DFT_to_beta_2d(v::Array{ComplexF64}, size)
+    N = prod(size)
+    beta = Vector{Float64}(undef, N)
+    DFT_to_beta_2d!(beta, v, size)
+end
+
+function DFT_to_beta_2d(v::CuArray{ComplexF64}, size)
+    N = prod(size)
+    beta = CuVector{Float64}(undef, N)
+    DFT_to_beta_2d!(beta, v, size)
+end
 
 # dim = 3
 function DFT_to_beta_3d(v, size)
