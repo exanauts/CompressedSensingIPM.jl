@@ -6,7 +6,7 @@ include("fft_model.jl")
 
 # 1D
 # Nt = 100
-Nt = 8
+Nt = 100000
 t = collect(0:(Nt-1))
 
 x1 = 2 * cos.(2*pi*t*6/Nt)  .+ 3 * sin.(2*pi*t*6/Nt)
@@ -52,13 +52,13 @@ nlp = FFTNLPModel{Float64, CuVector{Float64}}(parameters)
 # Solve with MadNLP/CG
 solver = MadNLP.MadNLPSolver(
     nlp;
-    max_iter=20,
+    max_iter=2000,
     kkt_system=FFTKKTSystem,
     print_level=MadNLP.INFO,
     dual_initialized=true,
-    richardson_max_iter=10,
+    richardson_max_iter=0,
     tol=1e-8,
-    richardson_tol=1e-8,
+    richardson_tol=Inf,
 )
 results = MadNLP.solve!(solver)
 beta_MadNLP = results.solution[1:Nt]
