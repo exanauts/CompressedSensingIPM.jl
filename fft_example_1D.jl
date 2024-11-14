@@ -4,8 +4,8 @@ Random.seed!(1)
 include("fft_model.jl")
 
 # 1D
-# Nt = 100
-Nt = 100000
+Nt = 100
+# Nt = 50000
 t = collect(0:(Nt-1))
 
 x1 = 2 * cos.(2*pi*t*6/Nt)  .+ 3 * sin.(2*pi*t*6/Nt)
