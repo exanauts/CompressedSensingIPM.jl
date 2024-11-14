@@ -24,25 +24,13 @@ using Random, Distributions
 function M_perp_tz_wei(dim, size, z_zero)
     N = prod(size)
     temp = fft(z_zero) ./ sqrt(N)
-    if temp isa StridedCuArray
-        temp2 = Array(temp)
-        beta = DFT_to_beta(dim, size, temp2)
-        beta = CuArray(beta)
-    else
-        beta = DFT_to_beta(dim, size, temp)
-    end
+    beta = DFT_to_beta(dim, size, temp)
     return beta
 end
 
 function M_perp_beta_wei(dim, size, beta, idx_missing)
     N = prod(size)
-    if beta isa StridedCuArray
-        beta2 = Array(beta)
-        v = beta_to_DFT(dim, size, beta2)
-        v = CuArray(v)
-    else
-        v = beta_to_DFT(dim, size, beta)
-    end
+    v = beta_to_DFT(dim, size, beta)
     temp = real.(ifft(v)) .* sqrt(N)
     temp[idx_missing] .= 0
     return temp
@@ -62,13 +50,7 @@ function M_perp_tz(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size
     buffer_complex2 .= z_zero  # z_zero should be store in a complex buffer for mul!
     temp = mul!(buffer_complex1, op, buffer_complex2)
     temp ./= sqrt(N)
-    if temp isa StridedCuArray
-        temp2 = Array(temp)
-        beta = DFT_to_beta(dim, _size, temp2)
-        beta = CuArray(beta)
-    else
-        beta = DFT_to_beta(dim, _size, temp)
-    end
+    beta = DFT_to_beta(dim, _size, temp)
     # println("beta | ", beta |> size, " | ", typeof(beta))
     # display(beta)
     return beta
@@ -78,13 +60,7 @@ function M_perp_beta(buffer_real, buffer_complex1, buffer_complex2, op, dim, _si
     N = prod(_size)
     # println("beta | ", beta |> size, " | ", typeof(beta))
     # display(beta)
-    if beta isa StridedCuArray
-        beta2 = Array(beta)
-        v = beta_to_DFT(dim, _size, beta2)
-        v = CuArray(v)
-    else
-        v = beta_to_DFT(dim, _size, beta)
-    end
+    v = beta_to_DFT(dim, _size, beta)
     # println("-- M_perp_beta --")
     # println(_size)
     # println("v | ", v |> size, " | ", typeof(v))
@@ -120,13 +96,21 @@ end
 # >beta = DFT_to_beta(dim, size1, v);
 
 function DFT_to_beta(dim, size, v)
-    if (dim == 1)
-        return DFT_to_beta_1d(v, size)
-    elseif (dim == 2)
-        return DFT_to_beta_2d(v, size)
-    else
-        return DFT_to_beta_3d(v, size)
+    cpu = v isa Array
+    if !cpu && (dim != 1)
+        v = Array(v)
     end
+    if (dim == 1)
+        beta = DFT_to_beta_1d(v, size)
+    elseif (dim == 2)
+        beta = DFT_to_beta_2d(v, size)
+    else
+        beta = DFT_to_beta_3d(v, size)
+    end
+    if !cpu && (dim != 1)
+        beta = CuArray(beta)
+    end
+    return beta
 end
 
 # dim = 1
@@ -140,7 +124,7 @@ function DFT_to_beta_1d_wei(v, size)
     return beta
 end
 
-function DFT_to_beta_1d!(beta, v, size)
+function DFT_to_beta_1d!(beta::Vector{Float64}, v, size)
     N = size[1]
     M = N ÷ 2
     beta[1] = real(v[1])
@@ -152,9 +136,24 @@ function DFT_to_beta_1d!(beta, v, size)
     return beta
 end
 
-function DFT_to_beta_1d(v, size)
+function DFT_to_beta_1d!(beta::CuVector{Float64}, v, size)
+    N = size[1]
+    M = N ÷ 2
+    view(beta, 1:2) .= real.(view(v, 1:M:M+1))
+    view(beta, 3:M+1) .= sqrt(2) .* real.(view(v, 2:M))
+    view(beta, M+2:N) .= sqrt(2) .* imag.(view(v, 2:M))
+    return beta
+end
+
+function DFT_to_beta_1d(v::Array{ComplexF64}, size)
     N = size[1]
     beta = Vector{Float64}(undef, N)
+    DFT_to_beta_1d!(beta, v, size)
+end
+
+function DFT_to_beta_1d(v::CuArray{ComplexF64}, size)
+    N = size[1]
+    beta = CuVector{Float64}(undef, N)
     DFT_to_beta_1d!(beta, v, size)
 end
 
@@ -281,6 +280,10 @@ end
 # >w = beta_to_DFT(dim, size1, beta); (w should be equal to v)
 
 function beta_to_DFT(dim, size, beta)
+    cpu = beta isa Array
+    if !cpu && (dim != 1)
+        beta = Array(beta)
+    end
     if (dim == 1)
         return beta_to_DFT_1d(beta, size)
     elseif (dim == 2)
@@ -288,6 +291,10 @@ function beta_to_DFT(dim, size, beta)
     elseif (dim == 3)
         return beta_to_DFT_3d(beta, size)
     end
+    if !cpu && (dim != 1)
+        v = CuArray(v)
+    end
+    return v
 end
 
 # 1 dim
@@ -301,7 +308,7 @@ function beta_to_DFT_1d_wei(beta, size)
     return v
 end
 
-function beta_to_DFT_1d!(v, beta, size)
+function beta_to_DFT_1d!(v::Vector{ComplexF64}, beta, size)
     N = size[1]
     M = N ÷ 2
     v[1] = beta[1]
@@ -315,9 +322,24 @@ function beta_to_DFT_1d!(v, beta, size)
     return v
 end
 
-function beta_to_DFT_1d(beta, size)
+function beta_to_DFT_1d!(v::CuVector{ComplexF64}, beta, size)
+    N = size[1]
+    M = N ÷ 2
+    view(v, 1:M:M+1) .= view(beta, 1:2)
+    view(v, 2:M) .= (view(beta, 3:M+1) .+ im .* view(beta, M+2:N)) ./ sqrt(2)
+    view(v, N:-1:M+2) .= (view(beta, 3:M+1) .- im .* view(beta, M+2:N)) ./ sqrt(2)
+    return v
+end
+
+function beta_to_DFT_1d(beta::StridedArray{Float64}, size)
     N = size[1]
     v = Vector{ComplexF64}(undef, N)
+    beta_to_DFT_1d!(v, beta, size)
+end
+
+function beta_to_DFT_1d(beta::StridedCuArray{Float64}, size)
+    N = size[1]
+    v = CuVector{ComplexF64}(undef, N)
     beta_to_DFT_1d!(v, beta, size)
 end
 
