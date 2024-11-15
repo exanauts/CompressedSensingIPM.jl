@@ -603,15 +603,11 @@ function beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta, size)
 end
 
 function beta_to_DFT_2d(beta::StridedArray{Float64}, size)
-    return beta_to_DFT_2d_wei(beta, size)
+    N1 = size[1]
+    N2 = size[2]
+    v = Matrix{ComplexF64}(undef, N1, N2)
+    beta_to_DFT_2d!(v, beta, size)
 end
-
-# function beta_to_DFT_2d(beta::StridedArray{Float64}, size)
-#     N1 = size[1]
-#     N2 = size[2]
-#     v = Matrix{ComplexF64}(undef, N1, N2)
-#     beta_to_DFT_2d!(v, beta, size)
-# end
 
 function beta_to_DFT_2d(beta::StridedCuArray{Float64}, size)
     N1 = size[1]
