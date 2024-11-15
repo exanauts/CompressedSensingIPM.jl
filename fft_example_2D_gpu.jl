@@ -26,6 +26,7 @@ radius = 1
 index_missing_Cartesian, z_zero = punching(DFTdim, DFTsize, centers, radius, y)
 
 # unify parameters for barrier method
+z_zero = CuArray(z_zero)
 M_perptz = M_perp_tz_wei(DFTdim, DFTsize, z_zero)
 lambda = 5
 
@@ -41,7 +42,7 @@ t_init = 1
 beta_init = zeros(prod(DFTsize))
 c_init = ones(prod(DFTsize))
 
-nlp = FFTNLPModel{Float64, Vector{Float64}}(parameters)
+nlp = FFTNLPModel{Float64, CuVector{Float64}}(parameters)
 
 # Solve with MadNLP/LBFGS
 # solver = MadNLP.MadNLPSolver(nlp; hessian_approximation=MadNLP.CompactLBFGS)
@@ -51,7 +52,7 @@ nlp = FFTNLPModel{Float64, Vector{Float64}}(parameters)
 # Solve with MadNLP/CG
 solver = MadNLP.MadNLPSolver(
     nlp;
-    max_iter=20,
+    max_iter=2000,
     kkt_system=FFTKKTSystem,
     print_level=MadNLP.INFO,
     dual_initialized=true,

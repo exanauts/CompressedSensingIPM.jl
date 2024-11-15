@@ -71,6 +71,7 @@ function FFTNLPModel{T,VT}(parameters::FFTParameters) where {T,VT}
 end
 
 include("kkt.jl")
+include("fft_wei.jl")
 include("fft_utils.jl")
 include("punching_centering.jl")
 
