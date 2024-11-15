@@ -495,12 +495,10 @@ end
 function beta_to_DFT_1d!(v::Vector{ComplexF64}, beta, size)
     N = size[1]
     M = N ÷ 2
-    v[1] = beta[1]
-    for i = 2:M
-        v[i] = (beta[i+1] + im * beta[M+i]) / sqrt(2)
-    end
+    v[1  ] = beta[1]
     v[M+1] = beta[2]
     for i = 2:M
+        v[i    ] = (beta[i+1] + im * beta[M+i]) / sqrt(2)
         v[N-i+2] = (beta[i+1] - im * beta[M+i]) / sqrt(2)
     end
     return v
@@ -535,56 +533,43 @@ function beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta, size)
     M2 = N2 ÷ 2
     P1 = M1 - 1
     P2 = M2 - 1
-    v[1,1] = beta[1]
+    v[1   ,1   ] = beta[1]
+    v[1   ,M2+1] = beta[2]
+    v[M1+1,1   ] = beta[3]
+    v[M1+1,M2+1] = beta[4]
+
     for i = 1:P1
-        v[i+1,1] = (beta[4+4*P2+i] + im * beta[4+4*P2+P1+i]) / sqrt(2)
+        v[i+1   ,1   ] = (beta[4+4*P2+i     ] + im * beta[4+4*P2+P1+i  ]) / sqrt(2)
+        v[N1-i+1,1   ] = (beta[4+4*P2+i     ] - im * beta[4+4*P2+P1+i  ]) / sqrt(2)
+        v[i+1   ,M2+1] = (beta[4+4*P2+2*P1+i] + im * beta[4+4*P2+3*P1+i]) / sqrt(2)
+        v[N1-i+1,M2+1] = (beta[4+4*P2+2*P1+i] - im * beta[4+4*P2+3*P1+i]) / sqrt(2)
     end
-    v[M1+1,1] = beta[3]
-    for i = 1:P1
-        v[N1-i+1,1] = (beta[4+4*P2+i] - im * beta[4+4*P2+P1+i]) / sqrt(2)
-    end
+
     for i = 1:P2
-        v[1, i+1] = (beta[4+i] + im * beta[4+P2+i]) / sqrt(2)
+        v[1   , i+1   ] = (beta[4+i     ] + im * beta[4+P2+i  ]) / sqrt(2)
+        v[M1+1, i+1   ] = (beta[4+2*P2+i] + im * beta[4+3*P2+i]) / sqrt(2)
     end
+
     j = 0
+    c = 0
     for col = 2:M2
         for row = 2:M1
             j = j+1
-            v[row, col] = (beta[4+4*P2+4*P1+j] + im * beta[4+4*P2+4*P1+P1*P2+j]) / sqrt(2)
+            v[row   , col] = (beta[4+4*P2+4*P1+j] + im * beta[4+4*P2+4*P1+P1*P2+j]) / sqrt(2)
+            v[row+M1, col] = (beta[4+4*P2+4*P1+3*P1*P2-c] - im * beta[N1*N2-c]) / sqrt(2)
+            c = c+1
         end
     end
+
     for i = 1:P2
-        v[M1+1, i+1] = (beta[4+2*P2+i] + im * beta[4+3*P2+i]) / sqrt(2)
-    end
-    j = 0
-    for col = 2:M2
-        for row = M1+2:N1
-            v[row, col] = (beta[4+4*P2+4*P1+3*P1*P2-j] - im * beta[N1*N2-j]) / sqrt(2)
-            j = j+1
-        end
-    end
-    v[1,M2+1] = beta[2]
-    for i = 1:P1
-        v[i+1,M2+1] = (beta[4+4*P2+2*P1+i] + im * beta[4+4*P2+3*P1+i]) / sqrt(2)
-    end
-    v[M1+1,M2+1] = beta[4]
-    for i = 1:P1
-        v[N1-i+1,M2+1] = (beta[4+4*P2+2*P1+i] - im * beta[4+4*P2+3*P1+i]) / sqrt(2)
-    end
-    for i = 1:P2
-        v[1, M2+1+i] = conj(v[1,M2-i+1])
-    end
-    for i = 1:P1
-        for j = 1:P2
-            v[i+1, M2+1+j] = conj(v[N1-i+1,M2-j+1])
-        end
-    end
-    for i = 1:P2
+        v[1   , M2+1+i] = conj(v[   1,M2-i+1])
         v[M1+1, M2+1+i] = conj(v[M1+1,M2-i+1])
     end
+
     for i = 1:P1
         for j = 1:P2
-            v[M1+1+i, M2+1+j] = conj(v[M1-i+1,M2-j+1])
+            v[   i+1, M2+1+j] = conj(v[N1-i+1,M2-j+1])
+            v[M1+i+1, M2+1+j] = conj(v[M1-i+1,M2-j+1])
         end
     end
     return v
