@@ -25,8 +25,8 @@ centers = centering(DFTdim, DFTsize, missing_prob)
 radius = 1
 index_missing, z_zero = punching(DFTdim, DFTsize, centers, radius, y)
 
-z_zero = CuArray(z_zero)
 M_perptz = M_perp_tz_wei(DFTdim, DFTsize, z_zero)  # M_perptz
+M_perptz = CuArray(M_perptz)
 
 lambda = 1
 

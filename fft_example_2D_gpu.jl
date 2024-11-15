@@ -27,8 +27,9 @@ radius = 1
 index_missing_Cartesian, z_zero = punching(DFTdim, DFTsize, centers, radius, y)
 
 # unify parameters for barrier method
-z_zero = CuArray(z_zero)
 M_perptz = M_perp_tz_wei(DFTdim, DFTsize, z_zero)
+M_perptz = CuArray(M_perptz)
+
 lambda = 5
 
 alpha_LS = 0.1
