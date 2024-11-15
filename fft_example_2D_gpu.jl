@@ -1,11 +1,12 @@
 using Random, Distributions
+using MadNLPGPU, CUDA
 Random.seed!(1)
 
 include("fft_model.jl")
 
 ## 2D
-Nt = 4
-Ns = 4
+Nt = 16
+Ns = 16
 t = collect(0:(Nt-1))
 s = collect(0:(Ns-1))
 x = (cos.(2*pi*2/Nt*t)+ 2*sin.(2*pi*2/Nt*t))*(cos.(2*pi*3/Ns*s) + 2*sin.(2*pi*3/Ns*s))'

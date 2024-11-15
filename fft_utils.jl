@@ -412,24 +412,18 @@ function beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta, size)
     end
     v[M1+1,1] = beta[3]
     for i = 1:P1
-        v[N1-i+1,1] = (beta[4+4*P2+i] - im * beta[4+4*P2+P1+i]) / sqrt(2)
+        v[N1-i+1,1] = (beta[4+4*P2+i] - im .* beta[4+4*P2+P1+i]) / sqrt(2)
     end
     for i = 1:P2
         v[1, i+1] = (beta[4+i] + im * beta[4+P2+i]) / sqrt(2)
     end
-    for i = 1:P1
-        for j = 1:P2
-            v[i+1, j+1] = (beta[4+4*P2+4*P1+(j-1)*P2+i] + im * beta[4+4*P2+4*P1+P1*P2+(j-1)*P2+i]) / sqrt(2)
-        end
-    end
+    # FIX ME!
+    v[2:M1, 2:M2] .= reshape((beta[4+4*P2+4*P1+1:4+4*P2+4*P1+P1*P2] .+ im .* beta[4+4*P2+4*P1+P1*P2+1:4+4*P2+4*P1+2*P1*P2]) ./ sqrt(2), P1, P2)
     for i = 1:P2
-        v[M1+1, i+1] = (beta[4+2*P2+i] + im * beta[4+3*P2+i]) / sqrt(2)
+        v[M1+1, i+1] = (beta[4+2*P2+i] .+ im .* beta[4+3*P2+i]) / sqrt(2)
     end
-    for i = 1:P1
-        for j = 1:P2
-            v[M1+i+1, j+1] = (beta[4+4*P2+4*P1+3*P1*P2-(j-1)*P2-i+1] - im * beta[N1*N2-(j-1)*P2-i+1]) / sqrt(2)
-        end
-    end
+    # FIX ME!
+    v[M1+2:N1, 2:M2] .= reshape((beta[4+4*P2+4*P1+3*P1*P2:-1:4+4*P2+4*P1+2*P1*P2+1] .- im .* beta[N1*N2:-1:4+4*P2+4*P1+3*P1*P2+1]) ./ sqrt(2), P1, P2)
     v[1,M2+1] = beta[2]
     for i = 1:P1
         v[i+1,M2+1] = (beta[4+4*P2+2*P1+i] + im * beta[4+4*P2+3*P1+i]) / sqrt(2)
