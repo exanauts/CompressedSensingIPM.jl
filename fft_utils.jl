@@ -401,7 +401,7 @@ end
 
 function beta_to_DFT(dim, size, beta)
     cpu = beta isa Array
-    if !cpu && (dim != 1)
+    if !cpu && (dim == 3)
         beta = Array(beta)
     end
     if (dim == 1)
@@ -411,7 +411,7 @@ function beta_to_DFT(dim, size, beta)
     elseif (dim == 3)
         return beta_to_DFT_3d(beta, size)
     end
-    if !cpu && (dim != 1)
+    if !cpu && (dim == 3)
         v = CuArray(v)
     end
     return v
@@ -496,22 +496,52 @@ function beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta, size)
     M2 = N2 ÷ 2
     P1 = M1 - 1
     P2 = M2 - 1
-    v[:,1] = [beta[1];
-              (beta[4+4*P2+1:4+4*P2+P1] .+ im .* beta[4+4*P2+P1+1:4+4*P2+2*P1]) ./ sqrt(2);
-              beta[3];
-              reverse((beta[4+4*P2+1:4+4*P2+P1] .- im .* beta[4+4*P2+P1+1:4+4*P2+2*P1]) ./ sqrt(2))]
-    v[:,2:M2] = [transpose(beta[4+1:4+M2-1] .+ im .* beta[4+P2+1:4+2*P2]) ./ sqrt(2);
-                 reshape((beta[4+4*P2+4*P1+1:4+4*P2+4*P1+P1*P2] .+ im .* beta[4+4*P2+4*P1+P1*P2+1:4+4*P2+4*P1+2*P1*P2]) ./ sqrt(2), P1, P2);
-                 transpose(beta[4+2*P2+1:4+3*P2] .+ im .* beta[4+3*P2+1:4+4*P2]) ./ sqrt(2);
-                 reverse(reverse(reshape((beta[4+4*P2+4*P1+2*P1*P2+1:4+4*P2+4*P1+3*P1*P2] .- im .* beta[4+4*P2+4*P1+3*P1*P2+1:N1*N2]) ./ sqrt(2), P1, P2), dims = 1), dims = 2)]
-    v[:,M2+1] = [beta[2];
-                 (beta[4+4*P2+2*P1+1:4+4*P2+3*P1] .+ im .* beta[4+4*P2+3*P1+1:4+4*P2+4*P1]) ./ sqrt(2);
-                 beta[4];
-                 reverse((beta[4+4*P2+2*P1+1:4+4*P2+3*P1] .- im .* beta[4+4*P2+3*P1+1:4+4*P2+4*P1]) ./ sqrt(2), dims = 1)]
-    v[:, M2+2:N2] = [transpose(reverse(conj.(v[1,2:M2])));
-                     reverse(reverse(conj.(v[M1+2:N1,2:M2]), dims = 2), dims = 1);
-                     transpose(reverse(conj.(v[M1+1,2:M2])));
-                     reverse(reverse(conj.(v[2:M1,2:M2]), dims = 2), dims = 1)]
+    v[1,1] = beta[1]
+    v[2:M1,1] = (beta[4+4*P2+1:4+4*P2+P1] .+ im .* beta[4+4*P2+P1+1:4+4*P2+2*P1]) ./ sqrt(2)
+    v[M1+1,1] = beta[3]
+    v[N1:-1:M1+2,1] = (beta[4+4*P2+1:4+4*P2+P1] .- im .* beta[4+4*P2+P1+1:4+4*P2+2*P1]) ./ sqrt(2)
+
+    v[1, 2:M2] = (beta[4+1:4+M2-1] .+ im .* beta[4+P2+1:4+2*P2]) ./ sqrt(2)
+    v[2:M1, 2:M2] = reshape((beta[4+4*P2+4*P1+1:4+4*P2+4*P1+P1*P2] .+ im .* beta[4+4*P2+4*P1+P1*P2+1:4+4*P2+4*P1+2*P1*P2]) ./ sqrt(2), P1, P2)
+    v[M1+1, 2:M2] = (beta[4+2*P2+1:4+3*P2] .+ im .* beta[4+3*P2+1:4+4*P2]) ./ sqrt(2)
+    v[M1+2:N1, 2:M2] = reshape((beta[4+4*P2+4*P1+3*P1*P2:-1:4+4*P2+4*P1+2*P1*P2+1] .- im .* beta[N1*N2:-1:4+4*P2+4*P1+3*P1*P2+1]) ./ sqrt(2), P1, P2)
+
+    v[1,M2+1] = beta[2]
+    v[2:M1,M2+1] = (beta[4+4*P2+2*P1+1:4+4*P2+3*P1] .+ im .* beta[4+4*P2+3*P1+1:4+4*P2+4*P1]) ./ sqrt(2)
+    v[M1+1,M2+1] = beta[4]
+    v[N1:-1:M1+2,M2+1] = (beta[4+4*P2+2*P1+1:4+4*P2+3*P1] .- im .* beta[4+4*P2+3*P1+1:4+4*P2+4*P1]) ./ sqrt(2)
+
+    v[1, M2+2:N2] = conj.(v[1,M2:-1:2])
+    v[2:M1, M2+2:N2] = conj.(v[N1:-1:M1+2,M2:-1:2])
+    v[M1+1, M2+2:N2] = conj.(v[M1+1,M2:-1:2])
+    v[M1+2:N1, M2+2:N2] = conj.(v[M1:-1:2,M2:-1:2])
+    return v
+end
+
+function beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta, size)
+    N1 = size[1]
+    N2 = size[2]
+    M1 = N1 ÷ 2
+    M2 = N2 ÷ 2
+    P1 = M1 - 1
+    P2 = M2 - 1
+    view(v,1:M1:M1+1) .= view(beta, 1:2:3)
+    view(v,2:M1,1) .= (view(beta,4+4*P2+1:4+4*P2+P1) .+ im .* view(beta,4+4*P2+P1+1:4+4*P2+2*P1)) ./ sqrt(2)
+    view(v,N1:-1:M1+2,1) .= (view(beta,4+4*P2+1:4+4*P2+P1) .- im .* view(beta,4+4*P2+P1+1:4+4*P2+2*P1)) ./ sqrt(2)
+
+    view(v,1, 2:M2) .= (view(beta,4+1:4+M2-1) .+ im .* view(beta,4+P2+1:4+2*P2)) ./ sqrt(2)
+    view(v,2:M1, 2:M2) .= reshape((view(beta,4+4*P2+4*P1+1:4+4*P2+4*P1+P1*P2) .+ im .* view(beta,4+4*P2+4*P1+P1*P2+1:4+4*P2+4*P1+2*P1*P2)) ./ sqrt(2), P1, P2)
+    view(v,M1+1, 2:M2) .= (view(beta,4+2*P2+1:4+3*P2) .+ im .* view(beta,4+3*P2+1:4+4*P2)) ./ sqrt(2)
+    view(v,M1+2:N1, 2:M2) .= reshape((view(beta,4+4*P2+4*P1+3*P1*P2:-1:4+4*P2+4*P1+2*P1*P2+1) .- im .* view(beta,N1*N2:-1:4+4*P2+4*P1+3*P1*P2+1)) ./ sqrt(2), P1, P2)
+
+    view(v,1:M1:M1+1,M2+1) .= view(beta, 2:2:4)
+    view(v,2:M1,M2+1) .= (view(beta,4+4*P2+2*P1+1:4+4*P2+3*P1) .+ im .* view(beta,4+4*P2+3*P1+1:4+4*P2+4*P1)) ./ sqrt(2)
+    view(v,N1:-1:M1+2,M2+1) .= (view(beta,4+4*P2+2*P1+1:4+4*P2+3*P1) .- im .* view(beta,4+4*P2+3*P1+1:4+4*P2+4*P1)) ./ sqrt(2)
+
+    view(v,1,M2+2:N2) .= conj.(view(v,1,M2:-1:2))
+    view(v,2:M1,M2+2:N2) .= conj.(view(v,N1:-1:M1+2,M2:-1:2))
+    view(v,M1+1,M2+2:N2) .= conj.(view(v,M1+1,M2:-1:2))
+    view(v,M1+2:N1,M2+2:N2) .= conj.(view(v,M1:-1:2,M2:-1:2))
     return v
 end
 
@@ -519,6 +549,13 @@ function beta_to_DFT_2d(beta::StridedArray{Float64}, size)
     N1 = size[1]
     N2 = size[2]
     v = Matrix{ComplexF64}(undef, N1, N2)
+    beta_to_DFT_2d!(v, beta, size)
+end
+
+function beta_to_DFT_2d(beta::StridedCuArray{Float64}, size)
+    N1 = size[1]
+    N2 = size[2]
+    v = CuMatrix{ComplexF64}(undef, N1, N2)
     beta_to_DFT_2d!(v, beta, size)
 end
 
