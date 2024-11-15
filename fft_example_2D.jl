@@ -51,7 +51,7 @@ nlp = FFTNLPModel{Float64, Vector{Float64}}(parameters)
 # Solve with MadNLP/CG
 solver = MadNLP.MadNLPSolver(
     nlp;
-    max_iter=20,
+    max_iter=2000,
     kkt_system=FFTKKTSystem,
     print_level=MadNLP.INFO,
     dual_initialized=true,
