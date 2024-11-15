@@ -205,7 +205,7 @@ function DFT_to_beta_2d!(beta::Array{Float64}, v, size)
     i = k1
     for col = 2:M2
         for row = 2:M1
-            i = k1+1
+            i = i+1
             beta[i] = sqrt(2) * real(v[row, col])
         end
     end
@@ -214,7 +214,7 @@ function DFT_to_beta_2d!(beta::Array{Float64}, v, size)
     i = k1
     for col = 2:M2
         for row = 2:M1
-            i = k1+1
+            i = i+1
             beta[i] = sqrt(2) * imag(v[row, col])
         end
     end
@@ -223,7 +223,7 @@ function DFT_to_beta_2d!(beta::Array{Float64}, v, size)
     i = k1
     for col = M2+2:N2
         for row = 2:M1
-            i = k1+1
+            i = i+1
             beta[i] = sqrt(2) * real(v[row, col])
         end
     end
@@ -232,7 +232,7 @@ function DFT_to_beta_2d!(beta::Array{Float64}, v, size)
     i = k1
     for col = M2+2:N2
         for row = 2:M1
-            i = k1+1
+            i = i+1
             beta[i] = sqrt(2) * imag(v[row, col])
         end
     end
