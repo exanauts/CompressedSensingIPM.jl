@@ -29,7 +29,12 @@ function M_perp_tz(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size
     buffer_complex2 .= z_zero  # z_zero should be store in a complex buffer for mul!
     temp = mul!(buffer_complex1, op, buffer_complex2)
     temp ./= sqrt(N)
-    beta = DFT_to_beta(dim, _size, temp)
+    if dim == 3
+        beta = DFT_to_beta(dim, _size, temp)
+    else
+        beta = vec(buffer_real)
+        DFT_to_beta!(beta, dim, _size, temp)
+    end
     # println("beta | ", beta |> size, " | ", typeof(beta))
     # display(beta)
     return beta
@@ -39,7 +44,12 @@ function M_perp_beta(buffer_real, buffer_complex1, buffer_complex2, op, dim, _si
     N = prod(_size)
     # println("beta | ", beta |> size, " | ", typeof(beta))
     # display(beta)
-    v = beta_to_DFT(dim, _size, beta)
+    if dim == 3
+        v = beta_to_DFT(dim, _size, beta)
+    else
+        v = buffer_complex2
+        beta_to_DFT!(v, dim, _size, beta)
+    end
     # println("-- M_perp_beta --")
     # println(_size)
     # println("v | ", v |> size, " | ", typeof(v))
@@ -73,6 +83,17 @@ end
 # >x = randn(6, 8);
 # >v = fft(x)/sqrt(prod(size1));
 # >beta = DFT_to_beta(dim, size1, v);
+
+function DFT_to_beta!(beta, dim, size, v)
+    if (dim == 1)
+        DFT_to_beta_1d!(beta, v, size)
+    elseif (dim == 2)
+        DFT_to_beta_2d!(beta, v, size)
+    else
+        error("Dimension not supported")
+    end
+    return beta
+end
 
 function DFT_to_beta(dim, size, v)
     cpu = v isa Array
@@ -344,6 +365,17 @@ end
 # >beta = DFT_to_beta(dim, size1, v);
 # >w = beta_to_DFT(dim, size1, beta); (w should be equal to v)
 
+function beta_to_DFT!(v, dim, size, beta)
+    if (dim == 1)
+        return beta_to_DFT_1d!(v, beta, size)
+    elseif (dim == 2)
+        return beta_to_DFT_2d!(v, beta, size)
+    else
+        error("Dimension not supported")
+    end
+    return v
+end
+
 function beta_to_DFT(dim, size, beta)
     cpu = beta isa Array
     if !cpu && (dim == 3)
@@ -479,11 +511,15 @@ function beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta, size)
 end
 
 function beta_to_DFT_2d(beta::StridedArray{Float64}, size)
-    N1 = size[1]
-    N2 = size[2]
-    v = Matrix{ComplexF64}(undef, N1, N2)
-    beta_to_DFT_2d!(v, beta, size)
+    return beta_to_DFT_2d_wei(beta, size)
 end
+
+# function beta_to_DFT_2d(beta::StridedArray{Float64}, size)
+#     N1 = size[1]
+#     N2 = size[2]
+#     v = Matrix{ComplexF64}(undef, N1, N2)
+#     beta_to_DFT_2d!(v, beta, size)
+# end
 
 function beta_to_DFT_2d(beta::StridedCuArray{Float64}, size)
     N1 = size[1]
