@@ -148,10 +148,10 @@ function DFT_to_beta_2d!(beta::Array{Float64}, v, size)
     P1 = M1 - 1
     P2 = M2 - 1
     PP = P1 * P2
-    beta[1] = v[1, 1]
-    beta[2] = v[1, M2+1]
-    beta[3] = v[M1+1, 1]
-    beta[4] = v[M1+1, M2+1]
+    beta[1] = real(v[1, 1])
+    beta[2] = real(v[1, M2+1])
+    beta[3] = real(v[M1+1, 1])
+    beta[4] = real(v[M1+1, M2+1])
     k1 = 4
     k2 = 4 + P2
     for i = k1+1 : k2
