@@ -239,8 +239,8 @@ function DFT_to_beta_2d!(beta::CuArray{Float64}, v, size)
     P1 = M1 - 1
     P2 = M2 - 1
     PP = P1 * P2
-    view(beta, 1:2) .= view(v, 1   , 1:M2:M2+1)
-    view(beta, 3:4) .= view(v, M1+1, 1:M2:M2+1)
+    view(beta, 1:2) .= real.(view(v, 1   , 1:M2:M2+1))
+    view(beta, 3:4) .= real.(view(v, M1+1, 1:M2:M2+1))
     view(beta, 5               :4+  P2          ) .= sqrt(2) .* real.(view(v, 1, 2:M2))
     view(beta, 5+  P2          :4+2*P2          ) .= sqrt(2) .* imag.(view(v, 1, 2:M2))
     view(beta, 5+2*P2          :4+3*P2          ) .= sqrt(2) .* real.(view(v, M1+1, 2:M2))
