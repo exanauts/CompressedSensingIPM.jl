@@ -197,74 +197,78 @@ function DFT_to_beta_2d!(beta::Array{Float64}, v, size)
     k1 = 4
     k2 = 4 + P2
     for i = k1+1 : k2
-        u = view(v, 1, 2:M2)
-        beta[i] = sqrt(2) * real(u[i-k1])
+        beta[i] = sqrt(2) * real(v[1, i-k1+1])
     end
     k1 = k2
     k2 = k1 + P2
     for i = k1+1 : k2
-        u = view(v, 1, 2:M2)
-        beta[i] = sqrt(2) * imag(u[i-k1])
+        beta[i] = sqrt(2) * imag(v[1, i-k1+1])
     end
     k1 = k2
     k2 = k1 + P2
     for i = k1+1 : k2
-        u = view(v, M1+1, 2:M2)
-        beta[i] = sqrt(2) * real(u[i-k1])
+        beta[i] = sqrt(2) * real(v[M1+1, i-k1+1])
     end
     k1 = k2
     k2 = k1 + P2
     for i = k1+1 : k2
-        u = view(v, M1+1, 2:M2)
-        beta[i] = sqrt(2) * imag(u[i-k1])
+        beta[i] = sqrt(2) * imag(v[M1+1, i-k1+1])
     end
     k1 = k2
     k2 = k1 + P1
     for i = k1+1 : k2
-        u = view(v, 2:M1, 1)
-        beta[i] = sqrt(2) * real(u[i-k1])
+        beta[i] = sqrt(2) * real(v[i-k1+1, 1])
     end
     k1 = k2
     k2 = k1 + P1
     for i = k1+1 : k2
-        u = view(v, 2:M1, 1)
-        beta[i] = sqrt(2) * imag(u[i-k1])
+        beta[i] = sqrt(2) * imag(v[i-k1+1, 1])
     end
     k1 = k2
     k2 = k1 + P1
     for i = k1+1 : k2
-        u = view(v, 2:M1, M2+1)
-        beta[i] = sqrt(2) * real(u[i-k1])
+        beta[i] = sqrt(2) * real(v[i-k1+1, M2+1])
     end
     k1 = k2
     k2 = k1 + P1
     for i = k1+1 : k2
-        u = view(v, 2:M1, M2+1)
-        beta[i] = sqrt(2) * imag(u[i-k1])
+        beta[i] = sqrt(2) * imag(v[i-k1+1, M2+1])
     end
     k1 = k2
     k2 = k1 + PP
-    for i = k1+1 : k2
-        u = view(v, 2:M1, 2:M2) |> vec
-        beta[i] = sqrt(2) * real(u[i-k1])
+    i = k1
+    for col = 2:M2
+        for row = 2:M1
+            i = k1+1
+            beta[i] = sqrt(2) * real(v[row, col])
+        end
     end
     k1 = k2
     k2 = k1 + PP
-    for i = k1+1 : k2
-        u = view(v, 2:M1, 2:M2) |> vec
-        beta[i] = sqrt(2) * imag(u[i-k1])
+    i = k1
+    for col = 2:M2
+        for row = 2:M1
+            i = k1+1
+            beta[i] = sqrt(2) * imag(v[row, col])
+        end
     end
     k1 = k2
     k2 = k1 + PP
-    for i = k1+1 : k2
-        u = view(v, 2:M1, M2+2:N2) |> vec
-        beta[i] = sqrt(2) * real(u[i-k1])
+    i = k1
+    for col = M2+2:N2
+        for row = 2:M1
+            i = k1+1
+            beta[i] = sqrt(2) * real(v[row, col])
+        end
     end
     k1 = k2
     k2 = k1 + PP
-    for i = k1+1 : k2
-        u = view(v, 2:M1, M2+2:N2) |> vec
-        beta[i] = sqrt(2) * imag(u[i-k1])
+    i = k1
+    for col = M2+2:N2
+        for row = 2:M1
+            i = k1+1
+            beta[i] = sqrt(2) * imag(v[row, col])
+        end
     end
     return beta
 end
@@ -460,7 +464,7 @@ function beta_to_DFT_1d(beta::StridedCuArray{Float64}, size)
 end
 
 # 2 dim
-function beta_to_DFT_2d(beta, size)
+function beta_to_DFT_2d_wei(beta, size)
     N1 = size[1]
     N2 = size[2]
     M1 = N1 ÷ 2
@@ -483,6 +487,39 @@ function beta_to_DFT_2d(beta, size)
                      transpose(reverse(conj.(v[M1+1,2:M2])));
                      reverse(reverse(conj.(v[2:M1,2:M2]), dims = 2), dims = 1)]
     return v
+end
+
+function beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta, size)
+    N1 = size[1]
+    N2 = size[2]
+    M1 = N1 ÷ 2
+    M2 = N2 ÷ 2
+    P1 = M1 - 1
+    P2 = M2 - 1
+    v[:,1] = [beta[1];
+              (beta[4+4*P2+1:4+4*P2+P1] .+ im .* beta[4+4*P2+P1+1:4+4*P2+2*P1]) ./ sqrt(2);
+              beta[3];
+              reverse((beta[4+4*P2+1:4+4*P2+P1] .- im .* beta[4+4*P2+P1+1:4+4*P2+2*P1]) ./ sqrt(2))]
+    v[:,2:M2] = [transpose(beta[4+1:4+M2-1] .+ im .* beta[4+P2+1:4+2*P2]) ./ sqrt(2);
+                 reshape((beta[4+4*P2+4*P1+1:4+4*P2+4*P1+P1*P2] .+ im .* beta[4+4*P2+4*P1+P1*P2+1:4+4*P2+4*P1+2*P1*P2]) ./ sqrt(2), P1, P2);
+                 transpose(beta[4+2*P2+1:4+3*P2] .+ im .* beta[4+3*P2+1:4+4*P2]) ./ sqrt(2);
+                 reverse(reverse(reshape((beta[4+4*P2+4*P1+2*P1*P2+1:4+4*P2+4*P1+3*P1*P2] .- im .* beta[4+4*P2+4*P1+3*P1*P2+1:N1*N2]) ./ sqrt(2), P1, P2), dims = 1), dims = 2)]
+    v[:,M2+1] = [beta[2];
+                 (beta[4+4*P2+2*P1+1:4+4*P2+3*P1] .+ im .* beta[4+4*P2+3*P1+1:4+4*P2+4*P1]) ./ sqrt(2);
+                 beta[4];
+                 reverse((beta[4+4*P2+2*P1+1:4+4*P2+3*P1] .- im .* beta[4+4*P2+3*P1+1:4+4*P2+4*P1]) ./ sqrt(2), dims = 1)]
+    v[:, M2+2:N2] = [transpose(reverse(conj.(v[1,2:M2])));
+                     reverse(reverse(conj.(v[M1+2:N1,2:M2]), dims = 2), dims = 1);
+                     transpose(reverse(conj.(v[M1+1,2:M2])));
+                     reverse(reverse(conj.(v[2:M1,2:M2]), dims = 2), dims = 1)]
+    return v
+end
+
+function beta_to_DFT_2d(beta::StridedArray{Float64}, size)
+    N1 = size[1]
+    N2 = size[2]
+    v = Matrix{ComplexF64}(undef, N1, N2)
+    beta_to_DFT_2d!(v, beta, size)
 end
 
 # 3 dim
