@@ -15,11 +15,11 @@ using Random, Distributions
 
 # @return M_{\perp}^{\top}z A vector with length equal to the product of size
 # @example
-# >widetildez = [2;3;missing;4];
-# >z_zero  = [2;3;0;4];
+# >widetildez = [2;3;missing;4]
+# >z_zero  = [2;3;0;4]
 # >dim = 1;
 # >size1 = 4;
-# >M_perptz = M_perp_tz(z_zero, dim, size1);
+# >M_perptz = M_perp_tz(z_zero, dim, size1)
 
 function M_perp_tz(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, z_zero)
     N = prod(_size)
@@ -78,10 +78,10 @@ end
 # @return A 1-dimensional real vector beta whose length is the product of size
 # @example
 # >dim = 2;
-# >size1 = (6, 8);
-# >x = randn(6, 8);
-# >v = fft(x)/sqrt(prod(size1));
-# >beta = DFT_to_beta(dim, size1, v);
+# >size1 = (6, 8)
+# >x = randn(6, 8)
+# >v = fft(x)/sqrt(prod(size1))
+# >beta = DFT_to_beta(dim, size1, v)
 
 function DFT_to_beta!(beta, dim, size, v)
     if (dim == 1)
@@ -456,11 +456,11 @@ end
 
 # @example
 # >dim = 2;
-# >size1 = (6, 8);
-# >x = randn(6, 8);
-# >v = fft(x)/sqrt(prod(size1));
-# >beta = DFT_to_beta(dim, size1, v);
-# >w = beta_to_DFT(dim, size1, beta); (w should be equal to v)
+# >size1 = (6, 8)
+# >x = randn(6, 8)
+# >v = fft(x)/sqrt(prod(size1))
+# >beta = DFT_to_beta(dim, size1, v)
+# >w = beta_to_DFT(dim, size1, beta) (w should be equal to v)
 
 function beta_to_DFT!(v, dim, size, beta)
     if (dim == 1)
@@ -617,102 +617,118 @@ function beta_to_DFT_2d(beta::StridedCuArray{Float64}, size)
 end
 
 # dim = 3
-function beta_to_DFT_3d(beta, size)
+function beta_to_DFT_3d!(v, beta, size)
     N1 = size[1]
     N2 = size[2]
     N3 = size[3]
     M1 = N1 ÷ 2
     M2 = N2 ÷ 2
     M3 = N3 ÷ 2
-    v = Array{Complex{Float64}, 3}(undef, N1, N2, N3)
+    P1 = M1 - 1
+    P2 = M2 - 1
+    P3 = M3 - 1
+    P23 = P2 * P3
+    P13 = P1 * P3
+    P12 = P1 * P2
+    P123 = P1 * P2 * P3
 
-    v[:, 1, 1] = [beta[1];
-                  ((beta[Int(8+8*(M3-1)+8*(M2-1)+1):Int(8+8*(M3-1)+8*(M2-1)+(M1-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+(M1-1)+1):Int(8+8*(M3-1)+8*(M2-1)+2*(M1-1))])))./sqrt(2);
-                  beta[5];
-                  reverse(((beta[Int(8+8*(M3-1)+8*(M2-1)+1):Int(8+8*(M3-1)+8*(M2-1)+(M1-1))]).-(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+(M1-1)+1):Int(8+8*(M3-1)+8*(M2-1)+2*(M1-1))])))./sqrt(2))];
+    v[1, 1, 1] = beta[1]
+    v[2:M1, 1, 1] = (beta[8+8*P3+8*P2+1:8+8*P3+8*P2+P1] .+ im .* beta[8+8*P3+8*P2+P1+1:8+8*P3+8*P2+2*P1]) ./ sqrt(2)
+    v[M1+1, 1, 1] = beta[5]
+    v[M1+2:N1, 1, 1] = reverse(beta[8+8*P3+8*P2+1:8+8*P3+8*P2+P1]  .- im .* beta[8+8*P3+8*P2+P1+1:8+8*P3+8*P2+2*P1]) ./ sqrt(2)
 
-    v[:, 2:M2, 1] = [transpose(((beta[Int(8+8*(M3-1)+1):Int(8+8*(M3-1)+(M2-1))]).+(im.*(beta[Int(8+8*(M3-1)+(M2-1)+1):Int(8+8*(M3-1)+2*(M2-1))])))./sqrt(2));
-                     reshape(((beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+(M1-1)*(M2-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+(M1-1)*(M2-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+2*(M1-1)*(M2-1))])))./sqrt(2), Int(M1-1), Int(M2-1));
-                     transpose(((beta[Int(8+8*(M3-1)+4*(M2-1)+1):Int(8+8*(M3-1)+5*(M2-1))]).+(im.*(beta[Int(8+8*(M3-1)+5*(M2-1)+1):Int(8+8*(M3-1)+6*(M2-1))])))./sqrt(2));
-                     reshape(((beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+2*(M1-1)*(M2-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+3*(M1-1)*(M2-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+3*(M1-1)*(M2-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+4*(M1-1)*(M2-1))])))./sqrt(2), Int(M1-1), Int(M2-1))];
+    v[:, 2:M2, 1] = [transpose((beta[8+8*P3+1:8+8*P3+P2] .+ im .* beta[8+8*P3+P2+1:8+8*P3+2*P2]) ./ sqrt(2))
+                     reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+P1*P2] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+2*P1*P2]) ./ sqrt(2), P1, P2)
+                     transpose((beta[8+8*P3+4*P2+1:8+8*P3+5*P2] .+ im .* beta[8+8*P3+5*P2+1:8+8*P3+6*P2]) ./ sqrt(2))
+                     reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+2*P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+3*P1*P2] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+3*P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+4*P1*P2]) ./ sqrt(2), P1, P2)]
 
-    v[:, M2+1, 1] = [beta[3];
-                     ((beta[Int(8+8*(M3-1)+8*(M2-1)+4*(M1-1)+1):Int(8+8*(M3-1)+8*(M2-1)+5*(M1-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+5*(M1-1)+1):Int(8+8*(M3-1)+8*(M2-1)+6*(M1-1))])))./sqrt(2);
-                     beta[7];
-                     reverse(((beta[Int(8+8*(M3-1)+8*(M2-1)+4*(M1-1)+1):Int(8+8*(M3-1)+8*(M2-1)+5*(M1-1))]).-(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+5*(M1-1)+1):Int(8+8*(M3-1)+8*(M2-1)+6*(M1-1))])))./sqrt(2))];
+    v[1, M2+1, 1] = beta[3]
+    v[2:M1, M2+1, 1] = (beta[8+8*P3+8*P2+4*P1+1:8+8*P3+8*P2+5*P1] .+ im .* beta[8+8*P3+8*P2+5*P1+1:8+8*P3+8*P2+6*P1]) ./ sqrt(2)
+    v[M1+1, M2+1, 1] = beta[7]
+    v[M1+2:N1, M2+1, 1] = reverse(beta[8+8*P3+8*P2+4*P1+1:8+8*P3+8*P2+5*P1] .- im .* beta[8+8*P3+8*P2+5*P1+1:8+8*P3+8*P2+6*P1]) ./ sqrt(2)
 
-    v[:, M2+2:N2, 1] = [transpose(reverse(conj.(v[1, 2:M2, 1])));
-                             reverse(reverse(conj.(v[M1+2:N1, 2:M2, 1]), dims = 1), dims = 2);
-                             transpose(reverse(conj.(v[M1+1, 2:M2, 1])));
-                             reverse(reverse(conj.(v[2:M1, 2:M2, 1]), dims = 1), dims = 2)];
+    v[:, M2+2:N2, 1] = [transpose(reverse(conj.(v[1, 2:M2, 1])))
+                        reverse(reverse(conj.(v[M1+2:N1, 2:M2, 1]), dims = 1), dims = 2)
+                        transpose(reverse(conj.(v[M1+1, 2:M2, 1])))
+                        reverse(reverse(conj.(v[2:M1, 2:M2, 1]), dims = 1), dims = 2)]
+
+    v[1, 1, M3+1] = beta[2]
+    v[2:M1, 1, M3+1] = (beta[8+8*P3+8*P2+2*P1+1:8+8*P3+8*P2+3*P1] .+ im .* beta[8+8*P3+8*P2+3*P1+1:8+8*P3+8*P2+4*P1]) ./ sqrt(2)
+    v[M1+1, 1, M3+1] = beta[6]
+    v[M1+2:N1, 1, M3+1] = reverse((beta[8+8*P3+8*P2+2*P1+1:8+8*P3+8*P2+3*P1] .- im .* beta[8+8*P3+8*P2+3*P1+1:8+8*P3+8*P2+4*P1])) ./ sqrt(2)
+
+    v[:, 2:M2, M3+1] = [transpose((beta[8+8*P3+2*P2+1:8+8*P3+3*P2] .+ im .* beta[8+8*P3+3*P2+1:8+8*P3+4*P2]) ./ sqrt(2))
+                        reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+4*P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+5*P1*P2] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+5*P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+6*P1*P2])./ sqrt(2), P1, P2)
+                        transpose((beta[8+8*P3+6*P2+1:8+8*P3+7*P2] .+ im .* beta[8+8*P3+7*P2+1:8+8*P3+8*P2]) ./sqrt(2))
+                        reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+6*P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+7*P1*P2] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+7*P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2]) ./ sqrt(2), P1, P2)]
+
+    v[1, M2+1, M3+1] = beta[4]
+    v[2:M2, M2+1, M3+1] = (beta[8+8*P3+8*P2+6*P1+1:8+8*P3+8*P2+7*P1] .+ im .* beta[8+8*P3+8*P2+7*P1+1:8+8*P3+8*P2+8*P1]) ./ sqrt(2)
+    v[M1+1, M2+1, M3+1] = beta[8]
+    v[M1+2:N1, M2+1, M3+1] = reverse((beta[8+8*P3+8*P2+6*P1+1:8+8*P3+8*P2+7*P1] .- im .* beta[8+8*P3+8*P2+7*P1+1:8+8*P3+8*P2+8*P1])) ./ sqrt(2)
+
+    v[:, M2+2:N2, M3+1] = [transpose(reverse(conj.(v[1, 2:M2, M3+1])))
+                           reverse(reverse(conj.(v[M1+2:N1, 2:M2, M3+1]), dims = 1), dims = 2)
+                           transpose(reverse(conj.(v[M1+1, 2:M2, M3+1])))
+                           reverse(reverse(conj.(v[2:M1, 2:M2, M3+1]), dims = 1), dims = 2)]
 
 
-    v[:, 1, M3+1] = [beta[2];
-                     ((beta[Int(8+8*(M3-1)+8*(M2-1)+2*(M1-1)+1):Int(8+8*(M3-1)+8*(M2-1)+3*(M1-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+3*(M1-1)+1):Int(8+8*(M3-1)+8*(M2-1)+4*(M1-1))])))./sqrt(2);
-                     beta[6];
-                     reverse(((beta[Int(8+8*(M3-1)+8*(M2-1)+2*(M1-1)+1):Int(8+8*(M3-1)+8*(M2-1)+3*(M1-1))]).-(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+3*(M1-1)+1):Int(8+8*(M3-1)+8*(M2-1)+4*(M1-1))])))./sqrt(2))];
+    v[:, 1, 2:M3] = [transpose((beta[9:8+P3] .+ im .* beta[8+P3+1:8+2*P3])) ./ sqrt(2)
+                     reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+P1*P3] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+P1*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+2*P1*P3]) ./ sqrt(2), P1, P3)
+                     transpose((beta[8+4*P3+1:8+5*P3] .+ im .* beta[8+5*P3+1:8+6*P3]) ./ sqrt(2))
+                     reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+2*P1*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+3*P1*P3] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+3*P1*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+4*P1*P3]) ./ sqrt(2), P1, P3)]
 
-    v[:, 2:M2, M3+1] = [transpose(((beta[Int(8+8*(M3-1)+2*(M2-1)+1):Int(8+8*(M3-1)+3*(M2-1))]).+(im.*(beta[Int(8+8*(M3-1)+3*(M2-1)+1):Int(8+8*(M3-1)+4*(M2-1))])))./sqrt(2));
-                        reshape(((beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+4*(M1-1)*(M2-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+5*(M1-1)*(M2-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+5*(M1-1)*(M2-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+6*(M1-1)*(M2-1))])))./sqrt(2), Int(M1-1), Int(M2-1));
-                        transpose(((beta[Int(8+8*(M3-1)+6*(M2-1)+1):Int(8+8*(M3-1)+7*(M2-1))]).+(im.*(beta[Int(8+8*(M3-1)+7*(M2-1)+1):Int(8+8*(M3-1)+8*(M2-1))])))./sqrt(2));
-                        reshape(((beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+6*(M1-1)*(M2-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+7*(M1-1)*(M2-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+7*(M1-1)*(M2-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+8*(M1-1)*(M2-1))])))./sqrt(2), Int(M1-1), Int(M2-1))];
+    v[:, 1, M3+2:N3] = [transpose(reverse(conj.(v[1, 1, 2:M3])))
+                        reverse(reverse(conj.(v[M1+2:N1, 1, 2:M3]), dims = 1), dims = 2)
+                        transpose(reverse(conj.(v[M1+1, 1, 2:M3])))
+                        reverse(reverse(conj.(v[2:M1, 1, 2:M3]), dims = 1), dims = 2)]
 
-    v[:, M2+1, M3+1] = [beta[4];
-                        ((beta[Int(8+8*(M3-1)+8*(M2-1)+6*(M1-1)+1):Int(8+8*(M3-1)+8*(M2-1)+7*(M1-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+7*(M1-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1))])))./sqrt(2);
-                        beta[8];
-                        reverse(((beta[Int(8+8*(M3-1)+8*(M2-1)+6*(M1-1)+1):Int(8+8*(M3-1)+8*(M2-1)+7*(M1-1))]).-(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+7*(M1-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1))])))./sqrt(2))];
+     v[:, M2+1, 2:M3] = [transpose((beta[8+2*P3+1:8+3*P3] .+ im .* beta[8+3*P3+1:8+4*P3]) ./ sqrt(2))
+                         reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+4*P1*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+5*P1*P3] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+5*P1*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+6*P1*P3]) ./ sqrt(2), P1, P3)
+                         transpose((beta[8+6*P3+1:8+7*P3] .+ im .* beta[8+7*P3+1:8+8*P3]) ./ sqrt(2))
+                         reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+6*P1*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+7*P1*P3] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+7*P1*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3]) ./ sqrt(2), P1, P3)]
 
-    v[:, M2+2:N2, M3+1] = [transpose(reverse(conj.(v[1, 2:M2, M3+1])));
-                                reverse(reverse(conj.(v[M1+2:N1, 2:M2, M3+1]), dims = 1), dims = 2);
-                                transpose(reverse(conj.(v[M1+1, 2:M2, M3+1])));
-                                reverse(reverse(conj.(v[2:M1, 2:M2, M3+1]), dims = 1), dims = 2)];
+    v[:, M2+1, M3+2:N3] = [transpose(reverse(conj.(v[1, M2+1, 2:M3])))
+                           reverse(reverse(conj.(v[M1+2:N1, M2+1, 2:M3]), dims = 1), dims = 2)
+                           transpose(reverse(conj.(v[M1+1, M2+1, 2:M3])))
+                           reverse(reverse(conj.(v[2:M1, M2+1, 2:M3]), dims = 1), dims = 2)]
 
+    v[1, 2:M2, 2:M3] = reshape((beta[8+8*P3+8*P2+8*P1+1:8+8*P3+8*P2+8*P1+P2*P3] .+ im .* beta[8+8*P3+8*P2+8*P1+P2*P3+1:8+8*P3+8*P2+8*P1+2*P2*P3]) ./ sqrt(2), P2, P3)
+    v[1, M2+2:N2, 2:M3] = reshape((beta[8+8*P3+8*P2+8*P1+2*P2*P3+1:8+8*P3+8*P2+8*P1+3*P2*P3] .+ im .* beta[8+8*P3+8*P2+8*P1+3*P2*P3+1:8+8*P3+8*P2+8*P1+4*P2*P3]) ./ sqrt(2), P2, P3)
+    v[1, 2:M2, M3+2:N3] = reverse(reverse(conj.(v[1, M2+2:N2, 2:M3]), dims = 1), dims = 2)
+    v[1, M2+2:N2, M3+2:N3] = reverse(reverse(conj.(v[1, 2:M2, 2:M3]), dims = 1), dims = 2)
 
-    v[:, 1, 2:M3] = [transpose(((beta[9:Int(8+(M3-1))]).+(im.*(beta[Int(8+(M3-1)+1):Int(8+2*(M3-1))])))./sqrt(2));
-                     reshape(((beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+(M1-1)*(M3-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+(M1-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+2*(M1-1)*(M3-1))])))./sqrt(2), Int(M1-1), Int(M3-1));
-                     transpose(((beta[Int(8+4*(M3-1)+1):Int(8+5*(M3-1))]).+(im.*(beta[Int(8+5*(M3-1)+1):Int(8+6*(M3-1))])))./sqrt(2));
-                     reshape(((beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+2*(M1-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+3*(M1-1)*(M3-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+3*(M1-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+4*(M1-1)*(M3-1))])))./sqrt(2), Int(M1-1), Int(M3-1))];
+    v[M1+1, 2:M2, 2:M3] = reshape((beta[8+8*P3+8*P2+8*P1+4*P2*P3+1:8+8*P3+8*P2+8*P1+5*P2*P3] .+ im .* beta[8+8*P3+8*P2+8*P1+5*P2*P3+1:8+8*P3+8*P2+8*P1+6*P2*P3]) ./ sqrt(2), P2, P3)
+    v[M1+1, M2+2:N2, 2:M3] = reshape((beta[8+8*P3+8*P2+8*P1+6*P2*P3+1:8+8*P3+8*P2+8*P1+7*P2*P3] .+ im .* beta[8+8*P3+8*P2+8*P1+7*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3]) ./ sqrt(2), P2, P3)
+    v[M1+1, 2:M2, M3+2:N3] = reverse(reverse(conj.(v[M1+1, M2+2:N2, 2:M3]), dims = 1), dims = 2)
+    v[M1+1, M2+2:N2, M3+2:N3] = reverse(reverse(conj.(v[M1+1, 2:M2, 2:M3]), dims = 1), dims = 2)
 
-    v[:, 1, M3+2:N3] = [transpose(reverse(conj.(v[1, 1, 2:M3])));
-                             reverse(reverse(conj.(v[M1+2:N1, 1, 2:M3]), dims = 1), dims = 2);
-                             transpose(reverse(conj.(v[M1+1, 1, 2:M3])));
-                             reverse(reverse(conj.(v[2:M1, 1, 2:M3]), dims = 1), dims = 2)];
+    v[2:M1, 2:M2, 2:M3] = reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+P1*P2*P3] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+P1*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+2*P1*P2*P3]) ./ sqrt(2), P1, P2, P3)
+    v[M1+2:N1, M2+2:N2, M3+2:N3] = reverse(reverse(reverse(conj.(v[2:M1, 2:M2, 2:M3]), dims = 1), dims = 2), dims = 3)
 
-#    v[:, M2+1, 2:M3] = [transpose(((beta[9:Int(8+(M3-1))]).+(im.*(beta[Int(8+(M3-1)+1):Int(8+2*(M3-1))])))./sqrt(2));
-     v[:, M2+1, 2:M3] = [transpose(((beta[Int(8+2*(M3-1)+1):Int(8+3*(M3-1))]).+(im.*(beta[Int(8+3*(M3-1)+1):Int(8+4*(M3-1))])))./sqrt(2));
-                         #reshape(((beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+(M1-1)*(M3-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+(M1-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+2*(M1-1)*(M3-1))])))./sqrt(2), Int(M1-1), Int(M3-1));
-                         reshape(((beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+4*(M1-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+5*(M1-1)*(M3-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+5*(M1-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+6*(M1-1)*(M3-1))])))./sqrt(2), Int(M1-1), Int(M3-1));
-                         #transpose(((beta[Int(8+4*(M3-1)+1):Int(8+5*(M3-1))]).+(im.*(beta[Int(8+5*(M3-1)+1):Int(8+6*(M3-1))])))./sqrt(2));
-                         transpose(((beta[Int(8+6*(M3-1)+1):Int(8+7*(M3-1))]).+(im.*(beta[Int(8+7*(M3-1)+1):Int(8+8*(M3-1))])))./sqrt(2));
-                         reshape(((beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+6*(M1-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+7*(M1-1)*(M3-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+7*(M1-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1))])))./sqrt(2), Int(M1-1), Int(M3-1))];
-                         #reshape(((beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+2*(M1-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+3*(M1-1)*(M3-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+3*(M1-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+4*(M1-1)*(M3-1))])))./sqrt(2), Int(M1-1), Int(M3-1))];
+    v[M1+2:N1, 2:M2, 2:M3] = reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+2*P1*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+3*P1*P2*P3] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+3*P1*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+4*P1*P2*P3]) ./ sqrt(2), P1, P2, P3)
+    v[2:M1, M2+2:N2, M3+2:N3] = reverse(reverse(reverse(conj.(v[M1+2:N1, 2:M2, 2:M3]), dims = 1), dims = 2), dims = 3)
 
-    v[:, M2+1, M3+2:N3] = [transpose(reverse(conj.(v[1, M2+1, 2:M3])));
-                                reverse(reverse(conj.(v[M1+2:N1, M2+1, 2:M3]), dims = 1), dims = 2);
-                                transpose(reverse(conj.(v[M1+1, M2+1, 2:M3])));
-                                reverse(reverse(conj.(v[2:M1, M2+1, 2:M3]), dims = 1), dims = 2)];
+    v[2:M1, M2+2:N2, 2:M3] = reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+4*P1*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+5*P1*P2*P3] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+5*P1*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+6*P1*P2*P3]) ./ sqrt(2), P1, P2, P3)
+    v[M1+2:N1, 2:M2, M3+2:N3] = reverse(reverse(reverse(conj.(v[2:M1, M2+2:N2, 2:M3]), dims = 1), dims = 2), dims = 3)
 
-    v[1, 2:M2, 2:M3] = reshape(((beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+(M2-1)*(M3-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+(M2-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+2*(M2-1)*(M3-1))])))./sqrt(2), Int(M2-1), Int(M3-1));
-    v[1, M2+2:N2, 2:M3] = reshape(((beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+2*(M2-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+3*(M2-1)*(M3-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+3*(M2-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+4*(M2-1)*(M3-1))])))./sqrt(2), Int(M2-1), Int(M3-1));
-    v[1, 2:M2, M3+2:N3] = reverse(reverse(conj.(v[1, M2+2:N2, 2:M3]), dims = 1), dims = 2);
-    v[1, M2+2:N2, M3+2:N3] = reverse(reverse(conj.(v[1, 2:M2, 2:M3]), dims = 1), dims = 2);
-
-    v[M1+1, 2:M2, 2:M3] = reshape(((beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+4*(M2-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+5*(M2-1)*(M3-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+5*(M2-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+6*(M2-1)*(M3-1))])))./sqrt(2), Int(M2-1), Int(M3-1));
-    v[M1+1, M2+2:N2, 2:M3] = reshape(((beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+6*(M2-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+7*(M2-1)*(M3-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+7*(M2-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1))])))./sqrt(2), Int(M2-1), Int(M3-1));
-    v[M1+1, 2:M2, M3+2:N3] = reverse(reverse(conj.(v[M1+1, M2+2:N2, 2:M3]), dims = 1), dims = 2);
-    v[M1+1, M2+2:N2, M3+2:N3] = reverse(reverse(conj.(v[M1+1, 2:M2, 2:M3]), dims = 1), dims = 2);
-
-    v[2:M1, 2:M2, 2:M3] = reshape(((beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+8*(M1-1)*(M2-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+8*(M1-1)*(M2-1)+(M1-1)*(M2-1)*(M3-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+8*(M1-1)*(M2-1)+(M1-1)*(M2-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+8*(M1-1)*(M2-1)+2*(M1-1)*(M2-1)*(M3-1))])))./sqrt(2), Int(M1-1), Int(M2-1), Int(M3-1));
-    v[M1+2:N1, M2+2:N2, M3+2:N3] = reverse(reverse(reverse(conj.(v[2:M1, 2:M2, 2:M3]), dims = 1), dims = 2), dims = 3);
-
-    v[M1+2:N1, 2:M2, 2:M3] = reshape(((beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+8*(M1-1)*(M2-1)+2*(M1-1)*(M2-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+8*(M1-1)*(M2-1)+3*(M1-1)*(M2-1)*(M3-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+8*(M1-1)*(M2-1)+3*(M1-1)*(M2-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+8*(M1-1)*(M2-1)+4*(M1-1)*(M2-1)*(M3-1))])))./sqrt(2), Int(M1-1), Int(M2-1), Int(M3-1));
-    v[2:M1, M2+2:N2, M3+2:N3] = reverse(reverse(reverse(conj.(v[M1+2:N1, 2:M2, 2:M3]), dims = 1), dims = 2), dims = 3);
-
-    v[2:M1, M2+2:N2, 2:M3] = reshape(((beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+8*(M1-1)*(M2-1)+4*(M1-1)*(M2-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+8*(M1-1)*(M2-1)+5*(M1-1)*(M2-1)*(M3-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+8*(M1-1)*(M2-1)+5*(M1-1)*(M2-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+8*(M1-1)*(M2-1)+6*(M1-1)*(M2-1)*(M3-1))])))./sqrt(2), Int(M1-1), Int(M2-1), Int(M3-1));
-    v[M1+2:N1, 2:M2, M3+2:N3] = reverse(reverse(reverse(conj.(v[2:M1, M2+2:N2, 2:M3]), dims = 1), dims = 2), dims = 3);
-
-    v[M1+2:N1, M2+2:N2, 2:M3] = reshape(((beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+8*(M1-1)*(M2-1)+6*(M1-1)*(M2-1)*(M3-1)+1):Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+8*(M1-1)*(M2-1)+7*(M1-1)*(M2-1)*(M3-1))]).+(im.*(beta[Int(8+8*(M3-1)+8*(M2-1)+8*(M1-1)+8*(M2-1)*(M3-1)+8*(M1-1)*(M3-1)+8*(M1-1)*(M2-1)+7*(M1-1)*(M2-1)*(M3-1)+1):Int(N1*N2*N3)])))./sqrt(2), Int(M1-1), Int(M2-1), Int(M3-1));
-    v[2:M1, 2:M2, M3+2:N3] = reverse(reverse(reverse(conj.(v[M1+2:N1, M2+2:N2, 2:M3]), dims = 1), dims= 2), dims = 3);
-
+    v[M1+2:N1, M2+2:N2, 2:M3] = reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+6*P1*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+7*P1*P2*P3] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+7*P1*P2*P3+1:N1*N2*N3]) ./ sqrt(2), P1, P2, P3)
+    v[2:M1, 2:M2, M3+2:N3] = reverse(reverse(reverse(conj.(v[M1+2:N1, M2+2:N2, 2:M3]), dims = 1), dims= 2), dims = 3)
     return v
+end
+
+function beta_to_DFT_3d(beta::StridedArray{Float64}, size)
+    N1 = size[1]
+    N2 = size[2]
+    N3 = size[3]
+    v = Array{ComplexF64, 3}(undef, N1, N2, N3)
+    beta_to_DFT_3d!(v, beta, size)
+end
+
+function beta_to_DFT_3d(beta::StridedCuArray{Float64}, size)
+    N1 = size[1]
+    N2 = size[2]
+    N3 = size[3]
+    v = CuArray{ComplexF64, 3}(undef, N1, N2, N3)
+    beta_to_DFT_3d!(v, beta, size)
 end
