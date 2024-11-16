@@ -632,19 +632,24 @@ function beta_to_DFT_3d!(v, beta, size)
     P12 = P1 * P2
     P123 = P1 * P2 * P3
 
-    v[1, 1, 1] = beta[1]
-    v[2:M1, 1, 1] = (beta[8+8*P3+8*P2+1:8+8*P3+8*P2+P1] .+ im .* beta[8+8*P3+8*P2+P1+1:8+8*P3+8*P2+2*P1]) ./ sqrt(2)
-    v[M1+1, 1, 1] = beta[5]
-    v[M1+2:N1, 1, 1] = reverse(beta[8+8*P3+8*P2+1:8+8*P3+8*P2+P1]  .- im .* beta[8+8*P3+8*P2+P1+1:8+8*P3+8*P2+2*P1]) ./ sqrt(2)
+    v[1      , 1, 1] = beta[1]
+    v[2:M1   , 1, 1] = (beta[8+8*P3+8*P2+1:8+8*P3+8*P2+P1] .+ im .* beta[8+8*P3+8*P2+P1+1:8+8*P3+8*P2+2*P1]) ./ sqrt(2)
+    v[M1+1   , 1, 1] = beta[5]
+    v[M1+2:N1, 1, 1] = reverse(beta[8+8*P3+8*P2+1:8+8*P3+8*P2+P1] .- im .* beta[8+8*P3+8*P2+P1+1:8+8*P3+8*P2+2*P1]) ./ sqrt(2)
 
     v[:, 2:M2, 1] = [transpose((beta[8+8*P3+1:8+8*P3+P2] .+ im .* beta[8+8*P3+P2+1:8+8*P3+2*P2]) ./ sqrt(2))
                      reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+P1*P2] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+2*P1*P2]) ./ sqrt(2), P1, P2)
                      transpose((beta[8+8*P3+4*P2+1:8+8*P3+5*P2] .+ im .* beta[8+8*P3+5*P2+1:8+8*P3+6*P2]) ./ sqrt(2))
                      reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+2*P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+3*P1*P2] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+3*P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+4*P1*P2]) ./ sqrt(2), P1, P2)]
 
-    v[1, M2+1, 1] = beta[3]
-    v[2:M1, M2+1, 1] = (beta[8+8*P3+8*P2+4*P1+1:8+8*P3+8*P2+5*P1] .+ im .* beta[8+8*P3+8*P2+5*P1+1:8+8*P3+8*P2+6*P1]) ./ sqrt(2)
-    v[M1+1, M2+1, 1] = beta[7]
+    # v[1      , 2:M2, 1] = (beta[8+8*P3+1:8+8*P3+P2] .+ im .* beta[8+8*P3+P2+1:8+8*P3+2*P2]) ./ sqrt(2)
+    # v[2:M1   , 2:M2, 1] = reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+P1*P2] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+2*P1*P2]) ./ sqrt(2), P1, P2)
+    # v[M1+1   , 2:M2, 1] = (beta[8+8*P3+4*P2+1:8+8*P3+5*P2] .+ im .* beta[8+8*P3+5*P2+1:8+8*P3+6*P2]) ./ sqrt(2)
+    # v[M1+2:N1, 2:M2, 1] = reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+2*P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+3*P1*P2] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+3*P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+4*P1*P2]) ./ sqrt(2), P1, P2)
+
+    v[1      , M2+1, 1] = beta[3]
+    v[2:M1   , M2+1, 1] = (beta[8+8*P3+8*P2+4*P1+1:8+8*P3+8*P2+5*P1] .+ im .* beta[8+8*P3+8*P2+5*P1+1:8+8*P3+8*P2+6*P1]) ./ sqrt(2)
+    v[M1+1   , M2+1, 1] = beta[7]
     v[M1+2:N1, M2+1, 1] = reverse(beta[8+8*P3+8*P2+4*P1+1:8+8*P3+8*P2+5*P1] .- im .* beta[8+8*P3+8*P2+5*P1+1:8+8*P3+8*P2+6*P1]) ./ sqrt(2)
 
     v[:, M2+2:N2, 1] = [transpose(reverse(conj.(v[1, 2:M2, 1])))
@@ -652,19 +657,24 @@ function beta_to_DFT_3d!(v, beta, size)
                         transpose(reverse(conj.(v[M1+1, 2:M2, 1])))
                         reverse(reverse(conj.(v[2:M1, 2:M2, 1]), dims = 1), dims = 2)]
 
-    v[1, 1, M3+1] = beta[2]
-    v[2:M1, 1, M3+1] = (beta[8+8*P3+8*P2+2*P1+1:8+8*P3+8*P2+3*P1] .+ im .* beta[8+8*P3+8*P2+3*P1+1:8+8*P3+8*P2+4*P1]) ./ sqrt(2)
-    v[M1+1, 1, M3+1] = beta[6]
+    # v[1      , M2+2:N2, 1] = conj.(v[1, M2:-1:2, 1])
+    # v[2:M1   , M2+2:N2, 1] = conj.(v[M1+2:N1, M2:-1:2, 1])
+    # v[M1+1   , M2+2:N2, 1] = conj.(v[M1+1, M2:-1:2, 1])
+    # v[M1+2:N1, M2+2:N2, 1] = conj.(v[M1:-1:2, M2:-1:2, 1])
+
+    v[1      , 1, M3+1] = beta[2]
+    v[2:M1   , 1, M3+1] = (beta[8+8*P3+8*P2+2*P1+1:8+8*P3+8*P2+3*P1] .+ im .* beta[8+8*P3+8*P2+3*P1+1:8+8*P3+8*P2+4*P1]) ./ sqrt(2)
+    v[M1+1   , 1, M3+1] = beta[6]
     v[M1+2:N1, 1, M3+1] = reverse((beta[8+8*P3+8*P2+2*P1+1:8+8*P3+8*P2+3*P1] .- im .* beta[8+8*P3+8*P2+3*P1+1:8+8*P3+8*P2+4*P1])) ./ sqrt(2)
 
-    v[:, 2:M2, M3+1] = [transpose((beta[8+8*P3+2*P2+1:8+8*P3+3*P2] .+ im .* beta[8+8*P3+3*P2+1:8+8*P3+4*P2]) ./ sqrt(2))
-                        reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+4*P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+5*P1*P2] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+5*P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+6*P1*P2])./ sqrt(2), P1, P2)
-                        transpose((beta[8+8*P3+6*P2+1:8+8*P3+7*P2] .+ im .* beta[8+8*P3+7*P2+1:8+8*P3+8*P2]) ./sqrt(2))
-                        reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+6*P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+7*P1*P2] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+7*P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2]) ./ sqrt(2), P1, P2)]
+    v[1      , 2:M2, M3+1] = (beta[8+8*P3+2*P2+1:8+8*P3+3*P2] .+ im .* beta[8+8*P3+3*P2+1:8+8*P3+4*P2]) ./ sqrt(2)
+    v[2:M1   , 2:M2, M3+1] = reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+4*P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+5*P1*P2] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+5*P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+6*P1*P2])./ sqrt(2), P1, P2)
+    v[M1+1   , 2:M2, M3+1] = (beta[8+8*P3+6*P2+1:8+8*P3+7*P2] .+ im .* beta[8+8*P3+7*P2+1:8+8*P3+8*P2]) ./sqrt(2)
+    v[M1+2:N1, 2:M2, M3+1] = reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+6*P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+7*P1*P2] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+7*P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2]) ./ sqrt(2), P1, P2)
 
-    v[1, M2+1, M3+1] = beta[4]
-    v[2:M2, M2+1, M3+1] = (beta[8+8*P3+8*P2+6*P1+1:8+8*P3+8*P2+7*P1] .+ im .* beta[8+8*P3+8*P2+7*P1+1:8+8*P3+8*P2+8*P1]) ./ sqrt(2)
-    v[M1+1, M2+1, M3+1] = beta[8]
+    v[1      , M2+1, M3+1] = beta[4]
+    v[2:M1   , M2+1, M3+1] = (beta[8+8*P3+8*P2+6*P1+1:8+8*P3+8*P2+7*P1] .+ im .* beta[8+8*P3+8*P2+7*P1+1:8+8*P3+8*P2+8*P1]) ./ sqrt(2)
+    v[M1+1   , M2+1, M3+1] = beta[8]
     v[M1+2:N1, M2+1, M3+1] = reverse((beta[8+8*P3+8*P2+6*P1+1:8+8*P3+8*P2+7*P1] .- im .* beta[8+8*P3+8*P2+7*P1+1:8+8*P3+8*P2+8*P1])) ./ sqrt(2)
 
     v[:, M2+2:N2, M3+1] = [transpose(reverse(conj.(v[1, 2:M2, M3+1])))
@@ -672,6 +682,10 @@ function beta_to_DFT_3d!(v, beta, size)
                            transpose(reverse(conj.(v[M1+1, 2:M2, M3+1])))
                            reverse(reverse(conj.(v[2:M1, 2:M2, M3+1]), dims = 1), dims = 2)]
 
+    # v[1      , M2+2:N2, M3+1] = conj.(v[1, M2:-1:2, M3+1])
+    # v[2:M1   , M2+2:N2, M3+1] = reverse(reverse(conj.(v[M1+2:N1, 2:M2, M3+1]), dims = 1), dims = 2)
+    # v[M1+1   , M2+2:N2, M3+1] = conj.(v[M1+1, M2:-1:2, M3+1])
+    # v[M1+2:N1, M2+2:N2, M3+1] = reverse(reverse(conj.(v[2:M1, 2:M2, M3+1]), dims = 1), dims = 2)
 
     v[:, 1, 2:M3] = [transpose((beta[9:8+P3] .+ im .* beta[8+P3+1:8+2*P3])) ./ sqrt(2)
                      reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+P1*P3] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+P1*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+2*P1*P3]) ./ sqrt(2), P1, P3)
@@ -704,16 +718,16 @@ function beta_to_DFT_3d!(v, beta, size)
     v[M1+1, M2+2:N2, M3+2:N3] = reverse(reverse(conj.(v[M1+1, 2:M2, 2:M3]), dims = 1), dims = 2)
 
     v[2:M1, 2:M2, 2:M3] = reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+P1*P2*P3] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+P1*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+2*P1*P2*P3]) ./ sqrt(2), P1, P2, P3)
-    v[M1+2:N1, M2+2:N2, M3+2:N3] = reverse(reverse(reverse(conj.(v[2:M1, 2:M2, 2:M3]), dims = 1), dims = 2), dims = 3)
+    v[M1+2:N1, M2+2:N2, M3+2:N3] = conj.(v[M1:-1:2, M2:-1:2, M3:-1:2])
 
     v[M1+2:N1, 2:M2, 2:M3] = reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+2*P1*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+3*P1*P2*P3] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+3*P1*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+4*P1*P2*P3]) ./ sqrt(2), P1, P2, P3)
-    v[2:M1, M2+2:N2, M3+2:N3] = reverse(reverse(reverse(conj.(v[M1+2:N1, 2:M2, 2:M3]), dims = 1), dims = 2), dims = 3)
+    v[2:M1, M2+2:N2, M3+2:N3] = conj.(v[N1:-1:M1+2, M2:-1:2, M3:-1:2])
 
     v[2:M1, M2+2:N2, 2:M3] = reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+4*P1*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+5*P1*P2*P3] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+5*P1*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+6*P1*P2*P3]) ./ sqrt(2), P1, P2, P3)
-    v[M1+2:N1, 2:M2, M3+2:N3] = reverse(reverse(reverse(conj.(v[2:M1, M2+2:N2, 2:M3]), dims = 1), dims = 2), dims = 3)
+    v[M1+2:N1, 2:M2, M3+2:N3] = conj.(v[M1:-1:2, N2:-1:M2+2, M3:-1:2])
 
     v[M1+2:N1, M2+2:N2, 2:M3] = reshape((beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+6*P1*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+7*P1*P2*P3] .+ im .* beta[8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+7*P1*P2*P3+1:N1*N2*N3]) ./ sqrt(2), P1, P2, P3)
-    v[2:M1, 2:M2, M3+2:N3] = reverse(reverse(reverse(conj.(v[M1+2:N1, M2+2:N2, 2:M3]), dims = 1), dims= 2), dims = 3)
+    v[2:M1, 2:M2, M3+2:N3] = conj.(v[N1:-1:M1+2, N2:-1:M2+2, M3:-1:2])
     return v
 end
 
