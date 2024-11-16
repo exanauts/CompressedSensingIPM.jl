@@ -1,4 +1,5 @@
 using Random, Distributions
+using MadNLPGPU, CUDA
 Random.seed!(1)
 
 include("fft_model.jl")
@@ -30,6 +31,8 @@ index_missing_Cartesian, z_zero = punching(DFTdim, DFTsize, centers, radius, y)
 
 # unify parameters for barrier method
 M_perptz = M_perp_tz_wei(DFTdim, DFTsize, z_zero)
+M_perptz = CuArray(M_perptz)
+
 lambda = 5
 
 alpha_LS = 0.1
@@ -44,7 +47,7 @@ t_init = 1
 beta_init = zeros(prod(DFTsize))
 c_init = ones(prod(DFTsize))
 
-nlp = FFTNLPModel{Float64, Vector{Float64}}(parameters)
+nlp = FFTNLPModel{Float64, CuVector{Float64}}(parameters)
 
 # Solve with MadNLP/LBFGS
 # solver = MadNLP.MadNLPSolver(nlp; hessian_approximation=MadNLP.CompactLBFGS)

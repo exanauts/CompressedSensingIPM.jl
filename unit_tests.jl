@@ -114,20 +114,20 @@ res2_wei = M_perp_beta_wei(3, (8, 8, 8), z, Int[])
 
 @test res2_wei ≈ res2
 
-# if CUDA.functional()
-#   include("fft_example_3D_gpu.jl")
-#   z_gpu = CuArray(z)
+if CUDA.functional()
+  include("fft_example_3D_gpu.jl")
+  z_gpu = CuArray(z)
 
-#   z2_gpu = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 3, (8, 8, 8), z_gpu, Int[])
-#   @test z2_gpu ≈ z_gpu
+  z2_gpu = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 3, (8, 8, 8), z_gpu, Int[])
+  @test z2_gpu ≈ z_gpu
 
-#   res1_gpu = M_perp_tz(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 3, (8, 8, 8), reshape(z_gpu, (8, 8, 8)))
-#   @test norm(res1_gpu) ≈ norm(z_gpu)
+  res1_gpu = M_perp_tz(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 3, (8, 8, 8), reshape(z_gpu, (8, 8, 8)))
+  @test norm(res1_gpu) ≈ norm(z_gpu)
 
-#   @test res1_wei ≈ collect(res1_gpu)
+  @test res1_wei ≈ collect(res1_gpu)
 
-#   res2_gpu = M_perp_beta(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 3, (8, 8, 8), z_gpu, Int[])
-#   @test norm(res2_gpu) ≈ norm(z_gpu)
+  res2_gpu = M_perp_beta(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 3, (8, 8, 8), z_gpu, Int[])
+  @test norm(res2_gpu) ≈ norm(z_gpu)
 
-#   @test res2_wei ≈ collect(res2_gpu)
-# end
+  @test res2_wei ≈ collect(res2_gpu)
+end
