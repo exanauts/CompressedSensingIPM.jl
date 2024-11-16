@@ -570,6 +570,30 @@ function beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta, size)
     return v
 end
 
+# function beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta, size)
+#     N1 = size[1]
+#     N2 = size[2]
+#     M1 = N1 ÷ 2
+#     M2 = N2 ÷ 2
+#     P1 = M1 - 1
+#     P2 = M2 - 1
+
+#     view(v,1:M1:M1+1,1   ) .= view(beta, 1:2:3)
+#     view(v,1:M1:M1+1,M2+1) .= view(beta, 2:2:4)
+
+#     view(v,1   ,2:M2) .= (view(beta,4+1:4+M2-1) .+ im .* view(beta,4+P2+1:4+2*P2)) ./ sqrt(2)
+#     view(v,M1+1,2:M2) .= (view(beta,4+2*P2+1:4+3*P2) .+ im .* view(beta,4+3*P2+1:4+4*P2)) ./ sqrt(2)
+
+#     beta_r = reshape(view(beta,4+4*P2+4*P1+1:4+4*P2+4*P1+P1*P2), P1, P2)
+#     beta_c = reshape(view(beta,4+4*P2+4*P1+P1*P2+1:4+4*P2+4*P1+2*P1*P2), P1, P2)
+#     view(v,2:M1,2:M2) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
+
+#     beta_r = reshape(view(beta,4+4*P2+4*P1+3*P1*P2:-1:4+4*P2+4*P1+2*P1*P2+1), P1, P2)
+#     beta_c = reshape(view(beta,N1*N2:-1:4+4*P2+4*P1+3*P1*P2+1), P1, P2)
+#     view(v,M1+2:N1,2:M2) .= (beta_r .- im .* beta_c) ./ sqrt(2)
+#     return v
+# end
+
 function beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta, size)
     N1 = size[1]
     N2 = size[2]
@@ -578,34 +602,39 @@ function beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta, size)
     P1 = M1 - 1
     P2 = M2 - 1
 
-    view(v,1:M1:M1+1,1   ) .= view(beta, 1:2:3)
     view(v,1:M1:M1+1,M2+1) .= view(beta, 2:2:4)
-
-    view(v,1   ,2:M2) .= (view(beta,4+1:4+M2-1) .+ im .* view(beta,4+P2+1:4+2*P2)) ./ sqrt(2)
-    view(v,M1+1,2:M2) .= (view(beta,4+2*P2+1:4+3*P2) .+ im .* view(beta,4+3*P2+1:4+4*P2)) ./ sqrt(2)
+    view(v,1:M1:M1+1) .= view(beta, 1:2:3)
 
     beta_r = view(beta,4+4*P2+1:4+4*P2+P1)
     beta_c = view(beta,4+4*P2+P1+1:4+4*P2+2*P1)
     view(v,2:M1,1)       .= (beta_r .+ im .* beta_c) ./ sqrt(2)
     view(v,N1:-1:M1+2,1) .= (beta_r .- im .* beta_c) ./ sqrt(2)
 
+    beta_r = view(beta,4+1:4+M2-1)
+    beta_c = view(beta,4+P2+1:4+2*P2)
+    view(v,1, 2:M2) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
+
+    beta_r = reshape(view(beta,4+4*P2+4*P1+1:4+4*P2+4*P1+P1*P2), P1, P2)
+    beta_c = reshape(view(beta,4+4*P2+4*P1+P1*P2+1:4+4*P2+4*P1+2*P1*P2), P1, P2)
+    view(v,2:M1, 2:M2) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
+
+    beta_r = view(beta,4+2*P2+1:4+3*P2)
+    beta_c = view(beta,4+3*P2+1:4+4*P2)
+    view(v,M1+1, 2:M2) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
+
+    beta_r = reshape(view(beta,4+4*P2+4*P1+3*P1*P2:-1:4+4*P2+4*P1+2*P1*P2+1), P1, P2)
+    beta_c = reshape(view(beta,N1*N2:-1:4+4*P2+4*P1+3*P1*P2+1), P1, P2)
+    view(v,M1+2:N1, 2:M2) .= (beta_r .- im .* beta_c) ./ sqrt(2)
+
     beta_r = view(beta,4+4*P2+2*P1+1:4+4*P2+3*P1)
     beta_c = view(beta,4+4*P2+3*P1+1:4+4*P2+4*P1)
     view(v,2:M1      ,M2+1) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
     view(v,N1:-1:M1+2,M2+1) .= (beta_r .- im .* beta_c) ./ sqrt(2)
 
-    view(v,1      ,M2+2:N2) .= conj.(view(v,1         ,M2:-1:2))
-    view(v,2:M1   ,M2+2:N2) .= conj.(view(v,N1:-1:M1+2,M2:-1:2))
-    view(v,M1+1   ,M2+2:N2) .= conj.(view(v,M1+1      ,M2:-1:2))
-    view(v,M1+2:N1,M2+2:N2) .= conj.(view(v,M1:-1:2   ,M2:-1:2))
-
-    beta_r = reshape(view(beta,4+4*P2+4*P1+1:4+4*P2+4*P1+P1*P2), P1, P2)
-    beta_c = reshape(view(beta,4+4*P2+4*P1+P1*P2+1:4+4*P2+4*P1+2*P1*P2), P1, P2)
-    view(v,2:M1,2:M2) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
-
-    beta_r = reshape(view(beta,4+4*P2+4*P1+3*P1*P2:-1:4+4*P2+4*P1+2*P1*P2+1), P1, P2)
-    beta_c = reshape(view(beta,N1*N2:-1:4+4*P2+4*P1+3*P1*P2+1), P1, P2)
-    view(v,M1+2:N1,2:M2) .= (beta_r .- im .* beta_c) ./ sqrt(2)
+    view(v,1,M2+2:N2) .= conj.(view(v,1,M2:-1:2))
+    view(v,2:M1,M2+2:N2) .= conj.(view(v,N1:-1:M1+2,M2:-1:2))
+    view(v,M1+1,M2+2:N2) .= conj.(view(v,M1+1,M2:-1:2))
+    view(v,M1+2:N1,M2+2:N2) .= conj.(view(v,M1:-1:2,M2:-1:2))
     return v
 end
 

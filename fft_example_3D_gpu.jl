@@ -62,7 +62,7 @@ solver = MadNLP.MadNLPSolver(
     print_level=MadNLP.INFO,
     dual_initialized=true,
     richardson_max_iter=0,
-    tol=1e-8,
+    tol=1e-6,
     richardson_tol=Inf,
 )
 results = MadNLP.solve!(solver)
