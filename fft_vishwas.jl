@@ -1,6 +1,7 @@
 using Random, Distributions
 using LinearAlgebra, SparseArrays
 using LaplaceInterpolation, NPZ
+using MadNLPGPU, CUDA
 
 include("fft_model.jl")
 
@@ -48,6 +49,7 @@ end
 DFTsize = size(punched_pmn)  # problem dim
 DFTdim = length(DFTsize)  # problem size
 M_perptz = M_perp_tz_wei(DFTdim, DFTsize, punched_pmn)
+M_perptz = CuArray(M_perptz)
 Nt = prod(DFTsize)
 
 lambda = 1
@@ -64,7 +66,7 @@ t_init = 1
 beta_init = ones(Nt) ./ 2
 c_init = ones(Nt)
 
-nlp = FFTNLPModel{Float64, Vector{Float64}}(parameters)
+nlp = FFTNLPModel{Float64, CuVector{Float64}}(parameters)
 
 # Solve with MadNLP/CG
 solver = MadNLP.MadNLPSolver(
@@ -74,7 +76,7 @@ solver = MadNLP.MadNLPSolver(
     print_level=MadNLP.INFO,
     dual_initialized=true,
     richardson_max_iter=0,
-    tol=1e-8,
+    tol=1e-6,
     richardson_tol=Inf,
 )
 results = MadNLP.solve!(solver)
