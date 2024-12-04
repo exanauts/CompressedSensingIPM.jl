@@ -44,7 +44,7 @@ t_init = 1
 beta_init = zeros(prod(DFTsize))
 c_init = ones(prod(DFTsize))
 
-rdft = false
+rdft = true
 nlp = FFTNLPModel{Float64, CuVector{Float64}}(parameters; rdft)
 
 # Solve with MadNLP/LBFGS

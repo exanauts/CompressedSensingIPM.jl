@@ -42,7 +42,7 @@ t_init = 1
 beta_init = ones(Nt) ./ 2
 c_init = ones(Nt)
 
-rdft = false
+rdft = true
 nlp = FFTNLPModel{Float64, CuVector{Float64}}(parameters; rdft)
 
 # Solve with MadNLP/LBFGS
