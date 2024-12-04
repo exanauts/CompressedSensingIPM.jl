@@ -465,73 +465,185 @@ function beta_to_DFT_3d!(v::Array{ComplexF64, 3}, beta, size)
         end
     end
 
-    view(v,1      , 1, M3+2:N3) .= conj.(view(v,1, 1, M3:-1:2))
-    view(v,2:M1   , 1, M3+2:N3) .= conj.(view(v,N1:-1:M1+2, 1, M3:-1:2))
-    view(v,M1+1   , 1, M3+2:N3) .= conj.(view(v,M1+1, 1, M3:-1:2))
-    view(v,M1+2:N1, 1, M3+2:N3) .= conj.(view(v,M1:-1:2, 1, M3:-1:2))
+    for k = 1:P3
+        v[1   ,1,M3+1+k] = conj(v[1,1,M3-k+1])
+        v[M1+1,1,M3+1+k] = conj(v[M1+1,1,M3-k+1])
+    end
 
-    view(v,1, M2+1, 2:M3) .= (view(beta,8+2*P3+1:8+3*P3) .+ im .* view(beta,8+3*P3+1:8+4*P3)) ./ sqrt(2)
+    for k = 1:P3
+        for i = 1:P1
+            v[i+1, 1, M3+1+k] = conj(v[N1-i+1, 1, M3-k+1])
+            v[M1+i+1, 1, M3+1+k] = conj(v[M1-i+1, 1, M3-k+1])
+        end
+    end
 
-    beta_r = reshape(view(beta,8+8*P3+8*P2+8*P1+8*P2*P3+4*P1*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+5*P1*P3), P1, P3)
-    beta_c = reshape(view(beta,8+8*P3+8*P2+8*P1+8*P2*P3+5*P1*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+6*P1*P3), P1, P3)
-    view(v,2:M1, M2+1, 2:M3) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
+    for k = 1:P3
+        index_r = 8+2*P3+k
+        index_c = 8+3*P3+k
+        v[1,M2+1,k+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
+    end
 
-    view(v,M1+1, M2+1, 2:M3) .= (view(beta,8+6*P3+1:8+7*P3) .+ im .* view(beta,8+7*P3+1:8+8*P3)) ./ sqrt(2)
+    for k = 1:P3
+        for i = 1:P1
+            ik = (k-1)*P1 + i
+            index_r = 8+8*P3+8*P2+8*P1+8*P2*P3+4*P1*P3+ik
+            index_c = 8+8*P3+8*P2+8*P1+8*P2*P3+5*P1*P3+ik
+            v[i+1,M2+1,k+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
+        end
+    end
 
-    beta_r = reshape(view(beta,8+8*P3+8*P2+8*P1+8*P2*P3+6*P1*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+7*P1*P3), P1, P3)
-    beta_c = reshape(view(beta,8+8*P3+8*P2+8*P1+8*P2*P3+7*P1*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3), P1, P3)
-    view(v,M1+2:N1, M2+1, 2:M3) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
+    for k = 1:P3
+        index_r = 8+6*P3+k
+        index_c = 8+7*P3+k
+        v[M1+1,M2+1,k+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
+    end
 
-    view(v,1      , M2+1, M3+2:N3) .= conj.(view(v,1, M2+1, M3:-1:2))
-    view(v,2:M1   , M2+1, M3+2:N3) .= conj.(view(v,N1:-1:M1+2, M2+1, M3:-1:2))
-    view(v,M1+1   , M2+1, M3+2:N3) .= conj.(view(v,M1+1, M2+1, M3:-1:2))
-    view(v,M1+2:N1, M2+1, M3+2:N3) .= conj.(view(v,M1:-1:2, M2+1, M3:-1:2))
+    for k = 1:P3
+        for i = 1:P1
+            ik = (k-1)*P1 + i
+            index_r = 8+8*P3+8*P2+8*P1+8*P2*P3+6*P1*P3+ik
+            index_c = 8+8*P3+8*P2+8*P1+8*P2*P3+7*P1*P3+ik
+            v[M1+i+1,M2+1,k+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
+        end
+    end
 
-    beta_r = reshape(view(beta,8+8*P3+8*P2+8*P1+1:8+8*P3+8*P2+8*P1+P2*P3), P2, P3)
-    beta_c = reshape(view(beta,8+8*P3+8*P2+8*P1+P2*P3+1:8+8*P3+8*P2+8*P1+2*P2*P3), P2, P3)
-    view(v,1, 2:M2, 2:M3) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
+    for k = 1:P3
+        v[1   , M2+1, M3+k+1] = conj(v[1   , M2+1, M3-k+1])
+        v[M1+1, M2+1, M3+k+1] = conj(v[M1+1, M2+1, M3-k+1])
+    end
 
-    beta_r = reshape(view(beta,8+8*P3+8*P2+8*P1+2*P2*P3+1:8+8*P3+8*P2+8*P1+3*P2*P3), P2, P3)
-    beta_c = reshape(view(beta,8+8*P3+8*P2+8*P1+3*P2*P3+1:8+8*P3+8*P2+8*P1+4*P2*P3), P2, P3)
-    view(v,1, M2+2:N2, 2:M3) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
+    for k = 1:P3
+        for i = 1:P1
+            v[i+1   , M2+1, M3+k+1] = conj(v[N1-i+1, M2+1, M3-k+1])
+            v[M1+i+1, M2+1, M3+k+1] = conj(v[M1-i+1, M2+1, M3-k+1])
+        end
+    end
 
-    view(v,1, 2:M2   , M3+2:N3) .= conj.(view(v,1, N2:-1:M2+2, M3:-1:2))
-    view(v,1, M2+2:N2, M3+2:N3) .= conj.(view(v,1, M2:-1:2, M3:-1:2))
+    for k = 1:P3
+        for j = 1:P2
+            jk = (k-1)*P2 + j
+            index_r = 8+8*P3+8*P2+8*P1+jk
+            index_c = 8+8*P3+8*P2+8*P1+P2*P3+jk
+            v[1,j+1,k+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
+        end
+    end
 
-    beta_r = reshape(view(beta,8+8*P3+8*P2+8*P1+4*P2*P3+1:8+8*P3+8*P2+8*P1+5*P2*P3), P2, P3)
-    beta_c = reshape(view(beta,8+8*P3+8*P2+8*P1+5*P2*P3+1:8+8*P3+8*P2+8*P1+6*P2*P3), P2, P3)
-    view(v,M1+1, 2:M2, 2:M3) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
+    for k = 1:P3
+        for j = 1:P2
+            jk = (k-1)*P2 + j
+            index_r = 8+8*P3+8*P2+8*P1+2*P2*P3+jk
+            index_c = 8+8*P3+8*P2+8*P1+3*P2*P3+jk
+            v[1,M2+j+1,k+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
+        end
+    end
 
-    beta_r = reshape(view(beta,8+8*P3+8*P2+8*P1+6*P2*P3+1:8+8*P3+8*P2+8*P1+7*P2*P3), P2, P3)
-    beta_c = reshape(view(beta,8+8*P3+8*P2+8*P1+7*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3), P2, P3)
-    view(v,M1+1, M2+2:N2, 2:M3) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
+    for k = 1:P3
+        for j = 1:P2
+            v[1,   j+1,M3+k+1] = conj(v[1,N2-j+1,M3-k+1])
+            v[1,M2+j+1,M3+k+1] = conj(v[1,M2-j+1,M3-k+1])
+        end
+    end
 
-    view(v,M1+1, 2:M2   , M3+2:N3) .= conj.(view(v,M1+1, N2:-1:M2+2, M3:-1:2))
-    view(v,M1+1, M2+2:N2, M3+2:N3) .= conj.(view(v,M1+1, M2:-1:2, M3:-1:2))
+    for k = 1:P3
+        for j = 1:P2
+            jk = (k-1)*P2 + j
+            index_r = 8+8*P3+8*P2+8*P1+4*P2*P3+jk
+            index_c = 8+8*P3+8*P2+8*P1+5*P2*P3+jk
+            v[M1+1,j+1,k+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
+        end
+    end
 
-    beta_r = reshape(view(beta,8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+P1*P2*P3), P1, P2, P3)
-    beta_c = reshape(view(beta,8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+P1*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+2*P1*P2*P3), P1, P2, P3)
-    view(v,2:M1, 2:M2, 2:M3) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
+    for k = 1:P3
+        for j = 1:P2
+            jk = (k-1)*P2 + j
+            index_r = 8+8*P3+8*P2+8*P1+6*P2*P3+jk
+            index_c = 8+8*P3+8*P2+8*P1+7*P2*P3+jk
+            v[M1+1,M2+j+1,k+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
+        end
+    end
 
-    view(v,M1+2:N1, M2+2:N2, M3+2:N3) .= conj.(view(v,M1:-1:2, M2:-1:2, M3:-1:2))
+    for k = 1:P3
+        for j = 1:P2
+            v[M1+1,   j+1,M3+k+1] = conj(v[M1+1,N2-j+1,M3-k+1])
+            v[M1+1,M2+j+1,M3+k+1] = conj(v[M1+1,M2-j+1,M3-k+1])
+        end
+    end
 
-    beta_r = reshape(view(beta,8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+2*P1*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+3*P1*P2*P3), P1, P2, P3)
-    beta_c = reshape(view(beta,8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+3*P1*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+4*P1*P2*P3), P1, P2, P3)
-    view(v,M1+2:N1, 2:M2, 2:M3) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
+    for k = 1:P3
+        for j = 1:P2
+            for i = 1:P1
+                ijk = (k-1)*P2*P1 + (j-1)*P1 + i
+                index_r = 8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+ijk
+                index_c = 8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+P1*P2*P3+ijk
+                v[i+1,j+1,k+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
+            end
+        end
+    end
 
-    view(v,2:M1, M2+2:N2, M3+2:N3) .= conj.(view(v,N1:-1:M1+2, M2:-1:2, M3:-1:2))
+    for k = 1:P3
+        for j = 1:P2
+            for i = 1:P1
+                v[M1+i+1,M2+j+1,M3+k+1] = conj(v[M1-i+1, M2-j+1, M3-k+1])
+            end
+        end
+    end
 
-    beta_r = reshape(view(beta,8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+4*P1*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+5*P1*P2*P3), P1, P2, P3)
-    beta_c = reshape(view(beta,8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+5*P1*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+6*P1*P2*P3), P1, P2, P3)
-    view(v,2:M1, M2+2:N2, 2:M3) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
+    for k = 1:P3
+        for j = 1:P2
+            for i = 1:P1
+                ijk = (k-1)*P2*P1 + (j-1)*P1 + i
+                index_r = 8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+2*P1*P2*P3+ijk
+                index_c = 8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+3*P1*P2*P3+ijk
+                v[M1+i+1,j+1,k+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
+            end
+        end
+    end
 
-    view(v,M1+2:N1, 2:M2, M3+2:N3) .= conj.(view(v,M1:-1:2, N2:-1:M2+2, M3:-1:2))
+    for k = 1:P3
+        for j = 1:P2
+            for i = 1:P1
+                v[i+1,M2+j+1,M3+k+1] = conj(v[N1-i+1, M2-j+1, M3-k+1])
+            end
+        end
+    end
 
-    beta_r = reshape(view(beta,8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+6*P1*P2*P3+1:8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+7*P1*P2*P3), P1, P2, P3)
-    beta_c = reshape(view(beta,8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+7*P1*P2*P3+1:N1*N2*N3), P1, P2, P3)
-    view(v,M1+2:N1, M2+2:N2, 2:M3) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
+    for k = 1:P3
+        for j = 1:P2
+            for i = 1:P1
+                ijk = (k-1)*P2*P1 + (j-1)*P1 + i
+                index_r = 8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+4*P1*P2*P3+ijk
+                index_c = 8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+5*P1*P2*P3+ijk
+                v[i+1,M2+j+1,k+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
+            end
+        end
+    end
 
-    view(v,2:M1, 2:M2, M3+2:N3) .= conj.(view(v,N1:-1:M1+2, N2:-1:M2+2, M3:-1:2))
+    for k = 1:P3
+        for j = 1:P2
+            for i = 1:P1
+                v[M1+i+1,j+1,M3+k+1] = conj(v[M1-i+1, N2-j+1, M3-k+1])
+            end
+        end
+    end
+
+    for k = 1:P3
+        for j = 1:P2
+            for i = 1:P1
+                ijk = (k-1)*P2*P1 + (j-1)*P1 + i
+                index_r = 8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+6*P1*P2*P3+ijk
+                index_c = 8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+8*P1*P2+7*P1*P2*P3+ijk
+                v[M1+i+1,M2+j+1,k+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
+            end
+        end
+    end
+
+    for k = 1:P3
+        for j = 1:P2
+            for i = 1:P1
+                v[i+1,j+1,M3+k+1] = conj(v[N1-i+1, N2-j+1, M3-k+1])
+            end
+        end
+    end
     return v
 end
 
