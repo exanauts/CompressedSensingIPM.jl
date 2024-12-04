@@ -23,6 +23,7 @@ struct CondensedFFTKKT{T, VT, FFT, R, C} <: AbstractMatrix{T}
     buffer_real::R      # Buffer for fft and ifft
     buffer_complex1::C  # Buffer for fft and ifft
     buffer_complex2::C  # Buffer for fft and ifft
+    rdft::Bool
 end
 
 function CondensedFFTKKT{T, VT}(nlp::FFTNLPModel{T, VT}) where {T, VT}
@@ -30,7 +31,7 @@ function CondensedFFTKKT{T, VT}(nlp::FFTNLPModel{T, VT}) where {T, VT}
     buf1 = VT(undef, nβ)
     Λ1 = VT(undef, nβ)
     Λ2 = VT(undef, nβ)
-    return CondensedFFTKKT{T, VT, typeof(nlp.op), typeof(nlp.buffer_real), typeof(nlp.buffer_complex1)}(nβ, nlp.parameters, buf1, Λ1, Λ2, nlp.op, nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2)
+    return CondensedFFTKKT{T, VT, typeof(nlp.op), typeof(nlp.buffer_real), typeof(nlp.buffer_complex1)}(nβ, nlp.parameters, buf1, Λ1, Λ2, nlp.op, nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.rdft)
 end
 
 Base.size(K::CondensedFFTKKT) = (2*K.nβ, 2*K.nβ)
@@ -53,7 +54,7 @@ function LinearAlgebra.mul!(y::AbstractVector, K::CondensedFFTKKT, x::AbstractVe
     xz  = view(x, nβ+1:2*nβ)
 
     # Evaluate Mᵀ M xβ
-    Mβ .= M_perpt_M_perp_vec(K.buffer_real, K.buffer_complex1, K.buffer_complex2, K.op, DFTdim, DFTsize, xβ, index_missing)
+    Mβ .= M_perpt_M_perp_vec(K.buffer_real, K.buffer_complex1, K.buffer_complex2, K.op, DFTdim, DFTsize, xβ, index_missing; K.rdft)
 
     yβ .= beta .* yβ .+ alpha .* (Mβ .+ K.Λ1 .* xβ .+ K.Λ2 .* xz)
     yz .= beta .* yz .+ alpha .* (K.Λ2 .* xβ .+ K.Λ1 .* xz)
@@ -258,7 +259,7 @@ function MadNLP.mul!(y::VT, kkt::FFTKKTSystem, x::VT, alpha::Number, beta::Numbe
     xy2 = view(_x, 5*nβ+1:6*nβ)
 
     # Evaluate (MᵀM) * xβ
-    Mβ .= M_perpt_M_perp_vec(kkt.K.buffer_real, kkt.K.buffer_complex1, kkt.K.buffer_complex2, kkt.K.op, DFTdim, DFTsize, xβ, index_missing)
+    Mβ .= M_perpt_M_perp_vec(kkt.K.buffer_real, kkt.K.buffer_complex1, kkt.K.buffer_complex2, kkt.K.op, DFTdim, DFTsize, xβ, index_missing; kkt.K.rdft)
     yβ .= beta .* yβ .+ alpha .* (Mβ .- xy1 .+ xy2)
     yz .= beta .* yz .- alpha .* (xy1 .+ xy2)
     ys1 .= beta .* ys1 .- alpha .* xy1

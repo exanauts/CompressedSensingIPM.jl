@@ -23,9 +23,10 @@ mutable struct FFTNLPModel{T,VT,FFT,R,C} <: AbstractNLPModel{T,VT}
     buffer_real::R
     buffer_complex1::C
     buffer_complex2::C
+    rdft::Bool
 end
 
-function FFTNLPModel{T,VT}(parameters::FFTParameters) where {T,VT}
+function FFTNLPModel{T,VT}(parameters::FFTParameters; rdft::Bool=false) where {T,VT}
     DFTdim = parameters.paramf[1]   # problem size (1, 2, 3)
     DFTsize = parameters.paramf[2]  # problem dimension
     N = prod(DFTsize)
@@ -62,12 +63,24 @@ function FFTNLPModel{T,VT}(parameters::FFTParameters) where {T,VT}
     # FFT operator
     A_vec = VT(undef, N)
     A = reshape(A_vec, DFTsize)
-    op = plan_fft(A)
     buffer_real = A
-    buffer_complex1 = Complex{T}.(A)
-    buffer_complex2 = copy(buffer_complex1)
-
-    return FFTNLPModel(meta, parameters, N, Counters(), op, buffer_real, buffer_complex1, buffer_complex2)
+    if rdft == true
+        op = plan_rfft(A)
+        M1 = (DFTsize[1] ÷ 2)
+        if DFTdim == 1
+            buffer_complex1 = Complex{T}.(A[1:M1+1])
+        elseif DFTdim == 2
+            buffer_complex1 = Complex{T}.(A[1:M1+1,:])
+        else
+            buffer_complex1 = Complex{T}.(A[1:M1+1,:,:])
+        end
+        buffer_complex2 = buffer_complex1
+    else
+        op = plan_fft(A)
+        buffer_complex1 = Complex{T}.(A)
+        buffer_complex2 = copy(buffer_complex1)
+    end
+    return FFTNLPModel(meta, parameters, N, Counters(), op, buffer_real, buffer_complex1, buffer_complex2, rdft)
 end
 
 include("kkt.jl")
@@ -173,7 +186,7 @@ function NLPModels.obj(nlp::FFTNLPModel, x::AbstractVector)
     index_missing = nlp.parameters.paramf[5]
     # Mt = nlp.parameters.paramf[6]
 
-    fft_val = M_perp_beta(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, DFTdim, DFTsize, x, index_missing)
+    fft_val = M_perp_beta(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, DFTdim, DFTsize, x, index_missing; nlp.rdft)
     N = nlp.N
     beta = view(x, 1:N)
     c = view(x, N+1:2*N)
@@ -194,7 +207,7 @@ function NLPModels.grad!(nlp::FFTNLPModel, x::AbstractVector, g::AbstractVector)
     g_b = view(g, 1:n)
     g_c = view(g, n+1:2*n)
     beta = view(x, 1:n)
-    res = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, DFTdim, DFTsize, beta, index_missing)
+    res = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, DFTdim, DFTsize, beta, index_missing; nlp.rdft)
     g_b .= res .- M_perptz
     fill!(g_c, lambda)
     return g
@@ -219,7 +232,7 @@ function NLPModels.hprod!(
     n = prod(DFTsize)
     hv_b = view(hv, 1:n)
     hv_c = view(hv, n+1:2*n)
-    hv_b .= M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, DFTdim, DFTsize, v[1:n], index_missing)
+    hv_b .= M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, DFTdim, DFTsize, v[1:n], index_missing; nlp.rdft)
     fill!(hv_c, 0.0)
     return hv
 end
@@ -263,7 +276,7 @@ function NLPModels.hess_coord!(
         for i in 1:nβ
             fill!(v, 0.0)
             v[i] = 1.0
-            H[:, i] .= M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, DFTdim, DFTsize, v, index_missing)
+            H[:, i] .= M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, DFTdim, DFTsize, v, index_missing; nlp.rdft)
         end
 
         cnt = 1

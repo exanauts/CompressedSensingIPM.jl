@@ -41,7 +41,8 @@ t_init = 1
 beta_init = zeros(prod(DFTsize))
 c_init = ones(prod(DFTsize))
 
-nlp = FFTNLPModel{Float64, Vector{Float64}}(parameters)
+rdft = true
+nlp = FFTNLPModel{Float64, Vector{Float64}}(parameters; rdft)
 
 # Solve with MadNLP/LBFGS
 # solver = MadNLP.MadNLPSolver(nlp; hessian_approximation=MadNLP.CompactLBFGS)

@@ -120,7 +120,9 @@ function beta_to_DFT_1d!(v::CuVector{ComplexF64}, beta::StridedCuVector{Float64}
     beta_r = view(beta, 3:M+1)
     beta_c = view(beta, M+2:N)
     view(v, 2:M     ) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
-    view(v, N:-1:M+2) .= (beta_r .- im .* beta_c) ./ sqrt(2)
+    if !rdft
+        view(v, N:-1:M+2) .= (beta_r .- im .* beta_c) ./ sqrt(2)
+    end
     return v
 end
 

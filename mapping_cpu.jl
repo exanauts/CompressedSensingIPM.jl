@@ -193,8 +193,10 @@ function beta_to_DFT_1d!(v::Vector{ComplexF64}, beta::StridedVector{Float64}, si
     v[1  ] = beta[1]
     v[M+1] = beta[2]
     for i = 2:M
-        v[i    ] = (beta[i+1] + im * beta[M+i]) / sqrt(2)
-        v[N-i+2] = (beta[i+1] - im * beta[M+i]) / sqrt(2)
+        v[i] = (beta[i+1] + im * beta[M+i]) / sqrt(2)
+        if !rdft
+            v[N-i+2] = (beta[i+1] - im * beta[M+i]) / sqrt(2)
+        end
     end
     return v
 end
@@ -212,10 +214,12 @@ function beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta::StridedVector{Float64}, si
     v[M1+1,M2+1] = beta[4]
 
     for i = 1:P1
-        v[i+1   ,1   ] = (beta[4+4*P2+i     ] + im * beta[4+4*P2+P1+i  ]) / sqrt(2)
-        v[N1-i+1,1   ] = (beta[4+4*P2+i     ] - im * beta[4+4*P2+P1+i  ]) / sqrt(2)
-        v[i+1   ,M2+1] = (beta[4+4*P2+2*P1+i] + im * beta[4+4*P2+3*P1+i]) / sqrt(2)
-        v[N1-i+1,M2+1] = (beta[4+4*P2+2*P1+i] - im * beta[4+4*P2+3*P1+i]) / sqrt(2)
+        v[i+1,1   ] = (beta[4+4*P2+i     ] + im * beta[4+4*P2+P1+i  ]) / sqrt(2)
+        v[i+1,M2+1] = (beta[4+4*P2+2*P1+i] + im * beta[4+4*P2+3*P1+i]) / sqrt(2)
+        if !rdft
+            v[N1-i+1,1   ] = (beta[4+4*P2+i     ] - im * beta[4+4*P2+P1+i  ]) / sqrt(2)
+            v[N1-i+1,M2+1] = (beta[4+4*P2+2*P1+i] - im * beta[4+4*P2+3*P1+i]) / sqrt(2)
+        end
     end
 
     for i = 1:P2
@@ -224,13 +228,11 @@ function beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta::StridedVector{Float64}, si
     end
 
     j = 0
-    c = 0
     for col = 2:M2
         for row = 2:M1
             j = j+1
-            v[row   , col] = (beta[4+4*P2+4*P1+j] + im * beta[4+4*P2+4*P1+P1*P2+j]) / sqrt(2)
-            v[row+M1, col] = (beta[4+4*P2+4*P1+3*P1*P2-c] - im * beta[N1*N2-c]) / sqrt(2)
-            c = c+1
+            v[row, col]    = (beta[4+4*P2+4*P1+j] + im * beta[4+4*P2+4*P1+P1*P2+j]) / sqrt(2)
+            v[row, col+M1] = (beta[4+4*P2+4*P1+2*P1*P2+j] + im * beta[4+4*P2+4*P1+3*P1*P2+j]) / sqrt(2)
         end
     end
 
@@ -239,12 +241,15 @@ function beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta::StridedVector{Float64}, si
         v[M1+1, M2+1+i] = conj(v[M1+1,M2-i+1])
     end
 
-    for i = 1:P1
-        for j = 1:P2
-            v[   i+1, M2+1+j] = conj(v[N1-i+1,M2-j+1])
-            v[M1+i+1, M2+1+j] = conj(v[M1-i+1,M2-j+1])
+    if !rdft
+        for i = 1:P1
+            for j = 1:P2
+                v[N1-i+1, M2-j+1] = conj(v[i+1, M2+1+j])
+                v[M1+i+1, M2+1+j] = conj(v[M1-i+1,M2-j+1])
+            end
         end
     end
+
     return v
 end
 
