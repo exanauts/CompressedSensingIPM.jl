@@ -1,5 +1,5 @@
 # DFT_to_beta
-function DFT_to_beta_1d!(beta::Vector{Float64}, v, size)
+function DFT_to_beta_1d!(beta::Vector{Float64}, v::Vector{ComplexF64}, size; rdft::Bool=false)
     N = size[1]
     M = N ÷ 2
     beta[1] = real(v[  1])
@@ -11,13 +11,7 @@ function DFT_to_beta_1d!(beta::Vector{Float64}, v, size)
     return beta
 end
 
-function DFT_to_beta_1d(v::Array{ComplexF64}, size)
-    N = size[1]
-    beta = Vector{Float64}(undef, N)
-    DFT_to_beta_1d!(beta, v, size)
-end
-
-function DFT_to_beta_2d!(beta::Array{Float64}, v, size)
+function DFT_to_beta_2d!(beta::Vector{Float64}, v::Matrix{ComplexF64}, size; rdft::Bool=false)
     N1 = size[1]
     N2 = size[2]
     M1 = N1 ÷ 2
@@ -62,13 +56,7 @@ function DFT_to_beta_2d!(beta::Array{Float64}, v, size)
     return beta
 end
 
-function DFT_to_beta_2d(v::Array{ComplexF64}, size)
-    N = prod(size)
-    beta = Vector{Float64}(undef, N)
-    DFT_to_beta_2d!(beta, v, size)
-end
-
-function DFT_to_beta_3d!(beta::Array{Float64}, v, size)
+function DFT_to_beta_3d!(beta::Vector{Float64}, v::Array{ComplexF64,3}, size; rdft::Bool=false)
     N1 = size[1]
     N2 = size[2]
     N3 = size[3]
@@ -198,14 +186,8 @@ function DFT_to_beta_3d!(beta::Array{Float64}, v, size)
     return beta
 end
 
-function DFT_to_beta_3d(v::Array{ComplexF64}, size)
-    N = prod(size)
-    beta = Vector{Float64}(undef, N)
-    DFT_to_beta_3d!(beta, v, size)
-end
-
 # beta_to_DFT
-function beta_to_DFT_1d!(v::Vector{ComplexF64}, beta, size)
+function beta_to_DFT_1d!(v::Vector{ComplexF64}, beta::StridedVector{Float64}, size; rdft::Bool=false)
     N = size[1]
     M = N ÷ 2
     v[1  ] = beta[1]
@@ -217,13 +199,7 @@ function beta_to_DFT_1d!(v::Vector{ComplexF64}, beta, size)
     return v
 end
 
-function beta_to_DFT_1d(beta::StridedArray{Float64}, size)
-    N = size[1]
-    v = Vector{ComplexF64}(undef, N)
-    beta_to_DFT_1d!(v, beta, size)
-end
-
-function beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta, size)
+function beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta::StridedVector{Float64}, size; rdft::Bool=false)
     N1 = size[1]
     N2 = size[2]
     M1 = N1 ÷ 2
@@ -272,14 +248,7 @@ function beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta, size)
     return v
 end
 
-function beta_to_DFT_2d(beta::StridedArray{Float64}, size)
-    N1 = size[1]
-    N2 = size[2]
-    v = Matrix{ComplexF64}(undef, N1, N2)
-    beta_to_DFT_2d!(v, beta, size)
-end
-
-function beta_to_DFT_3d!(v::Array{ComplexF64, 3}, beta, size)
+function beta_to_DFT_3d!(v::Array{ComplexF64, 3}, beta::StridedVector{Float64}, size; rdft::Bool=false)
     N1 = size[1]
     N2 = size[2]
     N3 = size[3]
@@ -645,12 +614,4 @@ function beta_to_DFT_3d!(v::Array{ComplexF64, 3}, beta, size)
         end
     end
     return v
-end
-
-function beta_to_DFT_3d(beta::StridedArray{Float64}, size)
-    N1 = size[1]
-    N2 = size[2]
-    N3 = size[3]
-    v = Array{ComplexF64, 3}(undef, N1, N2, N3)
-    beta_to_DFT_3d!(v, beta, size)
 end

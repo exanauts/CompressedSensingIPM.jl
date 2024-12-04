@@ -1,7 +1,7 @@
 using CUDA
 
 # DFT_to_beta
-function DFT_to_beta_1d!(beta::CuVector{Float64}, v, size)
+function DFT_to_beta_1d!(beta::CuVector{Float64}, v::CuVector{ComplexF64}, size; rdft::Bool=false)
     N = size[1]
     M = N ÷ 2
     view(beta, 1:2) .= real.(view(v, 1:M:M+1))
@@ -10,13 +10,7 @@ function DFT_to_beta_1d!(beta::CuVector{Float64}, v, size)
     return beta
 end
 
-function DFT_to_beta_1d(v::CuArray{ComplexF64}, size)
-    N = size[1]
-    beta = CuVector{Float64}(undef, N)
-    DFT_to_beta_1d!(beta, v, size)
-end
-
-function DFT_to_beta_2d!(beta::CuArray{Float64}, v, size)
+function DFT_to_beta_2d!(beta::CuVector{Float64}, v::CuMatrix{ComplexF64}, size; rdft::Bool=false)
     N1 = size[1]
     N2 = size[2]
     M1 = N1 ÷ 2
@@ -41,14 +35,7 @@ function DFT_to_beta_2d!(beta::CuArray{Float64}, v, size)
     return beta
 end
 
-function DFT_to_beta_2d(v::CuArray{ComplexF64}, size)
-    N = prod(size)
-    beta = CuVector{Float64}(undef, N)
-    DFT_to_beta_2d!(beta, v, size)
-end
-
-
-function DFT_to_beta_3d!(beta::CuArray{Float64}, v, size)
+function DFT_to_beta_3d!(beta::CuVector{Float64}, v::CuArray{ComplexF64,3}, size; rdft::Bool=false)
     N1 = size[1]
     N2 = size[2]
     N3 = size[3]
@@ -125,14 +112,8 @@ function DFT_to_beta_3d!(beta::CuArray{Float64}, v, size)
     return beta
 end
 
-function DFT_to_beta_3d(v::CuArray{ComplexF64}, size)
-    N = prod(size)
-    beta = CuVector{Float64}(undef, N)
-    DFT_to_beta_3d!(beta, v, size)
-end
-
 # beta_to_DFT
-function beta_to_DFT_1d!(v::CuVector{ComplexF64}, beta, size)
+function beta_to_DFT_1d!(v::CuVector{ComplexF64}, beta::StridedCuVector{Float64}, size; rdft::Bool=false)
     N = size[1]
     M = N ÷ 2
     view(v, 1:M:M+1) .= view(beta, 1:2)
@@ -143,14 +124,7 @@ function beta_to_DFT_1d!(v::CuVector{ComplexF64}, beta, size)
     return v
 end
 
-function beta_to_DFT_1d(beta::StridedCuArray{Float64}, size)
-    N = size[1]
-    v = CuVector{ComplexF64}(undef, N)
-    beta_to_DFT_1d!(v, beta, size)
-end
-
-
-function beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta, size)
+function beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta::StridedCuVector{Float64}, size; rdft::Bool=false)
     N1 = size[1]
     N2 = size[2]
     M1 = N1 ÷ 2
@@ -194,15 +168,7 @@ function beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta, size)
     return v
 end
 
-function beta_to_DFT_2d(beta::StridedCuArray{Float64}, size)
-    N1 = size[1]
-    N2 = size[2]
-    v = CuMatrix{ComplexF64}(undef, N1, N2)
-    beta_to_DFT_2d!(v, beta, size)
-end
-
-
-function beta_to_DFT_3d!(v::CuArray{ComplexF64, 3}, beta, size)
+function beta_to_DFT_3d!(v::CuArray{ComplexF64, 3}, beta::StridedCuVector{Float64}, size; rdft::Bool=false)
     N1 = size[1]
     N2 = size[2]
     N3 = size[3]
@@ -357,12 +323,4 @@ function beta_to_DFT_3d!(v::CuArray{ComplexF64, 3}, beta, size)
 
     view(v,2:M1, 2:M2, M3+2:N3) .= conj.(view(v,N1:-1:M1+2, N2:-1:M2+2, M3:-1:2))
     return v
-end
-
-function beta_to_DFT_3d(beta::StridedCuArray{Float64}, size)
-    N1 = size[1]
-    N2 = size[2]
-    N3 = size[3]
-    v = CuArray{ComplexF64, 3}(undef, N1, N2, N3)
-    beta_to_DFT_3d!(v, beta, size)
 end

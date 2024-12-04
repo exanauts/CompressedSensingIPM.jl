@@ -82,25 +82,28 @@ end
 # >v = fft(x)/sqrt(prod(size1))
 # >beta = DFT_to_beta(dim, size1, v)
 
-function DFT_to_beta!(beta, dim, size, v)
+function DFT_to_beta!(beta, dim::Int, size, v; rdft::Bool=false)
     if (dim == 1)
-        DFT_to_beta_1d!(beta, v, size)
+        DFT_to_beta_1d!(beta, v, size; rdft)
     elseif (dim == 2)
-        DFT_to_beta_2d!(beta, v, size)
+        DFT_to_beta_2d!(beta, v, size; rdft)
     else
-        DFT_to_beta_3d!(beta, v, size)
+        DFT_to_beta_3d!(beta, v, size; rdft)
     end
     return beta
 end
 
-function DFT_to_beta(dim, size, v)
-    if (dim == 1)
-        beta = DFT_to_beta_1d(v, size)
-    elseif (dim == 2)
-        beta = DFT_to_beta_2d(v, size)
-    else
-        beta = DFT_to_beta_3d(v, size)
-    end
+function DFT_to_beta(dim::Int, size, v::Array{ComplexF64}; rdft::Bool=false)
+    N = prod(size)
+    beta = Vector{Float64}(undef, N)
+    DFT_to_beta!(beta, dim, size, v; rdft)
+    return beta
+end
+
+function DFT_to_beta(dim::Int, size, v::CuArray{ComplexF64}; rdft::Bool=false)
+    N = prod(size)
+    beta = CuVector{Float64}(undef, N)
+    DFT_to_beta!(beta, dim, size, v; rdft)
     return beta
 end
 
@@ -123,24 +126,25 @@ end
 # >beta = DFT_to_beta(dim, size1, v)
 # >w = beta_to_DFT(dim, size1, beta) (w should be equal to v)
 
-function beta_to_DFT!(v, dim, size, beta)
+function beta_to_DFT!(v, dim::Int, size, beta; rdft::Bool=false)
     if (dim == 1)
-        v = beta_to_DFT_1d!(v, beta, size)
+        v = beta_to_DFT_1d!(v, beta, size; rdft)
     elseif (dim == 2)
-        v = beta_to_DFT_2d!(v, beta, size)
+        v = beta_to_DFT_2d!(v, beta, size; rdft)
     else
-        v = beta_to_DFT_3d!(v, beta, size)
+        v = beta_to_DFT_3d!(v, beta, size; rdft)
     end
     return v
 end
 
-function beta_to_DFT(dim, size, beta)
-    if (dim == 1)
-        return beta_to_DFT_1d(beta, size)
-    elseif (dim == 2)
-        return beta_to_DFT_2d(beta, size)
-    elseif (dim == 3)
-        return beta_to_DFT_3d(beta, size)
-    end
+function beta_to_DFT(dim::Int, size, beta::StridedVector{Float64}; rdft::Bool=false)
+    v = Array{ComplexF64}(undef, size)
+    beta_to_DFT!(v, dim, size, beta; rdft)
+    return v
+end
+
+function beta_to_DFT(dim::Int, size, beta::StridedCuVector{Float64}; rdft::Bool=false)
+    v = CuArray{ComplexF64}(undef, size)
+    beta_to_DFT!(v, dim, size, beta; rdft)
     return v
 end
