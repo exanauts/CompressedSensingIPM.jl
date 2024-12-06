@@ -15,6 +15,9 @@ function fft_example_2D(Nt::Int, Ns::Int; gpu::Bool=false, rdft::Bool=false)
     w = fft(x) ./ sqrt(Nt*Ns)  # true DFT
     DFTsize = size(x)  # problem dim
     DFTdim = length(DFTsize)  # problem size
+    if gpu
+        w = CuArray(w)
+    end
     beta_true = DFT_to_beta(DFTdim, DFTsize, w)
     sum(abs.(beta_true))
 
