@@ -143,12 +143,16 @@ function DFT_to_beta_3d!(beta::Vector{Float64}, v::Array{ComplexF64,3}, size; rd
             l = l+1
             beta[l      ] = sqrt(2) * real(v[i   , 1   , k])
             beta[l+  P13] = sqrt(2) * imag(v[i   , 1   , k])
-            beta[l+2*P13] = sqrt(2) * real(v[i+M1, 1   , k])
-            beta[l+3*P13] = sqrt(2) * imag(v[i+M1, 1   , k])
+            # beta[l+2*P13] = sqrt(2) * real(v[i+M1, 1   , k])
+            beta[l+2*P13] = sqrt(2) * real(v[N1-i-M1+2, 1, N3-k+2])
+            # beta[l+3*P13] = sqrt(2) * imag(v[i+M1, 1   , k])
+            beta[l+3*P13] = -sqrt(2) * imag(v[N1-i-M1+2, 1, N3-k+2])
             beta[l+4*P13] = sqrt(2) * real(v[i   , M2+1, k])
             beta[l+5*P13] = sqrt(2) * imag(v[i   , M2+1, k])
-            beta[l+6*P13] = sqrt(2) * real(v[i+M1, M2+1, k])
-            beta[l+7*P13] = sqrt(2) * imag(v[i+M1, M2+1, k])
+            # beta[l+6*P13] = sqrt(2) * real(v[i+M1, M2+1, k])
+            beta[l+6*P13] = sqrt(2) * real(v[N1-i-M1+2, M2+1, N3-k+2])
+            # beta[l+7*P13] = sqrt(2) * imag(v[i+M1, M2+1, k])
+            beta[l+7*P13] = -sqrt(2) * imag(v[N1-i-M1+2, M2+1, N3-k+2])
         end
     end
     index = index + 8 * P13
@@ -159,12 +163,16 @@ function DFT_to_beta_3d!(beta::Vector{Float64}, v::Array{ComplexF64,3}, size; rd
             l = l+1
             beta[l      ] = sqrt(2) * real(v[i   , j   , 1])
             beta[l+  P12] = sqrt(2) * imag(v[i   , j   , 1])
-            beta[l+2*P12] = sqrt(2) * real(v[i+M1, j   , 1])
-            beta[l+3*P12] = sqrt(2) * imag(v[i+M1, j   , 1])
+            # beta[l+2*P12] = sqrt(2) * real(v[i+M1, j   , 1])
+            beta[l+2*P12] = sqrt(2) * real(v[N1-i-M1+2, N2-j+2, 1])
+            # beta[l+3*P12] = sqrt(2) * imag(v[i+M1, j   , 1])
+            beta[l+3*P12] = -sqrt(2) * imag(v[N1-i-M1+2, N2-j+2, 1])
             beta[l+4*P12] = sqrt(2) * real(v[i   , j, M3+1])
             beta[l+5*P12] = sqrt(2) * imag(v[i   , j, M3+1])
-            beta[l+6*P12] = sqrt(2) * real(v[i+M1, j, M3+1])
-            beta[l+7*P12] = sqrt(2) * imag(v[i+M1, j, M3+1])
+            # beta[l+6*P12] = sqrt(2) * real(v[i+M1, j, M3+1])
+            beta[l+6*P12] = sqrt(2) * real(v[N1-i-M1+2, N2-j+2, M3+1])
+            # beta[l+7*P12] = sqrt(2) * imag(v[i+M1, j, M3+1])
+            beta[l+7*P12] = -sqrt(2) * imag(v[N1-i-M1+2, N2-j+2, M3+1])
         end
     end
     index = index + 8 * P12
@@ -176,12 +184,16 @@ function DFT_to_beta_3d!(beta::Vector{Float64}, v::Array{ComplexF64,3}, size; rd
                 l = l+1
                 beta[l       ] = sqrt(2) * real(v[i   , j   , k])
                 beta[l+  P123] = sqrt(2) * imag(v[i   , j   , k])
-                beta[l+2*P123] = sqrt(2) * real(v[i+M1, j   , k])
-                beta[l+3*P123] = sqrt(2) * imag(v[i+M1, j   , k])
+                # beta[l+2*P123] = sqrt(2) * real(v[i+M1, j   , k])
+                beta[l+2*P123] = sqrt(2) * real(v[N1-i-M1+2, N2-j+2, N3-k+2])
+                # beta[l+3*P123] = sqrt(2) * imag(v[i+M1, j   , k])
+                beta[l+3*P123] = -sqrt(2) * imag(v[N1-i-M1+2, N2-j+2, N3-k+2])
                 beta[l+4*P123] = sqrt(2) * real(v[i   , j+M2, k])
                 beta[l+5*P123] = sqrt(2) * imag(v[i   , j+M2, k])
-                beta[l+6*P123] = sqrt(2) * real(v[i+M1, j+M2, k])
-                beta[l+7*P123] = sqrt(2) * imag(v[i+M1, j+M2, k])
+                # beta[l+6*P123] = sqrt(2) * real(v[i+M1, j+M2, k])
+                beta[l+6*P123] = sqrt(2) * real(v[N1-i-M1+2, N2-j-M2+2, N3-k+2])
+                # beta[l+7*P123] = sqrt(2) * imag(v[i+M1, j+M2, k])
+                beta[l+7*P123] = -sqrt(2) * imag(v[N1-i-M1+2, N2-j-M2+2, N3-k+2])
             end
         end
     end
@@ -250,7 +262,6 @@ function beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta::StridedVector{Float64}, si
             end
         end
     end
-
     return v
 end
 
