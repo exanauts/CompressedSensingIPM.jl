@@ -87,39 +87,27 @@ function DFT_to_beta_3d!(beta::CuVector{Float64}, v::CuArray{ComplexF64,3}, size
     view(beta,9+8*P3+8*P2+8*P1+7*P23                   :8+8*P3+8*P2+8*P1+8*P23                   ) .= sqrt(2) .* imag.(view(v,M1+1, M2+2:N2, 2:M3) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23                   :8+8*P3+8*P2+8*P1+8*P23+  P13             ) .= sqrt(2) .* real.(view(v,2:M1, 1, 2:M3) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+  P13             :8+8*P3+8*P2+8*P1+8*P23+2*P13             ) .= sqrt(2) .* imag.(view(v,2:M1, 1, 2:M3) |> vec)
-    # view(beta,9+8*P3+8*P2+8*P1+8*P23+2*P13             :8+8*P3+8*P2+8*P1+8*P23+3*P13             ) .= sqrt(2) .* real.(view(v,M1+2:N1, 1, 2:M3) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+2*P13             :8+8*P3+8*P2+8*P1+8*P23+3*P13             ) .= sqrt(2) .* real.(view(v,M1:-1:2, 1, N3:-1:M3+2) |> vec)
-    # view(beta,9+8*P3+8*P2+8*P1+8*P23+3*P13             :8+8*P3+8*P2+8*P1+8*P23+4*P13             ) .= sqrt(2) .* imag.(view(v,M1+2:N1, 1, 2:M3) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+3*P13             :8+8*P3+8*P2+8*P1+8*P23+4*P13             ) .= -sqrt(2) .* imag.(view(v,M1:-1:2, 1, N3:-1:M3+2) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+4*P13             :8+8*P3+8*P2+8*P1+8*P23+5*P13             ) .= sqrt(2) .* real.(view(v,2:M1, M2+1, 2:M3) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+5*P13             :8+8*P3+8*P2+8*P1+8*P23+6*P13             ) .= sqrt(2) .* imag.(view(v,2:M1, M2+1, 2:M3) |> vec)
-    # view(beta,9+8*P3+8*P2+8*P1+8*P23+6*P13             :8+8*P3+8*P2+8*P1+8*P23+7*P13             ) .= sqrt(2) .* real.(view(v,M1+2:N1, M2+1, 2:M3) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+6*P13             :8+8*P3+8*P2+8*P1+8*P23+7*P13             ) .= sqrt(2) .* real.(view(v,M1:-1:2, M2+1, N3:-1:M3+2) |> vec)
-    # view(beta,9+8*P3+8*P2+8*P1+8*P23+7*P13             :8+8*P3+8*P2+8*P1+8*P23+8*P13             ) .= sqrt(2) .* imag.(view(v,M1+2:N1, M2+1, 2:M3) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+7*P13             :8+8*P3+8*P2+8*P1+8*P23+8*P13             ) .= -sqrt(2) .* imag.(view(v,M1:-1:2, M2+1, N3:-1:M3+2) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13             :8+8*P3+8*P2+8*P1+8*P23+8*P13+  P12       ) .= sqrt(2) .* real.(view(v,2:M1, 2:M2, 1) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+  P12       :8+8*P3+8*P2+8*P1+8*P23+8*P13+2*P12       ) .= sqrt(2) .* imag.(view(v,2:M1, 2:M2, 1) |> vec)
-    # view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+2*P12       :8+8*P3+8*P2+8*P1+8*P23+8*P13+3*P12       ) .= sqrt(2) .* real.(view(v,M1+2:N1, 2:M2, 1) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+2*P12       :8+8*P3+8*P2+8*P1+8*P23+8*P13+3*P12       ) .= sqrt(2) .* real.(view(v,M1:-1:2, N2:-1:M2+2, 1) |> vec)
-    # view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+3*P12       :8+8*P3+8*P2+8*P1+8*P23+8*P13+4*P12       ) .= sqrt(2) .* imag.(view(v,M1+2:N1, 2:M2, 1) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+3*P12       :8+8*P3+8*P2+8*P1+8*P23+8*P13+4*P12       ) .= -sqrt(2) .* imag.(view(v,M1:-1:2, N2:-1:M2+2, 1) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+4*P12       :8+8*P3+8*P2+8*P1+8*P23+8*P13+5*P12       ) .= sqrt(2) .* real.(view(v,2:M1, 2:M2, M3+1) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+5*P12       :8+8*P3+8*P2+8*P1+8*P23+8*P13+6*P12       ) .= sqrt(2) .* imag.(view(v,2:M1, 2:M2, M3+1) |> vec)
-    # view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+6*P12       :8+8*P3+8*P2+8*P1+8*P23+8*P13+7*P12       ) .= sqrt(2) .* real.(view(v,M1+2:N1, 2:M2, M3+1) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+6*P12       :8+8*P3+8*P2+8*P1+8*P23+8*P13+7*P12       ) .= sqrt(2) .* real.(view(v,M1:-1:2, N2:-1:M2+2, M3+1) |> vec)
-    # view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+7*P12       :8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12       ) .= sqrt(2) .* imag.(view(v,M1+2:N1, 2:M2, M3+1) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+7*P12       :8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12       ) .= -sqrt(2) .* imag.(view(v,M1:-1:2, N2:-1:M2+2, M3+1) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12       :8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+  P123) .= sqrt(2) .* real.(view(v,2:M1, 2:M2, 2:M3) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+  P123:8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+2*P123) .= sqrt(2) .* imag.(view(v,2:M1, 2:M2, 2:M3) |> vec)
-    # view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+2*P123:8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+3*P123) .= sqrt(2) .* real.(view(v,M1+2:N1, 2:M2, 2:M3) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+2*P123:8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+3*P123) .= sqrt(2) .* real.(view(v,M1:-1:2, N2:-1:M2+2, N3:-1:M3+2) |> vec)
-    # view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+3*P123:8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+4*P123) .= sqrt(2) .* imag.(view(v,M1+2:N1, 2:M2, 2:M3) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+3*P123:8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+4*P123) .= -sqrt(2) .* imag.(view(v,M1:-1:2, N2:-1:M2+2, N3:-1:M3+2) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+4*P123:8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+5*P123) .= sqrt(2) .* real.(view(v,2:M1, M2+2:N2, 2:M3) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+5*P123:8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+6*P123) .= sqrt(2) .* imag.(view(v,2:M1, M2+2:N2, 2:M3) |> vec)
-    # view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+6*P123:8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+7*P123) .= sqrt(2) .* real.(view(v,M1+2:N1, M2+2:N2, 2:M3) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+6*P123:8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+7*P123) .= sqrt(2) .* real.(view(v,M1:-1:2, M2:-1:2, N3:-1:M3+2) |> vec)
-    # view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+7*P123:8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+8*P123) .= sqrt(2) .* imag.(view(v,M1+2:N1, M2+2:N2, 2:M3) |> vec)
     view(beta,9+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+7*P123:8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+8*P123) .= -sqrt(2) .* imag.(view(v,M1:-1:2, M2:-1:2, N3:-1:M3+2) |> vec)
     return beta
 end
@@ -131,7 +119,7 @@ function beta_to_DFT_1d!(v::CuVector{ComplexF64}, beta::StridedCuVector{Float64}
     view(v, 1:M:M+1) .= view(beta, 1:2)
     beta_r = view(beta, 3:M+1)
     beta_c = view(beta, M+2:N)
-    view(v, 2:M     ) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
+    view(v, 2:M) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
     if !rdft
         view(v, N:-1:M+2) .= (beta_r .- im .* beta_c) ./ sqrt(2)
     end
@@ -152,13 +140,10 @@ function beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta::StridedCuVector{Float64}
     beta_r = view(beta,4+4*P2+1:4+4*P2+P1)
     beta_c = view(beta,4+4*P2+P1+1:4+4*P2+2*P1)
     view(v,2:M1,1) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
-    if !rdft
-        view(v,N1:-1:M1+2,1) .= (beta_r .- im .* beta_c) ./ sqrt(2)
-    end
 
     beta_r = view(beta,4+1:4+M2-1)
     beta_c = view(beta,4+P2+1:4+2*P2)
-    view(v,1, 2:M2) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
+    view(v, 1, 2:M2) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
 
     beta_r = reshape(view(beta,4+4*P2+4*P1+1:4+4*P2+4*P1+P1*P2), P1, P2)
     beta_c = reshape(view(beta,4+4*P2+4*P1+P1*P2+1:4+4*P2+4*P1+2*P1*P2), P1, P2)
@@ -175,13 +160,13 @@ function beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta::StridedCuVector{Float64}
     beta_r = view(beta,4+4*P2+2*P1+1:4+4*P2+3*P1)
     beta_c = view(beta,4+4*P2+3*P1+1:4+4*P2+4*P1)
     view(v,2:M1,M2+1) .= (beta_r .+ im .* beta_c) ./ sqrt(2)
-    if !rdft
-        view(v,N1:-1:M1+2,M2+1) .= (beta_r .- im .* beta_c) ./ sqrt(2)
-    end
 
     view(v,1,M2+2:N2) .= conj.(view(v,1,M2:-1:2))
     view(v,M1+1,M2+2:N2) .= conj.(view(v,M1+1,M2:-1:2))
+
     if !rdft
+        view(v,N1:-1:M1+2,1) .= (beta_r .- im .* beta_c) ./ sqrt(2)
+        view(v,N1:-1:M1+2,M2+1) .= (beta_r .- im .* beta_c) ./ sqrt(2)
         view(v,N1:-1:M1+2,M2:-1:2) .= conj.(view(v,2:M1,M2+2:N2))
         view(v,M1+2:N1,M2+2:N2) .= conj.(view(v,M1:-1:2,M2:-1:2))
     end
