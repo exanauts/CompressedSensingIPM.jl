@@ -3,6 +3,7 @@ using MadNLPGPU, CUDA
 Random.seed!(1)
 
 include("fft_model.jl")
+include("solver.jl")
 
 ## 2D
 function fft_example_2D(Nt::Int, Ns::Int; gpu::Bool=false, rdft::Bool=false)
@@ -67,7 +68,7 @@ function fft_example_2D(Nt::Int, Ns::Int; gpu::Bool=false, rdft::Bool=false)
         tol=1e-8,
         richardson_tol=Inf,
     )
-    results = MadNLP.solve!(solver)
+    results = ipm_solve!(solver)
     return nlp, solver, results
 end
 
