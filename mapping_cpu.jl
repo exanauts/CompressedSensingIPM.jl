@@ -93,7 +93,7 @@ function DFT_to_beta_3d!(beta::Vector{Float64}, v::Array{ComplexF64,3}, size; rd
         beta[l+6*P3] = sqrt(2) * real(v[M1+1, M2+1, t])
         beta[l+7*P3] = sqrt(2) * imag(v[M1+1, M2+1, t])
     end
-    index = index + 8 * P1
+    index = index + 8 * P3
 
     for l = index+1 : index+P2
         t = l - index + 1
@@ -447,7 +447,7 @@ function beta_to_DFT_3d!(v::Array{ComplexF64, 3}, beta::StridedVector{Float64}, 
 
     for k = 1:P3
         for i = 1:P1
-            v[i+1, 1, M3+1+k] = conj(v[N1-i+1, 1, M3-k+1])
+            v[i+1   , 1, M3+1+k] = conj(v[N1-i+1, 1, M3-k+1])
             v[M1+i+1, 1, M3+1+k] = conj(v[M1-i+1, 1, M3-k+1])
         end
     end

@@ -1,7 +1,7 @@
 using Test
 
-dim1 = false
-dim2 = false
+dim1 = true
+dim2 = true
 dim3 = true
 
 dim1 && include("fft_example_1D.jl")
