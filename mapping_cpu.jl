@@ -313,6 +313,24 @@ function beta_to_DFT_3d!(v::Array{ComplexF64, 3}, beta::StridedVector{Float64}, 
         v[M1+1,j+1,M3+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
     end
 
+    for k = 1:P3
+        index_r = 8+k
+        index_c = 8+P3+k
+        v[1,1,k+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
+
+        index_r = 8+2*P3+k
+        index_c = 8+3*P3+k
+        v[1,M2+1,k+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
+
+        index_r = 8+4*P3+k
+        index_c = 8+5*P3+k
+        v[M1+1,1,k+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
+
+        index_r = 8+6*P3+k
+        index_c = 8+7*P3+k
+        v[M1+1,M2+1,k+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
+    end
+
     for j = 1:P2
         for i = 1:P1
             ij = (j-1)*P1 + i
@@ -332,31 +350,6 @@ function beta_to_DFT_3d!(v::Array{ComplexF64, 3}, beta::StridedVector{Float64}, 
             index_c = 8+8*P3+8*P2+8*P1+8*P2*P3+8*P1*P3+7*P1*P2+ij
             v[M1-i+1,N2-j+1,M3+1] = (beta[index_r] - im * beta[index_c]) / sqrt(2)
         end
-    end
-
-    for j = 1:P2
-        v[   1, M2+j+1,    1] = conj(v[1   , M2-j+1,    1])
-        v[M1+1, M2+j+1,    1] = conj(v[M1+1, M2-j+1,    1])
-        v[   1, M2+j+1, M3+1] = conj(v[1   , M2-j+1, M3+1])
-        v[M1+1, M2+j+1, M3+1] = conj(v[M1+1, M2-j+1, M3+1])
-    end
-
-    for k = 1:P3
-        index_r = 8+k
-        index_c = 8+P3+k
-        v[1,1,k+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
-
-        index_r = 8+2*P3+k
-        index_c = 8+3*P3+k
-        v[1,M2+1,k+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
-
-        index_r = 8+4*P3+k
-        index_c = 8+5*P3+k
-        v[M1+1,1,k+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
-
-        index_r = 8+6*P3+k
-        index_c = 8+7*P3+k
-        v[M1+1,M2+1,k+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
     end
 
     for k = 1:P3
@@ -382,13 +375,6 @@ function beta_to_DFT_3d!(v::Array{ComplexF64, 3}, beta::StridedVector{Float64}, 
     end
 
     for k = 1:P3
-        v[   1,    1, M3+1+k] = conj(v[   1,    1, M3-k+1])
-        v[M1+1,    1, M3+1+k] = conj(v[M1+1,    1, M3-k+1])
-        v[   1, M2+1, M3+k+1] = conj(v[   1, M2+1, M3-k+1])
-        v[M1+1, M2+1, M3+k+1] = conj(v[M1+1, M2+1, M3-k+1])
-    end
-
-    for k = 1:P3
         for j = 1:P2
             jk = (k-1)*P2 + j
 
@@ -408,6 +394,20 @@ function beta_to_DFT_3d!(v::Array{ComplexF64, 3}, beta::StridedVector{Float64}, 
             index_c = 8+8*P3+8*P2+8*P1+7*P2*P3+jk
             v[M1+1,M2+j+1,k+1] = (beta[index_r] + im * beta[index_c]) / sqrt(2)
         end
+    end
+
+    for j = 1:P2
+        v[   1, M2+j+1,    1] = conj(v[1   , M2-j+1,    1])
+        v[M1+1, M2+j+1,    1] = conj(v[M1+1, M2-j+1,    1])
+        v[   1, M2+j+1, M3+1] = conj(v[1   , M2-j+1, M3+1])
+        v[M1+1, M2+j+1, M3+1] = conj(v[M1+1, M2-j+1, M3+1])
+    end
+
+    for k = 1:P3
+        v[   1,    1, M3+1+k] = conj(v[   1,    1, M3-k+1])
+        v[M1+1,    1, M3+1+k] = conj(v[M1+1,    1, M3-k+1])
+        v[   1, M2+1, M3+k+1] = conj(v[   1, M2+1, M3-k+1])
+        v[M1+1, M2+1, M3+k+1] = conj(v[M1+1, M2+1, M3-k+1])
     end
 
     for k = 1:P3
