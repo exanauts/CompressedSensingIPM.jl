@@ -1,14 +1,14 @@
 using Test
 
+dim1 = false
+dim2 = false
+dim3 = true
+
+dim1 && include("fft_example_1D.jl")
+dim2 && include("fft_example_2D.jl")
+dim3 && include("fft_example_3D.jl")
+
 # 1D
-include("fft_example_1D.jl")
-include("fft_example_2D.jl")
-include("fft_example_3D.jl")
-
-dim1 = true
-dim2 = true
-dim3 = false
-
 if dim1
   for N in (100, 200, 500)
     z = rand(N)
@@ -115,7 +115,7 @@ end
 # 3D
 rdft = false
 if dim3
-  for (N1, N2, N3) in ((8, 8, 8),)
+  for (N1, N2, N3) in ((8, 8, 8), (2, 4, 6), (6, 10, 12), (14, 8, 4), (8, 6, 4), (16, 16, 16))
     z = rand(N1 * N2 * N3)
 
     z2_wei = M_perpt_M_perp_vec_wei(3, (N1, N2, N3), z, Int[])
