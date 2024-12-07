@@ -92,8 +92,8 @@ rdft = false
 z3d = npzread("../z3d_movo.npy")
 fft_vishwas(z3d; gpu, rdft)
 beta_MadNLP = results.solution[1:Nt]
-timer = results.counters.total_time
-println("Timer: $timer")
+elapsed_time = results.counters.total_time
+println("Timer: $(elapsed_time)")
 
 using DelimitedFiles
 open("sol_vishwas.txt", "w") do io

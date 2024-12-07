@@ -78,5 +78,5 @@ gpu = false
 rdft = true
 nlp, solver, results = fft_example_2D(Nt, Ns; gpu, rdft)
 beta_MadNLP = results.solution[1:Nt*Ns]
-timer = results.counters.total_time
-println("Timer: $timer")
+elapsed_time = results.counters.total_time
+println("Timer: $(elapsed_time)")

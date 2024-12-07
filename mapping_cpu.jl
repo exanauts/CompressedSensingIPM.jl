@@ -216,7 +216,7 @@ function beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta::StridedVector{Float64}, si
     v[M1+1,M2+1] = beta[4]
 
     for i = 1:P1
-        v[i+1,1   ] = (beta[4+4*P2+i     ] + im * beta[4+4*P2+P1+i  ]) / sqrt(2)
+        v[i+1,1   ] = (beta[4+4*P2+i] + im * beta[4+4*P2+P1+i]) / sqrt(2)
         v[i+1,M2+1] = (beta[4+4*P2+2*P1+i] + im * beta[4+4*P2+3*P1+i]) / sqrt(2)
     end
 
@@ -226,11 +226,13 @@ function beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta::StridedVector{Float64}, si
     end
 
     j = 0
+    c = 0
     for col = 2:M2
         for row = 2:M1
             j = j+1
             v[row, col   ] = (beta[4+4*P2+4*P1+j] + im * beta[4+4*P2+4*P1+P1*P2+j]) / sqrt(2)
-            v[row, col+M2] = (beta[4+4*P2+4*P1+2*P1*P2+j] + im * beta[4+4*P2+4*P1+3*P1*P2+j]) / sqrt(2)
+            v[M1-row+2, N2-col+2] = (beta[4+4*P2+4*P1+3*P1*P2-c] + im * beta[N1*N2-c]) / sqrt(2)
+            c = c+1
         end
     end
 
@@ -245,8 +247,8 @@ function beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta::StridedVector{Float64}, si
             v[N1-i+1,M2+1] = (beta[4+4*P2+2*P1+i] - im * beta[4+4*P2+3*P1+i]) / sqrt(2)
 
             for j = 1:P2
-                v[N1-i+1, M2-j+1] = conj(v[i+1, M2+1+j])
-                v[M1+i+1, M2+1+j] = conj(v[M1-i+1,M2-j+1])
+                v[N1-i+1, M2-j+1] = conj(v[i+1, M2+j+1])
+                v[M1+i+1, M2+j+1] = conj(v[M1-i+1,M2-j+1])
             end
         end
     end
