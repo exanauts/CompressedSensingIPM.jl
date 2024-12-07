@@ -6,7 +6,7 @@ include("fft_model.jl")
 include("solver.jl")
 
 ## 1D
-function fft_example_1D(Nt::Int; gpu::Bool=false, rdft::Bool=false)
+function fft_example_1D(Nt::Int; gpu::Bool=false, rdft::Bool=false, check::Bool=false)
     t = collect(0:(Nt-1))
 
     x1 = 2 * cos.(2*pi*t*6/Nt)  .+ 3 * sin.(2*pi*t*6/Nt)
@@ -14,29 +14,28 @@ function fft_example_1D(Nt::Int; gpu::Bool=false, rdft::Bool=false)
     x3 = 6 * cos.(2*pi*t*40/Nt) .+ 7 * sin.(2*pi*t*40/Nt)
     x = x1 .+ x2 .+ x3  # signal
 
-    y = x + randn(Nt)  # noisy signal
+    y = check ? x : x + randn(Nt)  # noisy signal
 
     w = fft(x) ./ sqrt(Nt)  # true DFT
     DFTsize = size(x)  # problem dim
     DFTdim = length(DFTsize)  # problem size
-    if gpu
-        w = CuArray(w)
-    end
-    beta_true = DFT_to_beta(DFTdim, DFTsize, w)
-    sum(abs.(beta_true))
 
-    missing_prob = 0.15
-    centers = centering(DFTdim, DFTsize, missing_prob)
-    radius = 1
-    index_missing, z_zero = punching(DFTdim, DFTsize, centers, radius, y)
+    if check
+        index_missing = Int[]
+        z_zero = y
+    else
+        missing_prob = 0.15
+        centers = centering(DFTdim, DFTsize, missing_prob)
+        radius = 1
+        index_missing, z_zero = punching(DFTdim, DFTsize, centers, radius, y)
+    end
 
     M_perptz = M_perp_tz_wei(DFTdim, DFTsize, z_zero)  # M_perptz
     if gpu
         M_perptz = CuArray(M_perptz)
     end
 
-    lambda = 1
-
+    lambda = check ? 0 : 1
     alpha_LS = 0.1
     gamma_LS = 0.8
     eps_NT = 1e-6
@@ -69,6 +68,13 @@ function fft_example_1D(Nt::Int; gpu::Bool=false, rdft::Bool=false)
         richardson_tol=Inf,
     )
     results = ipm_solve!(solver)
+
+    if check
+        beta_MadNLP = results.solution[1:Nt]
+        beta_true = DFT_to_beta(DFTdim, DFTsize, gpu ? CuArray(w) : w)
+        @test norm(beta_true - beta_MadNLP) ≤ 1e-6
+    end
+
     return nlp, solver, results
 end
 
@@ -76,7 +82,8 @@ end
 Nt = 100
 gpu = false
 rdft = true
-nlp, solver, results = fft_example_1D(Nt; gpu, rdft)
+check = false
+nlp, solver, results = fft_example_1D(Nt; gpu, rdft, check)
 beta_MadNLP = results.solution[1:Nt]
 elapsed_time = results.counters.total_time
 println("Timer: $(elapsed_time)")

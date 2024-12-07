@@ -24,7 +24,7 @@ if dim1
 
     for rdft in (false, true)
       @testset "1D -- CPU -- rdft=$rdft -- $N" begin
-        nlp, solver, results = fft_example_1D(N; gpu=false, rdft)
+        nlp, solver, results = fft_example_1D(N; gpu=false, rdft, check=true)
 
         z2 = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 1, (N,), z, Int[]; rdft)
         @test z2 ≈ z
@@ -40,7 +40,7 @@ if dim1
 
       if CUDA.functional()
         @testset "1D -- GPU -- rdft=$rdft -- $N" begin
-          nlp, solver, results = fft_example_1D(N; gpu=true, rdft)
+          nlp, solver, results = fft_example_1D(N; gpu=true, rdft, check=true)
 
           z_gpu = CuArray(z)
 
@@ -76,7 +76,7 @@ if dim2
 
     for rdft in (false, true)
       @testset "2D -- CPU -- rdft=$rdft -- $N1 × $N2" begin
-        nlp, solver, results = fft_example_2D(N1, N2; gpu=false, rdft)
+        nlp, solver, results = fft_example_2D(N1, N2; gpu=false, rdft, check=true)
 
         z2 = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 2, (N1, N2), z, Int[]; rdft)
         @test z2 ≈ z
@@ -92,7 +92,7 @@ if dim2
 
       if CUDA.functional()
         @testset "2D -- GPU -- rdft=$rdft -- $N1 × $N2" begin
-          nlp, solver, results = fft_example_2D(N1, N2; gpu=true, rdft)
+          nlp, solver, results = fft_example_2D(N1, N2; gpu=true, rdft, check=true)
 
           z_gpu = CuArray(z)
 
@@ -128,7 +128,7 @@ if dim3
 
     for rdft in (false, true)
       @testset "3D -- CPU -- rdft=$rdft -- $N1 × $N2 × $N3" begin
-        nlp, solver, results = fft_example_3D(N1, N2, N3; gpu=false, rdft)
+        nlp, solver, results = fft_example_3D(N1, N2, N3; gpu=false, rdft, check=true)
 
         z2 = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 3, (N1, N2, N3), z, Int[]; rdft)
         @test z2 ≈ z
@@ -144,7 +144,7 @@ if dim3
 
       if CUDA.functional()
         @testset "3D -- GPU -- rdft=$rdft -- $N1 × $N2 × $N3" begin
-          nlp, solver, results = fft_example_3D(N1, N2, N3; gpu=true, rdft)
+          nlp, solver, results = fft_example_3D(N1, N2, N3; gpu=true, rdft, check=true)
 
           z_gpu = CuArray(z)
 
