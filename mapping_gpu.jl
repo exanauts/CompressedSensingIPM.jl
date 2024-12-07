@@ -165,8 +165,14 @@ function beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta::StridedCuVector{Float64}
     view(v,M1+1,M2+2:N2) .= conj.(view(v,M1+1,M2:-1:2))
 
     if !rdft
+        beta_r = view(beta,4+4*P2+1:4+4*P2+P1)
+        beta_c = view(beta,4+4*P2+P1+1:4+4*P2+2*P1)
         view(v,N1:-1:M1+2,1) .= (beta_r .- im .* beta_c) ./ sqrt(2)
+
+        beta_r = view(beta,4+4*P2+2*P1+1:4+4*P2+3*P1)
+        beta_c = view(beta,4+4*P2+3*P1+1:4+4*P2+4*P1)
         view(v,N1:-1:M1+2,M2+1) .= (beta_r .- im .* beta_c) ./ sqrt(2)
+
         view(v,N1:-1:M1+2,M2:-1:2) .= conj.(view(v,2:M1,M2+2:N2))
         view(v,M1+2:N1,M2+2:N2) .= conj.(view(v,M1:-1:2,M2:-1:2))
     end
