@@ -82,7 +82,7 @@ function fft_vishwas(z3d; gpu::Bool=false, rdft::Bool=false)
         print_level=MadNLP.INFO,
         dual_initialized=true,
         richardson_max_iter=0,
-        tol=1e-5,
+        tol=1e-8,
         richardson_tol=Inf,
     )
     results = ipm_solve!(solver)
@@ -93,7 +93,8 @@ gpu = true
 rdft = false
 z3d = npzread("../z3d_movo.npy")
 fft_vishwas(z3d; gpu, rdft)
-beta_MadNLP = results.solution[1:Nt]
+N = length(results.solution) ÷ 2
+beta_MadNLP = results.solution[1:N]
 elapsed_time = results.counters.total_time
 println("Timer: $(elapsed_time)")
 
