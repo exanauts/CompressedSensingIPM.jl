@@ -13,12 +13,12 @@ function punching(DFTdim, DFTsize, centers, radius, data)
 end
 
 function punching1D_onepoint(DFTsize, center, radius)
-    inds = filter(i -> (norm(i-center)  <= radius), collect(1:DFTsize[1]))
+    inds = filter(x -> (norm(x-center)  <= radius), collect(1:DFTsize[1]))
     return inds
 end
 
 function punching1D(DFTsize, centers, radius)
-    index_missing = [];
+    index_missing = []
     for center in centers
         absolute_indices1 = punching1D_onepoint(DFTsize, center, radius)
         index_missing = [index_missing; absolute_indices1]
@@ -27,7 +27,7 @@ function punching1D(DFTsize, centers, radius)
 end
 
 function punching2D_onepoint(DFTsize, center, radius)
-    inds = filter(i -> (((center[1]-i[1])^2+(center[2]-i[2])^2)  <= radius^2), CartesianIndices((1:DFTsize[1], 1:DFTsize[2])))
+    inds = filter(x -> (((center[1] - x[1])^2 + (center[2] - x[2])^2)  <= radius^2), CartesianIndices((1:DFTsize[1], 1:DFTsize[2])))
     return inds
 end
 
@@ -41,7 +41,7 @@ function punching2D(DFTsize, centers, radius)
 end
 
 function punching3D_onepoint(DFTsize, center, radius)
-    inds = filter(i -> (((center[1]-i[1])^2+(center[2]-i[2])^2+(center[3]-i[3])^2)  <= radius^2), CartesianIndices((1:DFTsize[1], 1:DFTsize[2], 1:DFTsize[3])))
+    inds = filter(x -> (((center[1] - x[1])^2 + (center[2] - x[2])^2 + (center[3] - x[3])^2)  <= radius^2), CartesianIndices((1:DFTsize[1], 1:DFTsize[2], 1:DFTsize[3])))
     return inds
 end
 
