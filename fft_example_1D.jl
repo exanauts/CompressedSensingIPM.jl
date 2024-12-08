@@ -58,6 +58,7 @@ function fft_example_1D(Nt::Int; gpu::Bool=false, rdft::Bool=false, check::Bool=
     # beta_MadNLP = results.solution[1:Nt]
 
     # Solve with MadNLP/CG
+    t1 = time()
     solver = MadNLP.MadNLPSolver(
         nlp;
         max_iter=2000,
@@ -70,6 +71,7 @@ function fft_example_1D(Nt::Int; gpu::Bool=false, rdft::Bool=false, check::Bool=
         richardson_tol=Inf,
     )
     results = ipm_solve!(solver)
+    t2 = time()
 
     if check
         beta_MadNLP = results.solution[1:Nt]
@@ -77,7 +79,7 @@ function fft_example_1D(Nt::Int; gpu::Bool=false, rdft::Bool=false, check::Bool=
         @test norm(beta_true - beta_MadNLP) ≤ 1e-6
     end
 
-    return nlp, solver, results
+    return nlp, solver, results, t2-t1
 end
 
 # Nt = 50000
@@ -85,7 +87,5 @@ Nt = 100
 gpu = false
 rdft = true
 check = false
-nlp, solver, results = fft_example_1D(Nt; gpu, rdft, check)
-beta_MadNLP = results.solution[1:Nt]
-elapsed_time = results.counters.total_time
-println("Timer: $(elapsed_time)")
+nlp, solver, results, timer = fft_example_1D(Nt; gpu, rdft, check)
+println("Timer: $(timer)")
