@@ -1,5 +1,6 @@
 using Random, Distributions
 using MadNLPGPU, CUDA
+using Test
 Random.seed!(1)
 
 include("fft_model.jl")
@@ -62,6 +63,7 @@ function fft_example_3D(N1::Int, N2::Int, N3::Int; gpu::Bool=false, rdft::Bool=f
         max_iter=2000,
         kkt_system=FFTKKTSystem,
         print_level=MadNLP.INFO,
+        nlp_scaling=false,
         dual_initialized=true,
         richardson_max_iter=0,
         tol=1e-6,
