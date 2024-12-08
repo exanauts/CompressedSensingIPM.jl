@@ -92,7 +92,7 @@ end
 gpu = true
 rdft = false
 z3d = npzread("../z3d_movo.npy")
-fft_vishwas(z3d; gpu, rdft)
+nlp, solver, results = fft_vishwas(z3d; gpu, rdft)
 N = length(results.solution) ÷ 2
 beta_MadNLP = results.solution[1:N]
 elapsed_time = results.counters.total_time
