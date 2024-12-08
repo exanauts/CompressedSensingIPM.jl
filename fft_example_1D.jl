@@ -61,6 +61,7 @@ function fft_example_1D(Nt::Int; gpu::Bool=false, rdft::Bool=false, check::Bool=
         nlp;
         max_iter=2000,
         kkt_system=FFTKKTSystem,
+        nlp_scaling=false,
         print_level=MadNLP.INFO,
         dual_initialized=true,
         richardson_max_iter=0,
