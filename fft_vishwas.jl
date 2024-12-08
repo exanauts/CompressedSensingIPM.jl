@@ -74,6 +74,7 @@ function fft_vishwas(z3d; gpu::Bool=false, rdft::Bool=false)
     nlp = FFTNLPModel{Float64, S}(parameters; rdft)
 
     # Solve with MadNLP/CG
+    t1 = time()
     solver = MadNLP.MadNLPSolver(
         nlp;
         max_iter=10000,
@@ -86,17 +87,17 @@ function fft_vishwas(z3d; gpu::Bool=false, rdft::Bool=false)
         richardson_tol=Inf,
     )
     results = ipm_solve!(solver)
-    return nlp, solver, results
+    t2 = time()
+    return nlp, solver, results, t2-t1
 end
 
 gpu = true
 rdft = false
 z3d = npzread("../z3d_movo.npy")
-nlp, solver, results = fft_vishwas(z3d; gpu, rdft)
+nlp, solver, results, timer = fft_vishwas(z3d; gpu, rdft)
 N = length(results.solution) ÷ 2
 beta_MadNLP = results.solution[1:N]
-elapsed_time = results.counters.total_time
-println("Timer: $(elapsed_time)")
+println("Timer: $(timer)")
 
 using DelimitedFiles
 open("sol_vishwas.txt", "w") do io
