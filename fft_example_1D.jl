@@ -1,5 +1,6 @@
 using Random, Distributions
 using MadNLPGPU, CUDA
+using Test
 Random.seed!(1)
 
 include("fft_model.jl")

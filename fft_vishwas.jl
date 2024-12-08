@@ -2,6 +2,7 @@ using Random, Distributions
 using LinearAlgebra, SparseArrays
 using LaplaceInterpolation, NPZ
 using MadNLPGPU, CUDA
+using Test
 
 include("fft_model.jl")
 include("solver.jl")
@@ -77,6 +78,7 @@ function fft_vishwas(z3d; gpu::Bool=false, rdft::Bool=false)
         nlp;
         max_iter=10000,
         kkt_system=FFTKKTSystem,
+        nlp_scaling=false,
         print_level=MadNLP.INFO,
         dual_initialized=true,
         richardson_max_iter=0,
