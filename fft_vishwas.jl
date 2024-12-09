@@ -124,7 +124,7 @@ gpu = true
 rdft = false
 variant = false
 z3d = npzread("../z3d_movo.npy")
-nlp, solver, results, timer = fft_vishwas(z3d; gpu, rdft)
+nlp, solver, results, timer = fft_vishwas(z3d; variant, gpu, rdft)
 N = length(results.solution) ÷ 2
 beta_MadNLP = results.solution[1:N]
 println("Timer: $(timer)")
