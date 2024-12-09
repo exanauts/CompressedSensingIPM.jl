@@ -22,28 +22,57 @@ function punch_3D_cart(center, radius, x, y, z; linear = false)
     end 
 end
 
-function fft_vishwas(z3d; gpu::Bool=false, rdft::Bool=false)
-    dx = 0.02
-    dy = 0.02
-    dz = 0.02
-    x = -0.2:dx:4.01
-    y = -0.2:dy:6.01
-    z = -0.2:dz:6.01
-    x = x[1:210]
-    y = y[1:310]
-    z = z[1:310]
+function fft_vishwas(z3d; variant::Bool=false, gpu::Bool=false, rdft::Bool=false)
+    if ! variant
+        dx = 0.02
+        dy = 0.02
+        dz = 0.02
+        x = -0.2:dx:4.01
+        y = -0.2:dy:6.01
+        z = -0.2:dz:6.01
+        x = x[1:210]
+        y = y[1:310]
+        z = z[1:310]
 
-    radius = 0.2001
-    punched_pmn = copy(z3d)
-    punched_pmn = punched_pmn[1:210, 1:310, 1:310]
-    index_missing_2D = CartesianIndex{3}[]
-    for i=0:4.
-        for j=0:6.
-            for k = 0:6.
-                center =[i,j,k]
-                absolute_indices1 = punch_3D_cart(center, radius, x, y, z)
-                punched_pmn[absolute_indices1] .= 0
-                append!(index_missing_2D, absolute_indices1)
+        radius = 0.2001
+        punched_pmn = copy(z3d)
+        punched_pmn = punched_pmn[1:210, 1:310, 1:310]
+
+        index_missing_2D = CartesianIndex{3}[]
+        for i=0:4.
+            for j=0:6.
+                for k = 0:6.
+                    center =[i,j,k]
+                    absolute_indices1 = punch_3D_cart(center, radius, x, y, z)
+                    punched_pmn[absolute_indices1] .= 0
+                    append!(index_missing_2D, absolute_indices1)
+                end
+            end
+        end
+    else
+        dx = 0.02
+        dy = 0.02
+        dz = 0.02
+        x = -0.2:dx:6.01
+        y = -0.2:dy:8.01
+        z = -0.2:dz:8.01
+        x = x[1:310]
+        y = y[1:410]
+        z = z[1:410]
+
+        radius = 0.2001
+        punched_pmn = copy(z3d)
+        punched_pmn = punched_pmn[1:310, 1:410, 1:410]
+
+        index_missing_2D = CartesianIndex{3}[]
+        for i=0:6.
+            for j=0:8.
+                for k = 0:8.
+                    center =[i,j,k]
+                    absolute_indices1 = punch_3D_cart(center, radius, x, y, z)
+                    punched_pmn[absolute_indices1] .= 0
+                    append!(index_missing_2D, absolute_indices1)
+                end
             end
         end
     end
@@ -93,6 +122,7 @@ end
 
 gpu = true
 rdft = false
+variant = false
 z3d = npzread("../z3d_movo.npy")
 nlp, solver, results, timer = fft_vishwas(z3d; gpu, rdft)
 N = length(results.solution) ÷ 2
