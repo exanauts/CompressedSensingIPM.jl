@@ -23,7 +23,7 @@ function punch_3D_cart(center, radius, x, y, z; linear = false)
 end
 
 function fft_vishwas(z3d; variant::Bool=false, gpu::Bool=false, rdft::Bool=false)
-    if ! variant
+    if !variant
         dx = 0.02
         dy = 0.02
         dz = 0.02
@@ -122,7 +122,7 @@ end
 
 gpu = true
 rdft = false
-variant = false
+variant = true
 z3d = npzread("../z3d_movo.npy")
 nlp, solver, results, timer = fft_vishwas(z3d; variant, gpu, rdft)
 N = length(results.solution) ÷ 2
