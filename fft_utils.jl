@@ -3,6 +3,7 @@ using FFTW
 using Random, Distributions
 
 include("mapping_cpu.jl")
+# include("mapping_cpu_v2.jl")
 include("mapping_gpu.jl")
 
 # compute M_{\perp}^{\top}z
