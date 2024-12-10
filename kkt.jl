@@ -24,6 +24,8 @@ struct CondensedFFTKKT{T, VT, FFT, R, C} <: AbstractMatrix{T}
     buffer_complex1::C  # Buffer for fft and ifft
     buffer_complex2::C  # Buffer for fft and ifft
     rdft::Bool
+    fft_timer::Ref{Float64}
+    mapping_timer::Ref{Float64}
 end
 
 function CondensedFFTKKT{T, VT}(nlp::FFTNLPModel{T, VT}) where {T, VT}
@@ -31,7 +33,9 @@ function CondensedFFTKKT{T, VT}(nlp::FFTNLPModel{T, VT}) where {T, VT}
     buf1 = VT(undef, nβ)
     Λ1 = VT(undef, nβ)
     Λ2 = VT(undef, nβ)
-    return CondensedFFTKKT{T, VT, typeof(nlp.op), typeof(nlp.buffer_real), typeof(nlp.buffer_complex1)}(nβ, nlp.parameters, buf1, Λ1, Λ2, nlp.op, nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.rdft)
+    return CondensedFFTKKT{T, VT, typeof(nlp.op), typeof(nlp.buffer_real), typeof(nlp.buffer_complex1)}(
+                nβ, nlp.parameters, buf1, Λ1, Λ2, nlp.op, nlp.buffer_real,
+                nlp.buffer_complex1, nlp.buffer_complex2, nlp.rdft, nlp.fft_timer, nlp.mapping_timer)
 end
 
 Base.size(K::CondensedFFTKKT) = (2*K.nβ, 2*K.nβ)
@@ -54,7 +58,7 @@ function LinearAlgebra.mul!(y::AbstractVector, K::CondensedFFTKKT, x::AbstractVe
     xz  = view(x, nβ+1:2*nβ)
 
     # Evaluate Mᵀ M xβ
-    Mβ .= M_perpt_M_perp_vec(K.buffer_real, K.buffer_complex1, K.buffer_complex2, K.op, DFTdim, DFTsize, xβ, index_missing; K.rdft)
+    Mβ .= M_perpt_M_perp_vec(K.buffer_real, K.buffer_complex1, K.buffer_complex2, K.op, DFTdim, DFTsize, xβ, index_missing, K.fft_timer, K.mapping_timer; K.rdft)
 
     yβ .= beta .* yβ .+ alpha .* (Mβ .+ K.Λ1 .* xβ .+ K.Λ2 .* xz)
     yz .= beta .* yz .+ alpha .* (K.Λ2 .* xβ .+ K.Λ1 .* xz)
@@ -124,6 +128,8 @@ struct FFTKKTSystem{T, VI, VT, MT, LS} <: MadNLP.AbstractReducedKKTSystem{T, VT,
     z1::VT           # dimension nβ
     z2::VT           # dimension 2 * nβ
     linear_solver::LS
+    krylov_iterations::Vector{Int}
+    krylov_timer::Vector{Float64}
 end
 
 function MadNLP.create_kkt_system(
@@ -167,7 +173,7 @@ function MadNLP.create_kkt_system(
         reg, pr_diag, du_diag, l_diag, u_diag, l_lower, u_lower,
         ind_cons.ind_lb, ind_cons.ind_ub,
         z1, z2,
-        linear_solver,
+        linear_solver, Int[], Float64[],
     )
 end
 
@@ -259,7 +265,7 @@ function MadNLP.mul!(y::VT, kkt::FFTKKTSystem, x::VT, alpha::Number, beta::Numbe
     xy2 = view(_x, 5*nβ+1:6*nβ)
 
     # Evaluate (MᵀM) * xβ
-    Mβ .= M_perpt_M_perp_vec(kkt.K.buffer_real, kkt.K.buffer_complex1, kkt.K.buffer_complex2, kkt.K.op, DFTdim, DFTsize, xβ, index_missing; kkt.K.rdft)
+    Mβ .= M_perpt_M_perp_vec(kkt.K.buffer_real, kkt.K.buffer_complex1, kkt.K.buffer_complex2, kkt.K.op, DFTdim, DFTsize, xβ, index_missing, kkt.K.fft_timer, kkt.K.mapping_timer; kkt.K.rdft)
     yβ .= beta .* yβ .+ alpha .* (Mβ .- xy1 .+ xy2)
     yz .= beta .* yz .- alpha .* (xy1 .+ xy2)
     ys1 .= beta .* ys1 .- alpha .* xy1
@@ -358,6 +364,8 @@ function MadNLP.solve!(kkt::FFTKKTSystem, w::MadNLP.AbstractKKTVector)
     # Solve with CG
     Krylov.solve!(kkt.linear_solver, kkt.K, b, M=kkt.P, atol=1e-12, rtol=0.0, verbose=0)
     x = Krylov.solution(kkt.linear_solver)
+    push!(kkt.krylov_iterations, kkt.linear_solver |> niterations)
+    push!(kkt.krylov_timer, kkt.linear_solver.stats.timer)
 
     # Unpack solution
     w1 .= x[1:nβ]                              # / x

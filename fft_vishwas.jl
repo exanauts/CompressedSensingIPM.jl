@@ -129,6 +129,11 @@ N = length(results.solution) ÷ 2
 beta_MadNLP = results.solution[1:N]
 println("Timer: $(timer)")
 
+# solver.kkt.krylov_iterations
+# solver.kkt.krylov_timer
+# nlp.fft_timer[]
+# nlp.mapping_timer[]
+
 using DelimitedFiles
 open("sol_vishwas.txt", "w") do io
     writedlm(io, Vector(beta_MadNLP))

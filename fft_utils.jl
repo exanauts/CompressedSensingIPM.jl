@@ -25,8 +25,10 @@ include("mapping_gpu.jl")
 # >size1 = 4;
 # >M_perptz = M_perp_tz(z_zero, dim, size1)
 
-function M_perp_tz(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, z_zero; rdft::Bool=false)
+function M_perp_tz(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, z_zero, fft_timer, mapping_timer; rdft::Bool=false)
     N = prod(_size)
+
+    t1 = time_ns()
     if rdft
         temp = mul!(buffer_complex1, op, z_zero)  # op_rfft
     else
@@ -34,16 +36,27 @@ function M_perp_tz(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size
         temp = mul!(buffer_complex1, op, buffer_complex2)  # op_fft
     end
     temp ./= sqrt(N)
+    t2 = time_ns()
+    fft_timer[] = fft_timer[] + (t2 - t1) / 1e9
+
+    t3 = time_ns()
     beta = vec(buffer_real)
     DFT_to_beta!(beta, dim, _size, temp; rdft)
+    t4 = time_ns()
+    mapping_timer[] = mapping_timer[] + (t4 - t3) / 1e9
     return beta
 end
 
-function M_perp_beta(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, beta, idx_missing; rdft::Bool=false)
+function M_perp_beta(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, beta, idx_missing, fft_timer, mapping_timer; rdft::Bool=false)
     N = prod(_size)
+
+    t3 = time_ns()
     v = buffer_complex2
     beta_to_DFT!(v, dim, _size, beta; rdft)
+    t4 = time_ns()
+    mapping_timer[] = mapping_timer[] + (t4 - t3) / 1e9
 
+    t1 = time_ns()
     if rdft
         ldiv!(buffer_real, op, v)  # op_rfft
         buffer_real .*= sqrt(N)
@@ -51,13 +64,16 @@ function M_perp_beta(buffer_real, buffer_complex1, buffer_complex2, op, dim, _si
         temp = ldiv!(buffer_complex1, op, v)  # op_fft
         buffer_real .= real.(temp) .* sqrt(N)
     end
+    t2 = time_ns()
+    fft_timer[] = fft_timer[] + (t2 - t1) / 1e9
+
     buffer_real[idx_missing] .= 0
     return buffer_real
 end
 
-function M_perpt_M_perp_vec(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, vec, idx_missing; rdft::Bool=false)
-    temp = M_perp_beta(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, vec, idx_missing; rdft)
-    temp = M_perp_tz(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, temp; rdft)
+function M_perpt_M_perp_vec(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, vec, idx_missing, fft_timer, mapping_timer; rdft::Bool=false)
+    temp = M_perp_beta(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, vec, idx_missing, fft_timer, mapping_timer; rdft)
+    temp = M_perp_tz(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, temp, fft_timer, mapping_timer; rdft)
     return temp
 end
 
