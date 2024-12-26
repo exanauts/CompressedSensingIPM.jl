@@ -90,7 +90,8 @@ end
 include("kkt.jl")
 include("fft_wei.jl")
 include("fft_utils.jl")
-include("punching_centering.jl")
+# include("punching_centering.jl")
+include("punching_centering_v2.jl")
 
 function NLPModels.cons!(nlp::FFTNLPModel, x::AbstractVector, c::AbstractVector)
     increment!(nlp, :neval_cons)

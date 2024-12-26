@@ -20,13 +20,14 @@ function fft_example_2D(Nt::Int, Ns::Int; gpu::Bool=false, rdft::Bool=false, che
 
     # randomly generate missing indices
     if check
-        index_missing_Cartesian = Int[]
+        index_missing = Int[]
         z_zero = y
     else
         missing_prob = 0.15
         centers = centering(DFTdim, DFTsize, missing_prob)
         radius = 1
-        index_missing_Cartesian, z_zero = punching(DFTdim, DFTsize, centers, radius, y)
+        index_missing, z_zero = punching(DFTdim, DFTsize, centers, radius, y)
+        # println("length(index_missing) = ", length(index_missing))
     end
 
     # unify parameters for barrier method
@@ -42,7 +43,7 @@ function fft_example_2D(Nt::Int, Ns::Int; gpu::Bool=false, rdft::Bool=false, che
     eps_barrier = 1e-6
     mu_barrier = 10
 
-    parameters = FFTParameters(DFTdim, DFTsize, M_perptz, lambda, index_missing_Cartesian, alpha_LS, gamma_LS, eps_NT, mu_barrier, eps_barrier)
+    parameters = FFTParameters(DFTdim, DFTsize, M_perptz, lambda, index_missing, alpha_LS, gamma_LS, eps_NT, mu_barrier, eps_barrier)
 
     t_init = 1
     beta_init = zeros(prod(DFTsize))

@@ -29,6 +29,7 @@ function fft_example_1D(Nt::Int; gpu::Bool=false, rdft::Bool=false, check::Bool=
         centers = centering(DFTdim, DFTsize, missing_prob)
         radius = 1
         index_missing, z_zero = punching(DFTdim, DFTsize, centers, radius, y)
+        # println("length(index_missing) = ", length(index_missing))
     end
 
     M_perptz = M_perp_tz_wei(DFTdim, DFTsize, z_zero)  # M_perptz
