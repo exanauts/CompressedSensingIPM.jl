@@ -1,13 +1,3 @@
-using Test
-
-dim1 = true
-dim2 = true
-dim3 = true
-
-dim1 && include("fft_example_1D.jl")
-dim2 && include("fft_example_2D.jl")
-dim3 && include("fft_example_3D.jl")
-
 # 1D
 if dim1
   for N in (100, 200, 500)
@@ -47,7 +37,11 @@ if dim1
           z2_gpu = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 1, (N,), z_gpu, Int[], nlp.fft_timer, nlp.mapping_timer; rdft)
           @test z2_gpu ≈ z_gpu
 
+<<<<<<< HEAD:unit_tests.jl
           res1_gpu = M_perp_tz(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 1, (N,), z_gpu, nlp.fft_timer, nlp.mapping_timer; rdft)
+=======
+          res1_gpu = M_perp_tz(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 1, (N,), z_gpu,nlp.fft_timer, nlp.mapping_timer; rdft)
+>>>>>>> e6edacf (Create a Julia package CompressedSensingIPM.jl):test/unit_tests.jl
           @test norm(res1_gpu) ≈ norm(z_gpu)
           @test res1_wei ≈ collect(res1_gpu)
 

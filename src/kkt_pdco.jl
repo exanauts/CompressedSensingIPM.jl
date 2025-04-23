@@ -1,10 +1,3 @@
-
-using LinearAlgebra
-using SparseArrays
-using Krylov
-using MadNLP
-using CUDA
-
 #=
     Operator for matrix
 
@@ -13,7 +6,7 @@ using CUDA
 
 =#
 
-struct CondensedFFTKKT{T, VT, FFT, R, C} <: AbstractMatrix{T}
+struct CondensedPDCOKKT{T, VT, FFT, R, C} <: AbstractMatrix{T}
     nβ::Int
     params::FFTParameters  # for MᵀM
     buf1::VT
@@ -28,20 +21,20 @@ struct CondensedFFTKKT{T, VT, FFT, R, C} <: AbstractMatrix{T}
     mapping_timer::Ref{Float64}
 end
 
-function CondensedFFTKKT{T, VT}(nlp::FFTNLPModel{T, VT}) where {T, VT}
+function CondensedPDCOKKT{T, VT}(nlp::FFTNLPModel{T, VT}) where {T, VT}
     nβ = nlp.N
     buf1 = VT(undef, nβ)
     Λ1 = VT(undef, nβ)
     Λ2 = VT(undef, nβ)
-    return CondensedFFTKKT{T, VT, typeof(nlp.op), typeof(nlp.buffer_real), typeof(nlp.buffer_complex1)}(
+    return CondensedPDCOKKT{T, VT, typeof(nlp.op), typeof(nlp.buffer_real), typeof(nlp.buffer_complex1)}(
                 nβ, nlp.parameters, buf1, Λ1, Λ2, nlp.op, nlp.buffer_real,
                 nlp.buffer_complex1, nlp.buffer_complex2, nlp.rdft, nlp.fft_timer, nlp.mapping_timer)
 end
 
-Base.size(K::CondensedFFTKKT) = (2*K.nβ, 2*K.nβ)
-Base.eltype(K::CondensedFFTKKT{T, VT}) where {T, VT} = T
+Base.size(K::CondensedPDCOKKT) = (2*K.nβ, 2*K.nβ)
+Base.eltype(K::CondensedPDCOKKT{T, VT}) where {T, VT} = T
 
-function LinearAlgebra.mul!(y::AbstractVector, K::CondensedFFTKKT, x::AbstractVector, alpha::Number, beta::Number)
+function LinearAlgebra.mul!(y::AbstractVector, K::CondensedPDCOKKT, x::AbstractVector, alpha::Number, beta::Number)
     nβ = K.nβ
     @assert length(y) == length(x) == 2 * nβ
     # Load parameters
@@ -66,55 +59,13 @@ function LinearAlgebra.mul!(y::AbstractVector, K::CondensedFFTKKT, x::AbstractVe
 end
 
 #=
-    Operator for preconditioner
-
-    [ I + Σ₁ + Σ₂      Σ₁ - Σ₂ ]⁻¹  = [ P11   P12 ]
-    [ Σ₁ - Σ₂          Σ₁ + Σ₂ ]      [ P12'  P22 ]
-
+    PDCOKKTSystem
 =#
 
-struct FFTPreconditioner{T, VT}
-    nβ::Int
-    P11::VT
-    P12::VT
-    P22::VT
-end
-
-function FFTPreconditioner{T, VT}(nβ) where {T, VT}
-    return FFTPreconditioner{T, VT}(
-        nβ,
-        VT(undef, nβ),
-        VT(undef, nβ),
-        VT(undef, nβ),
-    )
-end
-
-Base.size(P::FFTPreconditioner) = (2*P.nβ, 2*P.nβ)
-Base.eltype(P::FFTPreconditioner{T, VT}) where {T, VT} = T
-
-function LinearAlgebra.mul!(y::AbstractVector, P::FFTPreconditioner, x::AbstractVector, alpha::Number, beta::Number)
-    nβ = P.nβ
-    @assert length(y) == length(x) == 2 * nβ
-    yβ  = view(y, 1:nβ)
-    yz  = view(y, nβ+1:2*nβ)
-    xβ  = view(x, 1:nβ)
-    xz  = view(x, nβ+1:2*nβ)
-
-    yβ .= beta .* yβ .+ alpha .* (P.P11 .* xβ .+ P.P12 .* xz)
-    yz .= beta .* yz .+ alpha .* (P.P12 .* xβ .+ P.P22 .* xz)
-
-    return y
-end
-
-#=
-    FFTKKTSystem
-=#
-
-struct FFTKKTSystem{T, VI, VT, MT, LS} <: MadNLP.AbstractReducedKKTSystem{T, VT, MT, MadNLP.ExactHessian{T, VT}}
+struct PDCOKKTSystem{T, VI, VT, MT, LS} <: MadNLP.AbstractReducedKKTSystem{T, VT, MT, MadNLP.ExactHessian{T, VT}}
     nlp::FFTNLPModel
     # Operators
     K::MT
-    P::FFTPreconditioner{T, VT}
     reg::VT
     pr_diag::VT
     du_diag::VT
@@ -133,7 +84,7 @@ struct FFTKKTSystem{T, VI, VT, MT, LS} <: MadNLP.AbstractReducedKKTSystem{T, VT,
 end
 
 function MadNLP.create_kkt_system(
-    ::Type{FFTKKTSystem},
+    ::Type{PDCOKKTSystem},
     cb::MadNLP.AbstractCallback{T, VT},
     ind_cons,
     linear_solver;
@@ -159,17 +110,16 @@ function MadNLP.create_kkt_system(
     l_lower = VT(undef, nlb)
     u_lower = VT(undef, nub)
 
-    linear_solver = Krylov.CgSolver(2*nβ, 2*nβ, VT)
+    linear_solver = Krylov.LsmrWorkspace(2*nβ, 2*nβ, VT)
 
     z1 = VT(undef, nβ)
     z2 = VT(undef, 2*nβ)
 
-    K = CondensedFFTKKT{T, VT}(nlp)
-    P = FFTPreconditioner{T, VT}(nβ)
+    K = CondensedPDCOKKT{T, VT}(nlp)
     VI = Vector{Int}
 
-    return FFTKKTSystem{T, VI, VT, typeof(K), typeof(linear_solver)}(
-        nlp, K, P,
+    return PDCOKKTSystem{T, VI, VT, typeof(K), typeof(linear_solver)}(
+        nlp, K,
         reg, pr_diag, du_diag, l_diag, u_diag, l_lower, u_lower,
         ind_cons.ind_lb, ind_cons.ind_ub,
         z1, z2,
@@ -177,22 +127,22 @@ function MadNLP.create_kkt_system(
     )
 end
 
-MadNLP.num_variables(kkt::FFTKKTSystem) = 2*kkt.nlp.N
-MadNLP.get_hessian(kkt::FFTKKTSystem) = nothing
-MadNLP.get_jacobian(kkt::FFTKKTSystem) = nothing
+MadNLP.num_variables(kkt::PDCOKKTSystem) = 3*kkt.nlp.N
+MadNLP.get_hessian(kkt::PDCOKKTSystem) = nothing
+MadNLP.get_jacobian(kkt::PDCOKKTSystem) = nothing
 
 # Dirty wrapper to MadNLP's linear solver
-MadNLP.is_inertia(::Krylov.CgSolver) = true
-MadNLP.inertia(::Krylov.CgSolver) = (0, 0, 0)
-MadNLP.introduce(::Krylov.CgSolver) = "CG"
-MadNLP.improve!(::Krylov.CgSolver) = true
-MadNLP.factorize!(::Krylov.CgSolver) = nothing
+MadNLP.is_inertia(::Krylov.LsmrWorkspace) = true
+MadNLP.inertia(::Krylov.LsmrWorkspace) = (0, 0, 0)
+MadNLP.introduce(::Krylov.LsmrWorkspace) = "LSMR"
+MadNLP.improve!(::Krylov.LsmrWorkspace) = true
+MadNLP.factorize!(::Krylov.LsmrWorkspace) = nothing
 
-MadNLP.is_inertia_correct(kkt::FFTKKTSystem, p, n, z) = true
+MadNLP.is_inertia_correct(kkt::PDCOKKTSystem, p, n, z) = true
 
-Base.eltype(kkt::FFTKKTSystem{T}) where T = T
+Base.eltype(kkt::PDCOKKTSystem{T}) where T = T
 
-function Base.size(kkt::FFTKKTSystem)
+function Base.size(kkt::PDCOKKTSystem)
     n_lb = length(kkt.l_diag)
     n_ub = length(kkt.u_diag)
     n = NLPModels.get_nvar(nlp)
@@ -201,7 +151,7 @@ function Base.size(kkt::FFTKKTSystem)
     return (N, N)
 end
 
-function MadNLP.initialize!(kkt::FFTKKTSystem{T}) where T
+function MadNLP.initialize!(kkt::PDCOKKTSystem{T}) where T
     fill!(kkt.reg, one(T))
     fill!(kkt.pr_diag, one(T))
     fill!(kkt.du_diag, zero(T))
@@ -215,7 +165,7 @@ end
 # Don't evaluate Jacobian
 function MadNLP.eval_jac_wrapper!(
     solver::MadNLP.MadNLPSolver,
-    kkt::FFTKKTSystem,
+    kkt::PDCOKKTSystem,
     x::MadNLP.PrimalVector{T},
 ) where T
     return
@@ -224,7 +174,7 @@ end
 # Don't evaluate Hessian
 function MadNLP.eval_lag_hess_wrapper!(
     solver::MadNLP.MadNLPSolver,
-    kkt::FFTKKTSystem,
+    kkt::PDCOKKTSystem,
     x::MadNLP.PrimalVector{T},
     l::AbstractVector{T};
     is_resto=false,
@@ -232,7 +182,7 @@ function MadNLP.eval_lag_hess_wrapper!(
     return
 end
 
-function MadNLP.mul!(y::VT, kkt::FFTKKTSystem, x::VT, alpha::Number, beta::Number) where VT <: MadNLP.AbstractKKTVector
+function MadNLP.mul!(y::VT, kkt::PDCOKKTSystem, x::VT, alpha::Number, beta::Number) where VT <: MadNLP.AbstractKKTVector
     nlp = kkt.nlp
     # FFT parameters
     DFTdim = nlp.parameters.paramf[1]
@@ -280,7 +230,7 @@ end
 
 function MadNLP.jtprod!(
     y::AbstractVector,
-    kkt::FFTKKTSystem{T, VI, VT, MT},
+    kkt::PDCOKKTSystem{T, VI, VT, MT},
     x::AbstractVector,
 ) where {T, VI, VT, MT}
     nlp = kkt.nlp
@@ -302,15 +252,15 @@ function MadNLP.jtprod!(
     return y
 end
 
-function MadNLP.compress_jacobian!(kkt::FFTKKTSystem)
+function MadNLP.compress_jacobian!(kkt::PDCOKKTSystem)
     return
 end
 
-function MadNLP.compress_hessian!(kkt::FFTKKTSystem)
+function MadNLP.compress_hessian!(kkt::PDCOKKTSystem)
     return
 end
 
-function MadNLP.build_kkt!(kkt::FFTKKTSystem)
+function MadNLP.build_kkt!(kkt::PDCOKKTSystem)
     nlp = kkt.nlp
     nβ = nlp.N
     # Assemble preconditioner
@@ -321,7 +271,7 @@ function MadNLP.build_kkt!(kkt::FFTKKTSystem)
     Λ2 = kkt.K.Λ2
     Minv = kkt.z1
 
-    # Update values in CondensedFFTKKT
+    # Update values in CondensedPDCOKKT
     Λ1 .= Σ1 .+ Σ2
     Λ2 .= Σ1 .- Σ2
 
@@ -334,7 +284,7 @@ function MadNLP.build_kkt!(kkt::FFTKKTSystem)
     return
 end
 
-function MadNLP.solve!(kkt::FFTKKTSystem, w::MadNLP.AbstractKKTVector)
+function MadNLP.solve!(kkt::PDCOKKTSystem, w::MadNLP.AbstractKKTVector)
     nlp = kkt.nlp
     nβ = nlp.N
     # Build reduced KKT vector.
@@ -361,8 +311,8 @@ function MadNLP.solve!(kkt::FFTKKTSystem, w::MadNLP.AbstractKKTVector)
     bβ .= w1 .- w3 .+ w4 .- Σ1 .* w5 .+ Σ2 .* w6
     bz .= w2 .- w3 .- w4 .- Σ1 .* w5 .- Σ2 .* w6
 
-    # Solve with CG
-    Krylov.solve!(kkt.linear_solver, kkt.K, b, M=kkt.P, atol=1e-12, rtol=0.0, verbose=0)
+    # Solve with LSMR
+    Krylov.solve!(kkt.linear_solver, kkt.K, b, atol=1e-12, rtol=0.0, verbose=0)
     x = Krylov.solution(kkt.linear_solver)
     push!(kkt.krylov_iterations, kkt.linear_solver |> niterations)
     push!(kkt.krylov_timer, kkt.linear_solver.stats.timer)
@@ -381,7 +331,7 @@ end
 
 function MadNLP.factorize_wrapper!(
     solver::MadNLP.MadNLPSolver{T,Vector{T},Vector{Int},KKT}
-    ) where {T,KKT<:FFTKKTSystem{T,Vector{Int},Vector{T}}}
+    ) where {T,KKT<:PDCOKKTSystem{T,Vector{Int},Vector{T}}}
     MadNLP.build_kkt!(solver.kkt)
     # No factorization needed
     return true
@@ -389,7 +339,7 @@ end
 
 function MadNLP.factorize_wrapper!(
     solver::MadNLP.MadNLPSolver{T,CuVector{T},CuVector{Int},KKT}
-    ) where {T,KKT<:FFTKKTSystem{T,CuVector{Int},CuVector{T}}}
+    ) where {T,KKT<:PDCOKKTSystem{T,CuVector{Int},CuVector{T}}}
     MadNLP.build_kkt!(solver.kkt)
     # No factorization needed
     return true
@@ -404,7 +354,7 @@ end
 #     solver::MadNLP.MadNLPSolver{T,Vector{T},Vector{Int},KKT},
 #     p,
 #     w,
-# ) where {T,KKT<:FFTKKTSystem{T,Vector{Int},Vector{T}}}
+# ) where {T,KKT<:PDCOKKTSystem{T,Vector{Int},Vector{T}}}
 #     result = false
 #     kkt = solver.kkt
 #     copyto!(MadNLP.full(d), MadNLP.full(p))
@@ -412,4 +362,3 @@ end
 
 #     return true
 # end
-
