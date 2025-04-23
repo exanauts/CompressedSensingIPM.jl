@@ -1,7 +1,7 @@
 module CompressedSensingIPM
 
 using LinearAlgebra, SparseArrays
-using CUDA, MadNLP
+using CUDA, MadNLP, MadNLPGPU
 using FFTW
 using Krylov
 using NLPModels

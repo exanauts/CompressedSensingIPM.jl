@@ -7,7 +7,6 @@ function punching(DFTdim, DFTsize, centers, radius, data)
     else
         punching3D(DFTsize, centers, radius, index_missing)
     end
-    data |> typeof |> println
     vec(data)[index_missing] .= 0
     return index_missing, data
 end
