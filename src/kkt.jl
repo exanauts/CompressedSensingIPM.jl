@@ -104,7 +104,7 @@ end
 =#
 
 struct FFTKKTSystem{T, VI, VT, MT, LS} <: MadNLP.AbstractReducedKKTSystem{T, VT, MT, MadNLP.ExactHessian{T, VT}}
-    nlp::FFTNLPModel
+    nlp::FFTNLPModel{T, VT}
     # Operators
     K::MT
     P::FFTPreconditioner{T, VT}
@@ -153,7 +153,7 @@ function MadNLP.create_kkt_system(
     l_lower = VT(undef, nlb)
     u_lower = VT(undef, nub)
 
-    workspace = Krylov.CgWorkspace(2*nβ, 2*nβ, VT)
+    workspace = Krylov.krylov_workspace(Val(nlp.krylov_solver), 2*nβ, 2*nβ, VT)
 
     z1 = VT(undef, nβ)
     z2 = VT(undef, 2*nβ)
@@ -176,11 +176,11 @@ MadNLP.get_hessian(kkt::FFTKKTSystem) = nothing
 MadNLP.get_jacobian(kkt::FFTKKTSystem) = nothing
 
 # Dirty wrapper to MadNLP's linear solver
-MadNLP.is_inertia(::Krylov.CgWorkspace) = true
-MadNLP.inertia(::Krylov.CgWorkspace) = (0, 0, 0)
-MadNLP.introduce(::Krylov.CgWorkspace) = "CG"
-MadNLP.improve!(::Krylov.CgWorkspace) = true
-MadNLP.factorize!(::Krylov.CgWorkspace) = nothing
+MadNLP.is_inertia(::Krylov.KrylovWorkspace) = true
+MadNLP.inertia(::Krylov.KrylovWorkspace) = (0, 0, 0)
+MadNLP.introduce(::Krylov.KrylovWorkspace) = "Krylov"
+MadNLP.improve!(::Krylov.KrylovWorkspace) = true
+MadNLP.factorize!(::Krylov.KrylovWorkspace) = nothing
 
 MadNLP.is_inertia_correct(kkt::FFTKKTSystem, p, n, z) = true
 
@@ -355,7 +355,7 @@ function MadNLP.solve!(kkt::FFTKKTSystem, w::MadNLP.AbstractKKTVector)
     bβ .= w1 .- w3 .+ w4 .- Σ1 .* w5 .+ Σ2 .* w6
     bz .= w2 .- w3 .- w4 .- Σ1 .* w5 .- Σ2 .* w6
 
-    # Solve with CG
+    # Solve with the Krylov solver (CG by default)
     Krylov.krylov_solve!(kkt.linear_solver, kkt.K, b, M=kkt.P, atol=1e-12, rtol=0.0, verbose=0)
     x = Krylov.solution(kkt.linear_solver)
     push!(kkt.krylov_iterations, kkt.linear_solver |> Krylov.iteration_count)
