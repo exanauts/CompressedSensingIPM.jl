@@ -3,7 +3,10 @@ using LinearAlgebra, SparseArrays
 using LaplaceInterpolation, NPZ
 using DelimitedFiles
 using MadNLP, MadNLPGPU, CUDA
-using Test
+using Test, LazyArtifacts
+
+include("../test/fft_wei.jl")
+include("../test/punching_centering.jl")
 
 function ipm_solve!(solver::MadNLP.MadNLPSolver)
     MadNLP.print_init(solver)
@@ -27,7 +30,7 @@ function punch_3D_cart(center, radius, x, y, z; linear = false)
     end 
 end
 
-function fft_vishwas(z3d; variant::Bool=false, gpu::Bool=false, rdft::Bool=false)
+function crystal(z3d; variant::Bool=false, gpu::Bool=false, rdft::Bool=false)
     if !variant
         dx = 0.02
         dy = 0.02
@@ -128,8 +131,9 @@ end
 gpu = true
 rdft = false
 variant = true
-z3d = variant ? npzread("../punched_pmn") : npzread("../z3d_movo.npy")
-nlp, solver, results, timer = fft_vishwas(z3d; variant, gpu, rdft)
+path_z3d = variant ? joinpath(artifact"punched_pmn", "punched_pmn.npy") : joinpath(artifact"z3d_movo", "z3d_movo.npy")
+z3d = npzread(path_z3d)
+nlp, solver, results, timer = crystal(z3d; variant, gpu, rdft)
 N = length(results.solution) ÷ 2
 beta_MadNLP = results.solution[1:N]
 println("Timer: $(timer)")

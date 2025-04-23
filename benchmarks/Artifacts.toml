@@ -1,0 +1,15 @@
+[punched_pmn]
+git-tree-sha1 = "f225ac0deac2e86eebd5b79884fa74aae3b0772c"
+lazy = true
+
+    [[punched_pmn.download]]
+    sha256 = "71a26d6799a1f60cc4dd2f56a670c903b8fad483a5752beb85495de55f7d7844"
+    url = "https://github.com/exanauts/CompressedSensingIPM-data/raw/refs/heads/main/punched_pmn.tar.gz"
+
+[z3d_movo]
+git-tree-sha1 = "94c7cdf175da37afc308dd73bb6ab3df58bb5e71"
+lazy = true
+
+    [[z3d_movo.download]]
+    sha256 = "42c844714629e3f5fb0e2fa6a65a1443cc04d90705ccfc7aa736bb30eb9ec6e3"
+    url = "https://github.com/exanauts/CompressedSensingIPM-data/raw/refs/heads/main/z3d_movo.tar.gz"
