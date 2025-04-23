@@ -1,5 +1,3 @@
-using NLPModels, FFTW
-
 mutable struct FFTParameters
     paramB  # ::Tuple{Float64, Int64}
     eps_NT  # ::Float64
@@ -55,7 +53,7 @@ function FFTNLPModel{T,VT}(parameters::FFTParameters; rdft::Bool=false) where {T
         y0 = y0,
         lcon = lcon,
         ucon = ucon,
-        nnzj = 1, # ncon * 2,
+        nnzj = 1, # 2 * ncon,
         nnzh = 1, # div(N * (N + 1), 2),
         minimize = true,
         islp = false,
@@ -86,12 +84,6 @@ function FFTNLPModel{T,VT}(parameters::FFTParameters; rdft::Bool=false) where {T
     mapping_timer = Ref{Float64}(0.0)
     return FFTNLPModel(meta, parameters, N, Counters(), op, buffer_real, buffer_complex1, buffer_complex2, rdft, fft_timer, mapping_timer)
 end
-
-include("kkt.jl")
-include("fft_wei.jl")
-include("fft_utils.jl")
-# include("punching_centering.jl")
-include("punching_centering_v2.jl")
 
 function NLPModels.cons!(nlp::FFTNLPModel, x::AbstractVector, c::AbstractVector)
     increment!(nlp, :neval_cons)

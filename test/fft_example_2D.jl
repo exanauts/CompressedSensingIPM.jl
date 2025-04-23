@@ -1,24 +1,22 @@
-using Random, Distributions
-using MadNLPGPU, CUDA
-using Test
-Random.seed!(1)
-
-include("fft_model.jl")
-include("solver.jl")
-
 ## 2D
 function fft_example_2D(Nt::Int, Ns::Int; gpu::Bool=false, rdft::Bool=false, check::Bool=false)
     t = collect(0:(Nt-1))
     s = collect(0:(Ns-1))
-    x = (cos.(2*pi*2/Nt*t)+ 2*sin.(2*pi*2/Nt*t))*(cos.(2*pi*3/Ns*s) + 2*sin.(2*pi*3/Ns*s))'
 
+    print("Generate x: ")
+    x = (cos.(2*pi*2/Nt*t)+ 2*sin.(2*pi*2/Nt*t))*(cos.(2*pi*3/Ns*s) + 2*sin.(2*pi*3/Ns*s))'
+    println("✓")
+
+    print("Generate y: ")
     y = check ? x : x + randn(Nt,Ns)  # noisy signal
+    println("✓")
 
     w = fft(x) ./ sqrt(Nt*Ns)  # true DFT
     DFTsize = size(x)  # problem dim
     DFTdim = length(DFTsize)  # problem size
 
     # randomly generate missing indices
+    print("Generate missing indices: ")
     if check
         index_missing = Int[]
         z_zero = y
@@ -29,6 +27,7 @@ function fft_example_2D(Nt::Int, Ns::Int; gpu::Bool=false, rdft::Bool=false, che
         index_missing, z_zero = punching(DFTdim, DFTsize, centers, radius, y)
         # println("length(index_missing) = ", length(index_missing))
     end
+    println("✓")
 
     # unify parameters for barrier method
     M_perptz = M_perp_tz_wei(DFTdim, DFTsize, z_zero)

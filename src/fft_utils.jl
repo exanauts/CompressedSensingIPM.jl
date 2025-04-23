@@ -1,11 +1,3 @@
-using LinearAlgebra
-using FFTW
-using Random, Distributions
-
-include("mapping_cpu.jl")
-# include("mapping_cpu_v2.jl")
-include("mapping_gpu.jl")
-
 # compute M_{\perp}^{\top}z
 
 # @param z_zero The zero-imputed signal, i.e. replacing all the missing values in the signal with 0.

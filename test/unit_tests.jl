@@ -1,13 +1,3 @@
-using Test
-
-dim1 = true
-dim2 = true
-dim3 = true
-
-dim1 && include("fft_example_1D.jl")
-dim2 && include("fft_example_2D.jl")
-dim3 && include("fft_example_3D.jl")
-
 # 1D
 if dim1
   for N in (100, 200, 500)
