@@ -19,7 +19,6 @@ function ipm_solve!(solver::MadNLP.MadNLPSolver)
 end
 
 include("punching_centering.jl")
-# include("punching_centering_v2.jl")
 
 include("fft_wei.jl")
 
