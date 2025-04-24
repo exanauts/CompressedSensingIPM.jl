@@ -14,6 +14,7 @@ for i in 1:p
     println("$n -- GPU -- $(timer_gpu)")
     ratio = timer_cpu / timer_gpu
     println("$n -- RATIO -- $ratio")
+    AMDGPU.unsafe_free!(x)
 end
 
 ### ifft ###
@@ -29,4 +30,5 @@ for i in 1:p
     println("$n -- GPU -- $(timer_gpu)")
     ratio = timer_cpu / timer_gpu
     println("$n -- RATIO -- $ratio")
+    AMDGPU.unsafe_free!(x)
 end
