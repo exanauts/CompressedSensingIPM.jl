@@ -2,6 +2,7 @@ using Random, Distributions
 using LinearAlgebra, SparseArrays
 using LaplaceInterpolation, NPZ
 using DelimitedFiles
+using FFTW
 using MadNLP, MadNLPGPU, CUDA
 using Test, LazyArtifacts
 
@@ -129,7 +130,7 @@ function crystal(z3d; variant::Bool=false, gpu::Bool=false, rdft::Bool=false)
 end
 
 gpu = true
-rdft = false
+rdft = true
 variant = true
 path_z3d = variant ? joinpath(artifact"punched_pmn", "punched_pmn.npy") : joinpath(artifact"z3d_movo", "z3d_movo.npy")
 z3d = npzread(path_z3d)
