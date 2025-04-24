@@ -32,6 +32,7 @@ for i in 1:p
     timer_gpu_rounded = round(timer_gpu, digits=2)
     println("$i -- $n -- GPU -- $(timer_gpu)")
     println("$i -- $n -- GPU -- $(timer_gpu_rounded)")
+    CUDA.unsafe_free!(x)
 
     # RATIO
     ratio = timer_cpu / timer_gpu
@@ -67,6 +68,7 @@ for i in 1:p
     timer_gpu_rounded = round(timer_gpu, digits=2)
     println("$i -- $n -- GPU -- $(timer_gpu)")
     println("$i -- $n -- GPU -- $(timer_gpu_rounded)")
+    CUDA.unsafe_free!(x)
 
     # RATIO
     ratio = timer_cpu / timer_gpu
