@@ -1,5 +1,5 @@
 using AMDGPU, FFTW, BenchmarkTools
-p = 9
+p = 8
 
 ### fft ###
 for i in 1:p
