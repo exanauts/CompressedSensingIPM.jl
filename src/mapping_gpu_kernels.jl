@@ -9,7 +9,7 @@ function DFT_to_beta_1d!(beta::CuVector{Float64}, v::CuVector{ComplexF64}, size;
     return beta
 end
 
-@kernel function kernel_DFT_to_beta_1d!(beta::CuVector{Float64}, v::CuVector{ComplexF64}, N, M, rdft::Bool)
+@kernel function kernel_DFT_to_beta_1d!(beta, @Const(v), @Const(N), @Const(M), @Const(rdft))
     i = @index(Global)
     if i == 1
         beta[i] = real(v[1])
@@ -39,7 +39,7 @@ function DFT_to_beta_2d!(beta::CuVector{Float64}, v::CuMatrix{ComplexF64}, size;
     return beta
 end
 
-@kernel function kernel_DFT_to_beta_2d!(beta::CuVector{Float64}, v::CuMatrix{ComplexF64}, N1, N2, M1, M2, P1, P2, PP, rdft::Bool)
+@kernel function kernel_DFT_to_beta_2d!(beta, @Const(v), @Const(N1), @Const(N2), @Const(M1), @Const(M2), @Const(P1), @Const(P2), @Const(PP), @Const(rdft))
     i = @index(Global)
     # vertex
     if i == 1
@@ -113,7 +113,7 @@ function DFT_to_beta_3d!(beta::CuVector{Float64}, v::CuArray{ComplexF64,3}, size
     return beta
 end
 
-@kernel function kernel_DFT_to_beta_3d!(beta::CuVector{Float64}, v::CuArray{ComplexF64,3}, N1, N2, N3, M1, M2, M3, P1, P2, P3, P23, P13, P12, P123, rdft::Bool)
+@kernel function kernel_DFT_to_beta_3d!(beta, @Const(v), @Const(N1), @Const(N2), @Const(N3), @Const(M1), @Const(M2), @Const(M3), @Const(P1), @Const(P2), @Const(P3), @Const(P23), @Const(P13), @Const(P12), @Const(P123), @Const(rdft))
     i = @index(Global)
     if i == 1
         beta[i] = real(v[1   , 1   , 1   ])
@@ -370,7 +370,7 @@ function beta_to_DFT_1d!(v::CuVector{ComplexF64}, beta::StridedCuVector{Float64}
     return v
 end
 
-@kernel function kernel_beta_to_DFT_1d!(v::CuVector{ComplexF64}, beta::StridedCuVector{Float64}, N, M, rdft::Bool)
+@kernel function kernel_beta_to_DFT_1d!(v, @Const(beta), @Const(N), @Const(M), @Const(rdft))
     i = @index(Global)
     if i == 1
         v[i] = beta[1]
@@ -400,7 +400,7 @@ function beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta::StridedCuVector{Float64}
     return v
 end
 
-@kernel function kernel_beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta::StridedCuVector{Float64}, N1, N2, M1, M2, P1, P2, PP, rdft::Bool)
+@kernel function kernel_beta_to_DFT_2d!(v, @Const(beta), @Const(N1), @Const(N2), @Const(M1), @Const(M2), @Const(P1), @Const(P2), @Const(PP), @Const(rdft))
     i, j = @index(Global)
     # vertex
     if i == 1
@@ -501,7 +501,7 @@ function beta_to_DFT_3d!(v::CuArray{ComplexF64, 3}, beta::StridedCuVector{Float6
     return v
 end
 
-@kernel function kernel_beta_to_DFT_3d!(v::CuArray{ComplexF64, 3}, beta::StridedCuVector{Float64}, N1, N2, N3, M1, M2, M3, P1, P2, P3, P23, P13, P12, P123, rdft::Bool)
+@kernel function kernel_beta_to_DFT_3d!(v, @Const(beta), @Const(N1), @Const(N2), @Const(N3), @Const(M1), @Const(M2), @Const(M3), @Const(P1), @Const(P2), @Const(P3), @Const(P23), @Const(P13), @Const(P12), @Const(P123), @Const(rdft))
     i, j, k = @index(Global)
     #vertex
     if i == 1
