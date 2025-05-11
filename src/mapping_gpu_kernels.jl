@@ -20,7 +20,7 @@ end
     else
         beta[i] = sqrt(2) * imag(v[i-M])
     end
-    return
+    nothing
 end
 
 # dim = 2
@@ -89,7 +89,7 @@ end
         i1 = mod(j-1, P1) + 1
         beta[i] = sqrt(2) * imag(v[i1+1, i2+(M2+1)])
     end
-    return
+    nothing
 end
 
 function DFT_to_beta_3d!(beta::CuVector{Float64}, v::CuArray{ComplexF64,3}, size; rdft::Bool=false)
@@ -356,7 +356,7 @@ end
         i1 = mod(k-1, P1) + 1
         beta[i] = -sqrt(2) * imag(v[M1+1-i1, M2+1-i2, N3+1-i3])
     end
-    return
+    nothing
 end
 
 # dim = 1
@@ -381,7 +381,7 @@ end
     else
         v[i] = (beta[N+3-i] - im*beta[(N+M+2)-i]) / sqrt(2)
     end
-    return
+    nothing
 end
 
 # dim = 2
@@ -476,7 +476,7 @@ end
             v[i,j] = (beta[offset-index] - im * beta[offset+PP-index]) / sqrt(2)
         end
     end
-    return
+    nothing
 end
 
 # dim = 3
@@ -746,5 +746,5 @@ end
             end
         end
     end
-    return
+    nothing
 end
