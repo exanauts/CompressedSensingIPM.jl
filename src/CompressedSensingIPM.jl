@@ -5,6 +5,8 @@ using CUDA, MadNLP, MadNLPGPU
 using FFTW
 using Krylov
 using NLPModels
+using KernelAbstractions
+const KA = KernelAbstractions
 
 export FFTNLPModel, FFTKKTSystem, FFTParameters
 
@@ -13,7 +15,8 @@ include("fft_model.jl")
 
 include("mapping_cpu.jl")
 # include("mapping_cpu_kernels.jl")
-include("mapping_gpu.jl")
+# include("mapping_gpu.jl")
+include("mapping_gpu_kernels.jl")
 
 include("kkt.jl")
 
