@@ -401,7 +401,9 @@ function beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta::StridedCuVector{Float64}
 end
 
 @kernel function kernel_beta_to_DFT_2d!(v, @Const(beta), @Const(N1), @Const(N2), @Const(M1), @Const(M2), @Const(P1), @Const(P2), @Const(PP), @Const(rdft))
-    i, j = @index(Global)
+    index = @index(Global)
+    i = index[1]
+    j = index[2]
     # vertex
     if i == 1
         if j == 1
@@ -502,7 +504,10 @@ function beta_to_DFT_3d!(v::CuArray{ComplexF64, 3}, beta::StridedCuVector{Float6
 end
 
 @kernel function kernel_beta_to_DFT_3d!(v, @Const(beta), @Const(N1), @Const(N2), @Const(N3), @Const(M1), @Const(M2), @Const(M3), @Const(P1), @Const(P2), @Const(P3), @Const(P23), @Const(P13), @Const(P12), @Const(P123), @Const(rdft))
-    i, j, k = @index(Global)
+    index = @index(Global)
+    i = index[1]
+    j = index[2]
+    k = index[3]
     #vertex
     if i == 1
         if j == 1
