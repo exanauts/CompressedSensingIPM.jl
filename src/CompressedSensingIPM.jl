@@ -16,6 +16,5 @@ include("mapping_cpu.jl")
 include("mapping_gpu.jl")
 
 include("kkt.jl")
-# include("kkt_pdco.jl")
 
 end
