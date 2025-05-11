@@ -322,7 +322,7 @@ weakdeps = ["InverseFunctions"]
     CompositionsBaseInverseFunctionsExt = "InverseFunctions"
 
 [[deps.CompressedSensingIPM]]
-deps = ["CUDA", "FFTW", "Krylov", "LinearAlgebra", "MadNLP", "MadNLPGPU", "NLPModels", "SparseArrays"]
+deps = ["CUDA", "FFTW", "KernelAbstractions", "Krylov", "LinearAlgebra", "MadNLP", "MadNLPGPU", "NLPModels", "SparseArrays"]
 path = ".."
 uuid = "a233cb7d-456e-4e77-9608-b71e27ae00f8"
 version = "0.1.0"
