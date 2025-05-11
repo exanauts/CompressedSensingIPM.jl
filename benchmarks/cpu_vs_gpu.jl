@@ -1,5 +1,6 @@
 using CompressedSensingIPM, FFTW
 using MadNLP, MadNLPGPU
+using CUDA
 
 function ipm_solve!(solver::MadNLP.MadNLPSolver)
     MadNLP.print_init(solver)
