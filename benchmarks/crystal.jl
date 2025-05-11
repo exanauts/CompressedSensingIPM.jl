@@ -5,6 +5,7 @@ using DelimitedFiles
 using FFTW
 using MadNLP, MadNLPGPU, CUDA
 using Test, LazyArtifacts
+using CompressedSensingIPM
 
 include("../test/fft_wei.jl")
 include("../test/punching_centering.jl")
