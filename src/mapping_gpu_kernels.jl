@@ -1,15 +1,15 @@
 # dim = 1
-function DFT_to_beta_1d!(beta::CuVector{Float64}, v::CuVector{ComplexF64}, size; rdft::Bool=false)
+function DFT_to_beta_1d!(beta::CuVector{Float64}, v::CuVector{ComplexF64}, size, rdft::Bool)
     N = size[1]
     M = N ÷ 2
     backend = KA.get_backend(beta)
     kernel = kernel_DFT_to_beta_1d!(backend)
-    kernel(beta, v, N, M; rdft, ndrange=N)
+    kernel(beta, v, N, M, rdft, ndrange=N)
     KA.synchronize(backend)
     return beta
 end
 
-@kernel function kernel_DFT_to_beta_1d!(beta::CuVector{Float64}, v, N, M; rdft::Bool=false)
+@kernel function kernel_DFT_to_beta_1d!(beta::CuVector{Float64}, v::CuVector{ComplexF64}, N, M, rdft::Bool)
     i = @index(Global)
     if i == 1
         beta[i] = real(v[1])
@@ -24,7 +24,7 @@ end
 end
 
 # dim = 2
-function DFT_to_beta_2d!(beta::CuVector{Float64}, v::CuMatrix{ComplexF64}, size; rdft::Bool=false)
+function DFT_to_beta_2d!(beta::CuVector{Float64}, v::CuMatrix{ComplexF64}, size, rdft::Bool)
     N1 = size[1]
     N2 = size[2]
     M1 = N1 ÷ 2
@@ -34,12 +34,12 @@ function DFT_to_beta_2d!(beta::CuVector{Float64}, v::CuMatrix{ComplexF64}, size;
     PP = P1 * P2
     backend = KA.get_backend(beta)
     kernel = kernel_DFT_to_beta_2d!(backend)
-    kernel(beta, v, N1, N2, M1, M2, P1, P2, PP; rdft, ndrange=N1*N2)
+    kernel(beta, v, N1, N2, M1, M2, P1, P2, PP, rdft, ndrange=N1*N2)
     KA.synchronize(backend)
     return beta
 end
 
-@kernel function kernel_DFT_to_beta_2d!(beta::CuVector{Float64}, v::CuMatrix{ComplexF64}, N1, N2, M1, M2, P1, P2, PP; rdft::Bool=false)
+@kernel function kernel_DFT_to_beta_2d!(beta::CuVector{Float64}, v::CuMatrix{ComplexF64}, N1, N2, M1, M2, P1, P2, PP, rdft::Bool)
     i = @index(Global)
     # vertex
     if i == 1
@@ -92,7 +92,7 @@ end
     nothing
 end
 
-function DFT_to_beta_3d!(beta::CuVector{Float64}, v::CuArray{ComplexF64,3}, size; rdft::Bool=false)
+function DFT_to_beta_3d!(beta::CuVector{Float64}, v::CuArray{ComplexF64,3}, size, rdft::Bool)
     N1 = size[1]
     N2 = size[2]
     N3 = size[3]
@@ -108,12 +108,12 @@ function DFT_to_beta_3d!(beta::CuVector{Float64}, v::CuArray{ComplexF64,3}, size
     P123 = P1 * P2 * P3
     backend = KA.get_backend(beta)
     kernel = kernel_DFT_to_beta_3d!(backend)
-    kernel(beta, v, N1, N2, N3, M1, M2, M3, P1, P2, P3, P23, P13, P12, P123; rdft, ndrange=N1*N2*N3)
+    kernel(beta, v, N1, N2, N3, M1, M2, M3, P1, P2, P3, P23, P13, P12, P123, rdft, ndrange=N1*N2*N3)
     KA.synchronize(backend)
     return beta
 end
 
-@kernel function kernel_DFT_to_beta_3d!(beta::CuVector{Float64}, v::CuArray{ComplexF64,3}, N1, N2, N3, M1, M2, M3, P1, P2, P3, P23, P13, P12, P123; rdft::Bool=false)
+@kernel function kernel_DFT_to_beta_3d!(beta::CuVector{Float64}, v::CuArray{ComplexF64,3}, N1, N2, N3, M1, M2, M3, P1, P2, P3, P23, P13, P12, P123, rdft::Bool)
     i = @index(Global)
     if i == 1
         beta[i] = real(v[1   , 1   , 1   ])
@@ -360,17 +360,17 @@ end
 end
 
 # dim = 1
-function beta_to_DFT_1d!(v::CuVector{ComplexF64}, beta::StridedCuVector{Float64}, size; rdft::Bool=false)
+function beta_to_DFT_1d!(v::CuVector{ComplexF64}, beta::StridedCuVector{Float64}, size, rdft::Bool)
     N = size[1]
     M = N ÷ 2
     backend = KA.get_backend(v)
     kernel = kernel_beta_to_DFT_1d!(backend)
-    kernel(v, beta, N, M; rdft, ndrange = rdft ? M+1 : N)
+    kernel(v, beta, N, M, rdft, ndrange = rdft ? M+1 : N)
     KA.synchronize(backend)
     return v
 end
 
-@kernel function kernel_beta_to_DFT_1d!(v::CuVector{ComplexF64}, beta::StridedCuVector{Float64}, N, M; rdft::Bool=false)
+@kernel function kernel_beta_to_DFT_1d!(v::CuVector{ComplexF64}, beta::StridedCuVector{Float64}, N, M, rdft::Bool)
     i = @index(Global)
     if i == 1
         v[i] = beta[1]
@@ -385,7 +385,7 @@ end
 end
 
 # dim = 2
-function beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta::StridedCuVector{Float64}, size; rdft::Bool=false)
+function beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta::StridedCuVector{Float64}, size, rdft::Bool)
     N1 = size[1]
     N2 = size[2]
     M1 = N1 ÷ 2
@@ -395,12 +395,12 @@ function beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta::StridedCuVector{Float64}
     PP = P1 * P2
     backend = KA.get_backend(v)
     kernel = kernel_beta_to_DFT_2d!(backend)
-    kernel(v, beta, N1, N2, M1, M2, P1, P2, PP; rdft, ndrange = rdft ? (M1+1,N2) : (N1,N2))
+    kernel(v, beta, N1, N2, M1, M2, P1, P2, PP, rdft, ndrange = rdft ? (M1+1,N2) : (N1,N2))
     KA.synchronize(backend)
     return v
 end
 
-@kernel function kernel_beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta::StridedCuVector{Float64}, N1, N2, M1, M2, P1, P2, PP; rdft::Bool=false)
+@kernel function kernel_beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta::StridedCuVector{Float64}, N1, N2, M1, M2, P1, P2, PP, rdft::Bool)
     i, j = @index(Global)
     # vertex
     if i == 1
@@ -480,7 +480,7 @@ end
 end
 
 # dim = 3
-function beta_to_DFT_3d!(v::CuArray{ComplexF64, 3}, beta::StridedCuVector{Float64}, size; rdft::Bool=false)
+function beta_to_DFT_3d!(v::CuArray{ComplexF64, 3}, beta::StridedCuVector{Float64}, size, rdft::Bool)
     N1 = size[1]
     N2 = size[2]
     N3 = size[3]
@@ -501,7 +501,7 @@ function beta_to_DFT_3d!(v::CuArray{ComplexF64, 3}, beta::StridedCuVector{Float6
     return v
 end
 
-@kernel function kernel_beta_to_DFT_3d!(v::CuArray{ComplexF64, 3}, beta::StridedCuVector{Float64}, N1, N2, N3, M1, M2, M3, P1, P2, P3, P23, P13, P12, P123; rdft::Bool=false)
+@kernel function kernel_beta_to_DFT_3d!(v::CuArray{ComplexF64, 3}, beta::StridedCuVector{Float64}, N1, N2, N3, M1, M2, M3, P1, P2, P3, P23, P13, P12, P123, rdft::Bool)
     i, j, k = @index(Global)
     #vertex
     if i == 1

@@ -8,7 +8,7 @@ function DFT_to_beta_1d!(beta::Vector{Float64}, v::Vector{ComplexF64}, size; rdf
     return beta
 end
 
-function kernel_DFT_to_beta_1d!(beta::Vector{Float64}, v, N, M, i; rdft::Bool=false)
+function kernel_DFT_to_beta_1d!(beta::Vector{Float64}, v::Vector{ComplexF64}, N, M, i; rdft::Bool=false)
     if i == 1
         beta[i] = real(v[1])
     elseif i == 2
