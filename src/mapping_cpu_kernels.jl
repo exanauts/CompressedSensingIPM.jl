@@ -1,5 +1,5 @@
 # dim = 1
-function DFT_to_beta_1d!(beta::Vector{Float64}, v, size; rdft::Bool=false)
+function DFT_to_beta_1d!(beta::Vector{Float64}, v::Vector{ComplexF64}, size; rdft::Bool=false)
     N = size[1]
     M = N ÷ 2
     for i = 1:N
@@ -21,7 +21,7 @@ function kernel_DFT_to_beta_1d!(beta::Vector{Float64}, v, N, M, i; rdft::Bool=fa
 end
 
 # dim = 2
-function DFT_to_beta_2d!(beta::Vector{Float64}, v, size; rdft::Bool=false)
+function DFT_to_beta_2d!(beta::Vector{Float64}, v::Matrix{ComplexF64}, size; rdft::Bool=false)
     N1 = size[1]
     N2 = size[2]
     M1 = N1 ÷ 2
@@ -35,7 +35,7 @@ function DFT_to_beta_2d!(beta::Vector{Float64}, v, size; rdft::Bool=false)
     return beta
 end
 
-function kernel_DFT_to_beta_2d!(beta::Vector{Float64}, v, N1, N2, M1, M2, P1, P2, PP, i; rdft::Bool=false)
+function kernel_DFT_to_beta_2d!(beta::Vector{Float64}, v::Matrix{ComplexF64}, N1, N2, M1, M2, P1, P2, PP, i; rdft::Bool=false)
     # vertex
     if i == 1
         beta[i] = real(v[1, 1])
@@ -86,9 +86,7 @@ function kernel_DFT_to_beta_2d!(beta::Vector{Float64}, v, N1, N2, M1, M2, P1, P2
     end
 end
 
-#=
-# dim=3
-function DFT_to_beta_3d!(beta::Array{Float64}, v, size; rdft::Bool=false)
+function DFT_to_beta_3d!(beta::Vector{Float64}, v::Array{ComplexF64,3}, size; rdft::Bool=false)
     N1 = size[1]
     N2 = size[2]
     N3 = size[3]
@@ -108,275 +106,7 @@ function DFT_to_beta_3d!(beta::Array{Float64}, v, size; rdft::Bool=false)
     return beta
 end
 
-function kernel_DFT_to_beta_3d!(beta, v, N1, N2, N3, M1, M2, M3, P1, P2, P3, P23, P13, P12, P123, i; rdft::Bool=false)
-    if i == 1
-        beta[i] = real(v[1   , 1   , 1   ])
-    elseif i == 2
-        beta[i] = real(v[1   , 1   , M3+1])
-    elseif i == 3
-        beta[i] = real(v[1   , M2+1, 1   ])
-    elseif i == 4
-        beta[i] = real(v[1   , M2+1, M3+1])
-    elseif i == 5
-        beta[i] = real(v[M1+1, 1   , 1   ])
-    elseif i == 6
-        beta[i] = real(v[M1+1, 1   , M3+1])
-    elseif i == 7
-        beta[i] = real(v[M1+1, M2+1, 1   ])
-    elseif i == 8
-        beta[i] = real(v[M1+1, M2+1, M3+1])
-    elseif 9 <= i <= 8+P3
-        beta[i] = sqrt(2) * real(v[1, 1, i-7])
-    elseif 9+P3 <= i <= 8+2*P3
-        beta[i] = sqrt(2) * imag(v[1, 1, i-P3-7])
-    elseif 9+2*P3 <= i <= 8+3*P3
-        beta[i] = sqrt(2) * real(v[1, M2+1, i-2*P3-7])
-    elseif 9+3*P3 <= i <= 8+4*P3
-        beta[i] = sqrt(2) * imag(v[1, M2+1, i-3*P3-7])
-    elseif 9+4*P3 <= i <= 8+5*P3
-        beta[i] = sqrt(2) * real(v[M1+1, 1, i-4*P3-7])
-    elseif 9+5*P3 <= i <= 8+6*P3
-        beta[i] = sqrt(2) * imag(v[M1+1, 1, i-5*P3-7])
-    elseif 9+6*P3 <= i <= 8+7*P3
-        beta[i] = sqrt(2) * real(v[M1+1, M2+1, i-6*P3-7])
-    elseif 9+7*P3 <= i <= 8+8*P3
-        beta[i] = sqrt(2) * imag(v[M1+1, M2+1, i-7*P3-7])
-    elseif 9+8*P3 <= i <= 8+8*P3+P2
-        beta[i] = sqrt(2) * real(v[1, i-8*P3-7, 1])
-    elseif 9+8*P3+P2 <= i <= 8+8*P3+2*P2
-        beta[i] = sqrt(2) * imag(v[1, i-8*P3-P2-7, 1])
-    elseif 9+8*P3+2*P2 <= i <= 8+8*P3+3*P2
-        beta[i] = sqrt(2) * real(v[1, i-8*P3-2*P2-7, M3+1])
-    elseif 9+8*P3+3*P2 <= i <= 8+8*P3+4*P2
-        beta[i] = sqrt(2) * imag(v[1, i-8*P3-3*P2-7, M3+1])
-    elseif 9+8*P3+4*P2 <= i <= 8+8*P3+5*P2
-        beta[i] = sqrt(2) * real(v[M1+1, i-8*P3-4*P2-7, 1])
-    elseif 9+8*P3+5*P2 <= i <= 8+8*P3+6*P2
-        beta[i] = sqrt(2) * imag(v[M1+1, i-8*P3-5*P2-7, 1])
-    elseif 9+8*P3+6*P2 <= i <= 8+8*P3+7*P2
-        beta[i] = sqrt(2) * real(v[M1+1, i-8*P3-6*P2-7, M3+1])
-    elseif 9+8*P3+7*P2 <= i <= 8+8*P3+8*P2
-        beta[i] = sqrt(2) * imag(v[M1+1, i-8*P3-7*P2-7, M3+1])
-    elseif 9+8*P3+8*P2 <= i <= 8+8*P3+8*P2+P1
-        beta[i] = sqrt(2) * real(v[i-8*P3-8*P2-7, 1, 1])
-    elseif 9+8*P3+8*P2+P1 <= i <= 8+8*P3+8*P2+2*P1
-        beta[i] = sqrt(2) * imag(v[i-8*P3-8*P2-P1-7, 1, 1])
-    elseif 9+8*P3+8*P2+2*P1 <= i <= 8+8*P3+8*P2+3*P1
-        beta[i] = sqrt(2) * real(v[i-8*P3-8*P2-2*P1-7, 1, M3+1])
-    elseif 9+8*P3+8*P2+3*P1 <= i <= 8+8*P3+8*P2+4*P1
-        beta[i] = sqrt(2) * imag(v[i-8*P3-8*P2-3*P1-7, 1, M3+1])
-    elseif 9+8*P3+8*P2+4*P1 <= i <= 8+8*P3+8*P2+5*P1
-        beta[i] = sqrt(2) * real(v[i-8*P3-8*P2-4*P1-7, M2+1, 1])
-    elseif 9+8*P3+8*P2+5*P1 <= i <= 8+8*P3+8*P2+6*P1
-        beta[i] = sqrt(2) * imag(v[i-8*P3-8*P2-5*P1-7, M2+1, 1])
-    elseif 9+8*P3+8*P2+6*P1 <= i <= 8+8*P3+8*P2+7*P1
-        beta[i] = sqrt(2) * real(v[i-8*P3-8*P2-6*P1-7, M2+1, M3+1])
-    elseif 9+8*P3+8*P2+7*P1 <= i <= 8+8*P3+8*P2+8*P1
-        beta[i] = sqrt(2) * imag(v[i-8*P3-8*P2-7*P1-7, M2+1, M3+1])
-    elseif 9+8*P3+8*P2+8*P1 <= i <= 8+8*P3+8*P2+8*P1+P23
-        j = i-(8+8*P3+8*P2+8*P1)
-        i3 = div(j-1, P2) + 1
-        i2 = mod(j-1, P2) + 1
-        beta[i] = sqrt(2) * real(v[1, i2+1, i3+1])
-    elseif 9+8*P3+8*P2+8*P1+P23 <= i <= 8+8*P3+8*P2+8*P1+2*P23
-        j = i-(8+8*P3+8*P2+8*P1+P23)
-        i3 = div(j-1, P2) + 1
-        i2 = mod(j-1, P2) + 1
-        beta[i] = sqrt(2) * imag(v[1, i2+1, i3+1])
-    elseif 9+8*P3+8*P2+8*P1+2*P23 <= i <= 8+8*P3+8*P2+8*P1+3*P23
-        j = i-(8+8*P3+8*P2+8*P1+2*P23)
-        i3 = div(j-1, P2) + 1
-        i2 = mod(j-1, P2) + 1
-        beta[i] = sqrt(2) * real(v[1, i2+(M2+1), i3+1])
-    elseif 9+8*P3+8*P2+8*P1+3*P23 <= i <= 8+8*P3+8*P2+8*P1+4*P23
-        j = i-(8+8*P3+8*P2+8*P1+3*P23)
-        i3 = div(j-1, P2) + 1
-        i2 = mod(j-1, P2) + 1
-        beta[i] = sqrt(2) * imag(v[1, i2+(M2+1), i3+1])
-    elseif 9+8*P3+8*P2+8*P1+4*P23 <= i <= 8+8*P3+8*P2+8*P1+5*P23
-        j = i-(8+8*P3+8*P2+8*P1+4*P23)
-        i3 = div(j-1, P2) + 1
-        i2 = mod(j-1, P2) + 1
-        beta[i] = sqrt(2) * real(v[M1+1, i2+1, i3+1])
-    elseif 9+8*P3+8*P2+8*P1+5*P23 <= i <= 8+8*P3+8*P2+8*P1+6*P23
-        j = i-(8+8*P3+8*P2+8*P1+5*P23)
-        i3 = div(j-1, P2) + 1
-        i2 = mod(j-1, P2) + 1
-        beta[i] = sqrt(2) * imag(v[M1+1, i2+1, i3+1])
-    elseif 9+8*P3+8*P2+8*P1+6*P23 <= i <= 8+8*P3+8*P2+8*P1+7*P23
-        j = i-(8+8*P3+8*P2+8*P1+6*P23)
-        i3 = div(j-1, P2) + 1
-        i2 = mod(j-1, P2) + 1
-        beta[i] = sqrt(2) * real(v[M1+1, i2+(M2+1), i3+1])
-    elseif 9+8*P3+8*P2+8*P1+7*P23 <= i <= 8+8*P3+8*P2+8*P1+8*P23
-        j = i-(8+8*P3+8*P2+8*P1+7*P23)
-        i3 = div(j-1, P2) + 1
-        i2 = mod(j-1, P2) + 1
-        beta[i] = sqrt(2) * imag(v[M1+1, i2+(M2+1), i3+1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23 <= i <= 8+8*P3+8*P2+8*P1+8*P23+P13
-        j = i-(8+8*P3+8*P2+8*P1+8*P23)
-        i3 = div(j-1, P1) + 1
-        i1 = mod(j-1, P1) + 1
-        beta[i] = sqrt(2) * real(v[i1+1, 1, i3+1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+P13 <= i <= 8+8*P3+8*P2+8*P1+8*P23+2*P13
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+P13)
-        i3 = div(j-1, P1) + 1
-        i1 = mod(j-1, P1) + 1
-        beta[i] = sqrt(2) * imag(v[i1+1, 1, i3+1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+2*P13 <= i <= 8+8*P3+8*P2+8*P1+8*P23+3*P13
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+2*P13)
-        i3 = div(j-1, P1) + 1
-        i1 = mod(j-1, P1) + 1
-        beta[i] = sqrt(2) * real(v[i1+(M1+1), 1, i3+1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+3*P13 <= i <= 8+8*P3+8*P2+8*P1+8*P23+4*P13
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+3*P13)
-        i3 = div(j-1, P1) + 1
-        i1 = mod(j-1, P1) + 1
-        beta[i] = sqrt(2) * imag(v[i1+(M1+1), 1, i3+1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+4*P13 <= i <= 8+8*P3+8*P2+8*P1+8*P23+5*P13
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+4*P13)
-        i3 = div(j-1, P1) + 1
-        i1 = mod(j-1, P1) + 1
-        beta[i] = sqrt(2) * real(v[i1+1, M2+1, i3+1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+5*P13 <= i <= 8+8*P3+8*P2+8*P1+8*P23+6*P13
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+5*P13)
-        i3 = div(j-1, P1) + 1
-        i1 = mod(j-1, P1) + 1
-        beta[i] = sqrt(2) * imag(v[i1+1, M2+1, i3+1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+6*P13 <= i <= 8+8*P3+8*P2+8*P1+8*P23+7*P13
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+6*P13)
-        i3 = div(j-1, P1) + 1
-        i1 = mod(j-1, P1) + 1
-        beta[i] = sqrt(2) * real(v[i1+(M1+1), M2+1, i3+1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+7*P13 <= i <= 8+8*P3+8*P2+8*P1+8*P23+8*P13
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+7*P13)
-        i3 = div(j-1, P1) + 1
-        i1 = mod(j-1, P1) + 1
-        beta[i] = sqrt(2) * imag(v[i1+(M1+1), M2+1, i3+1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+8*P13 <= i <= 8+8*P3+8*P2+8*P1+8*P23+8*P13+P12
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+8*P13)
-        i2 = div(j-1, P1) + 1
-        i1 = mod(j-1, P1) + 1
-        beta[i] = sqrt(2) * real(v[i1+1, i2+1, 1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+8*P13+P12 <= i <= 8+8*P3+8*P2+8*P1+8*P23+8*P13+2*P12
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+8*P13+P12)
-        i2 = div(j-1, P1) + 1
-        i1 = mod(j-1, P1) + 1
-        beta[i] = sqrt(2) * imag(v[i1+1, i2+1, 1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+8*P13+2*P12 <= i <= 8+8*P3+8*P2+8*P1+8*P23+8*P13+3*P12
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+8*P13+2*P12)
-        i2 = div(j-1, P1) + 1
-        i1 = mod(j-1, P1) + 1
-        beta[i] = sqrt(2) * real(v[i1+(M1+1), i2+1, 1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+8*P13+3*P12 <= i <= 8+8*P3+8*P2+8*P1+8*P23+8*P13+4*P12
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+8*P13+3*P12)
-        i2 = div(j-1, P1) + 1
-        i1 = mod(j-1, P1) + 1
-        beta[i] = sqrt(2) * imag(v[i1+(M1+1), i2+1, 1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+8*P13+4*P12 <= i <= 8+8*P3+8*P2+8*P1+8*P23+8*P13+5*P12
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+8*P13+4*P12)
-        i2 = div(j-1, P1) + 1
-        i1 = mod(j-1, P1) + 1
-        beta[i] = sqrt(2) * real(v[i1+1, i2+1, M3+1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+8*P13+5*P12 <= i <= 8+8*P3+8*P2+8*P1+8*P23+8*P13+6*P12
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+8*P13+5*P12)
-        i2 = div(j-1, P1) + 1
-        i1 = mod(j-1, P1) + 1
-        beta[i] = sqrt(2) * imag(v[i1+1, i2+1, M3+1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+8*P13+6*P12 <= i <= 8+8*P3+8*P2+8*P1+8*P23+8*P13+7*P12
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+8*P13+6*P12)
-        i2 = div(j-1, P1) + 1
-        i1 = mod(j-1, P1) + 1
-        beta[i] = sqrt(2) * real(v[i1+(M1+1), i2+1, M3+1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+8*P13+7*P12 <= i <= 8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+8*P13+7*P12)
-        i2 = div(j-1, P1) + 1
-        i1 = mod(j-1, P1) + 1
-        beta[i] = sqrt(2) * imag(v[i1+(M1+1), i2+1, M3+1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12 <= i <= 8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+P123
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12)
-        i3 = div(j-1, P12) + 1
-        k = mod(j-1, P12) + 1
-        i2 = div(k-1, P1) + 1
-        i1 = mod(k-1, P1) + 1
-        beta[i] = sqrt(2) * real(v[i1+1, i2+1, i3+1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+P123 <= i <= 8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+2*P123
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+P123)
-        i3 = div(j-1, P12) + 1
-        k = mod(j-1, P12) + 1
-        i2 = div(k-1, P1) + 1
-        i1 = mod(k-1, P1) + 1
-        beta[i] = sqrt(2) * imag(v[i1+1, i2+1, i3+1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+2*P123 <= i <= 8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+3*P123
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+2*P123)
-        i3 = div(j-1, P12) + 1
-        k = mod(j-1, P12) + 1
-        i2 = div(k-1, P1) + 1
-        i1 = mod(k-1, P1) + 1
-        beta[i] = sqrt(2) * real(v[i1+(M1+1), i2+1, i3+1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+3*P123 <= i <= 8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+4*P123
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+3*P123)
-        i3 = div(j-1, P12) + 1
-        k = mod(j-1, P12) + 1
-        i2 = div(k-1, P1) + 1
-        i1 = mod(k-1, P1) + 1
-        beta[i] = sqrt(2) * imag(v[i1+(M1+1), i2+1, i3+1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+4*P123 <= i <= 8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+5*P123
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+4*P123)
-        i3 = div(j-1, P12) + 1
-        k = mod(j-1, P12) + 1
-        i2 = div(k-1, P1) + 1
-        i1 = mod(k-1, P1) + 1
-        beta[i] = sqrt(2) * real(v[i1+1, i2+(M2+1), i3+1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+5*P123 <= i <= 8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+6*P123
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+5*P123)
-        i3 = div(j-1, P12) + 1
-        k = mod(j-1, P12) + 1
-        i2 = div(k-1, P1) + 1
-        i1 = mod(k-1, P1) + 1
-        beta[i] = sqrt(2) * imag(v[i1+1, i2+(M2+1), i3+1])
-    elseif 9+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+6*P123 <= i <= 8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+7*P123
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+6*P123)
-        i3 = div(j-1, P12) + 1
-        k = mod(j-1, P12) + 1
-        i2 = div(k-1, P1) + 1
-        i1 = mod(k-1, P1) + 1
-        beta[i] = sqrt(2) * real(v[i1+(M1+1), i2+(M2+1), i3+1])
-    else
-        j = i-(8+8*P3+8*P2+8*P1+8*P23+8*P13+8*P12+7*P123)
-        i3 = div(j-1, P12) + 1
-        k = mod(j-1, P12) + 1
-        i2 = div(k-1, P1) + 1
-        i1 = mod(k-1, P1) + 1
-        beta[i] = sqrt(2) * imag(v[i1+(M1+1), i2+(M2+1), i3+1])
-    end
-end
-=#
-
-
-function DFT_to_beta_3d!(beta::Array{Float64}, v, size; rdft::Bool=false)
-    N1 = size[1]
-    N2 = size[2]
-    N3 = size[3]
-    M1 = N1 ÷ 2
-    M2 = N2 ÷ 2
-    M3 = N3 ÷ 2
-    P1 = M1 - 1
-    P2 = M2 - 1
-    P3 = M3 - 1
-    P23 = P2 * P3
-    P13 = P1 * P3
-    P12 = P1 * P2
-    P123 = P1 * P2 * P3
-    for i = 1:N1*N2*N3
-        kernel_DFT_to_beta_3d!(beta, v, N1, N2, N3, M1, M2, M3, P1, P2, P3, P23, P13, P12, P123, i; rdft)
-    end
-    return beta
-end
-
-
-
-function kernel_DFT_to_beta_3d!(beta, v, N1, N2, N3, M1, M2, M3, P1, P2, P3, P23, P13, P12, P123, i; rdft::Bool=false)
+function kernel_DFT_to_beta_3d!(beta::Vector{Float64}, v::Array{ComplexF64,3}, N1, N2, N3, M1, M2, M3, P1, P2, P3, P23, P13, P12, P123, i; rdft::Bool=false)
     if i == 1
         beta[i] = real(v[1   , 1   , 1   ])
     elseif i == 2
@@ -621,7 +351,7 @@ function kernel_DFT_to_beta_3d!(beta, v, N1, N2, N3, M1, M2, M3, P1, P2, P3, P23
 end
 
 # dim = 1
-function beta_to_DFT_1d!(v::Vector{ComplexF64}, beta, size; rdft::Bool=false)
+function beta_to_DFT_1d!(v::Vector{ComplexF64}, beta::StridedVector{Float64}, size; rdft::Bool=false)
     N = size[1]
     M = N ÷ 2
     for i = 1: (rdft ? M+1 : N)
@@ -630,20 +360,20 @@ function beta_to_DFT_1d!(v::Vector{ComplexF64}, beta, size; rdft::Bool=false)
     return v
 end
 
-function kernel_beta_to_DFT_1d!(v::Vector{ComplexF64}, beta, N, M, i; rdft::Bool=false)
+function kernel_beta_to_DFT_1d!(v::Vector{ComplexF64}, beta::StridedVector{Float64}, N, M, i; rdft::Bool=false)
     if i == 1
         v[i] = beta[1]
     elseif i == M+1
         v[i] = beta[2]
     elseif 2 <= i <= M
-        v[i] = (beta[i+1] + im*beta[i+M]) / sqrt(2)
+        v[i] = (beta[i+1] + im*beta[M+i]) / sqrt(2)
     else
         v[i] = (beta[N+3-i] - im*beta[(N+M+2)-i]) / sqrt(2)
     end
 end
 
 # dim = 2
-function beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta, size; rdft::Bool=false)
+function beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta::StridedVector{Float64}, size; rdft::Bool=false)
     N1 = size[1]
     N2 = size[2]
     M1 = N1 ÷ 2
@@ -659,7 +389,7 @@ function beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta, size; rdft::Bool=false)
     return v
 end
 
-function kernel_beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta, N1, N2, M1, M2, P1, P2, PP, i, j; rdft::Bool=false)
+function kernel_beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta::StridedVector{Float64}, N1, N2, M1, M2, P1, P2, PP, i, j; rdft::Bool=false)
     # vertex
     if i == 1
         if j == 1
@@ -737,7 +467,7 @@ function kernel_beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta, N1, N2, M1, M2, P1,
 end
 
 # dim = 3
-function beta_to_DFT_3d!(v, beta, size; rdft::Bool=false)
+function beta_to_DFT_3d!(v::Array{ComplexF64, 3}, beta::StridedVector{Float64}, size; rdft::Bool=false)
     N1 = size[1]
     N2 = size[2]
     N3 = size[3]
@@ -761,7 +491,7 @@ function beta_to_DFT_3d!(v, beta, size; rdft::Bool=false)
     return v
 end
 
-function kernel_beta_to_DFT_3d!(v, beta, N1, N2, N3, M1, M2, M3, P1, P2, P3, P23, P13, P12, P123, i, j, k; rdft::Bool=false)
+function kernel_beta_to_DFT_3d!(v::Array{ComplexF64, 3}, beta::StridedVector{Float64}, N1, N2, N3, M1, M2, M3, P1, P2, P3, P23, P13, P12, P123, i, j, k; rdft::Bool=false)
     #vertex
     if i == 1
         if j == 1
