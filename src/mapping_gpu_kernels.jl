@@ -1,5 +1,5 @@
 # dim = 1
-function DFT_to_beta_1d!(beta::CuVector{Float64}, v::CuVector{ComplexF64}, size, rdft::Bool)
+function DFT_to_beta_1d!(beta::CuVector{Float64}, v::CuVector{ComplexF64}, size; rdft::Bool=false)
     N = size[1]
     M = N ÷ 2
     backend = KA.get_backend(beta)
@@ -24,7 +24,7 @@ end
 end
 
 # dim = 2
-function DFT_to_beta_2d!(beta::CuVector{Float64}, v::CuMatrix{ComplexF64}, size, rdft::Bool)
+function DFT_to_beta_2d!(beta::CuVector{Float64}, v::CuMatrix{ComplexF64}, size; rdft::Bool=false)
     N1 = size[1]
     N2 = size[2]
     M1 = N1 ÷ 2
@@ -92,7 +92,7 @@ end
     nothing
 end
 
-function DFT_to_beta_3d!(beta::CuVector{Float64}, v::CuArray{ComplexF64,3}, size, rdft::Bool)
+function DFT_to_beta_3d!(beta::CuVector{Float64}, v::CuArray{ComplexF64,3}, size; rdft::Bool=false)
     N1 = size[1]
     N2 = size[2]
     N3 = size[3]
@@ -360,7 +360,7 @@ end
 end
 
 # dim = 1
-function beta_to_DFT_1d!(v::CuVector{ComplexF64}, beta::StridedCuVector{Float64}, size, rdft::Bool)
+function beta_to_DFT_1d!(v::CuVector{ComplexF64}, beta::StridedCuVector{Float64}, size; rdft::Bool=false)
     N = size[1]
     M = N ÷ 2
     backend = KA.get_backend(v)
@@ -385,7 +385,7 @@ end
 end
 
 # dim = 2
-function beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta::StridedCuVector{Float64}, size, rdft::Bool)
+function beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta::StridedCuVector{Float64}, size; rdft::Bool=false)
     N1 = size[1]
     N2 = size[2]
     M1 = N1 ÷ 2
@@ -480,7 +480,7 @@ end
 end
 
 # dim = 3
-function beta_to_DFT_3d!(v::CuArray{ComplexF64, 3}, beta::StridedCuVector{Float64}, size, rdft::Bool)
+function beta_to_DFT_3d!(v::CuArray{ComplexF64, 3}, beta::StridedCuVector{Float64}, size; rdft::Bool=false)
     N1 = size[1]
     N2 = size[2]
     N3 = size[3]
