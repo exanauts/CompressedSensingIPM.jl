@@ -24,7 +24,7 @@ CompressedSensingIPM.jl can be installed and tested through the Julia package ma
 
 ```julia
 julia> ]
-pkg> add CompressedSensingIPM
+pkg> add https://github.com/exanauts/CompressedSensingIPM.jl.git
 pkg> test CompressedSensingIPM
 ```
 
