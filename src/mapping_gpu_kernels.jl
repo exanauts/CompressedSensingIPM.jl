@@ -1,14 +1,19 @@
+using KernelAbstractions
+const KA = KernelAbstractions
+
 # dim = 1
-function DFT_to_beta_1d!(beta::Vector{Float64}, v::Vector{ComplexF64}, size; rdft::Bool=false)
+function DFT_to_beta_1d!(beta::CuVector{Float64}, v::CuVector{ComplexF64}, size; rdft::Bool=false)
     N = size[1]
     M = N ÷ 2
-    for i = 1:N
-        kernel_DFT_to_beta_1d!(beta, v, N, M, i; rdft)
-    end
+    backend = KA.get_backend(beta)
+    kernel = kernel_DFT_to_beta_1d!(backend)
+    kernel(beta, v, N, M, rdft, ndrange=N)
+    KA.synchronize(backend)
     return beta
 end
 
-function kernel_DFT_to_beta_1d!(beta::Vector{Float64}, v::Vector{ComplexF64}, N, M, i; rdft::Bool=false)
+@kernel function kernel_DFT_to_beta_1d!(beta, @Const(v), @Const(N), @Const(M), @Const(rdft))
+    i = @index(Global, Linear)
     if i == 1
         beta[i] = real(v[1])
     elseif i == 2
@@ -18,10 +23,11 @@ function kernel_DFT_to_beta_1d!(beta::Vector{Float64}, v::Vector{ComplexF64}, N,
     else
         beta[i] = sqrt(2) * imag(v[i-M])
     end
+    nothing
 end
 
 # dim = 2
-function DFT_to_beta_2d!(beta::Vector{Float64}, v::Matrix{ComplexF64}, size; rdft::Bool=false)
+function DFT_to_beta_2d!(beta::CuVector{Float64}, v::CuMatrix{ComplexF64}, size; rdft::Bool=false)
     N1 = size[1]
     N2 = size[2]
     M1 = N1 ÷ 2
@@ -29,13 +35,15 @@ function DFT_to_beta_2d!(beta::Vector{Float64}, v::Matrix{ComplexF64}, size; rdf
     P1 = M1 - 1
     P2 = M2 - 1
     PP = P1 * P2
-    for i = 1:N1*N2
-        kernel_DFT_to_beta_2d!(beta, v, N1, N2, M1, M2, P1, P2, PP, i; rdft)
-    end
+    backend = KA.get_backend(beta)
+    kernel = kernel_DFT_to_beta_2d!(backend)
+    kernel(beta, v, N1, N2, M1, M2, P1, P2, PP, rdft, ndrange=N1*N2)
+    KA.synchronize(backend)
     return beta
 end
 
-function kernel_DFT_to_beta_2d!(beta::Vector{Float64}, v::Matrix{ComplexF64}, N1, N2, M1, M2, P1, P2, PP, i; rdft::Bool=false)
+@kernel function kernel_DFT_to_beta_2d!(beta, @Const(v), @Const(N1), @Const(N2), @Const(M1), @Const(M2), @Const(P1), @Const(P2), @Const(PP), @Const(rdft))
+    i = @index(Global, Linear)
     # vertex
     if i == 1
         beta[i] = real(v[1, 1])
@@ -84,9 +92,10 @@ function kernel_DFT_to_beta_2d!(beta::Vector{Float64}, v::Matrix{ComplexF64}, N1
         i1 = mod(j-1, P1) + 1
         beta[i] = sqrt(2) * imag(v[i1+1, i2+(M2+1)])
     end
+    nothing
 end
 
-function DFT_to_beta_3d!(beta::Vector{Float64}, v::Array{ComplexF64,3}, size; rdft::Bool=false)
+function DFT_to_beta_3d!(beta::CuVector{Float64}, v::CuArray{ComplexF64,3}, size; rdft::Bool=false)
     N1 = size[1]
     N2 = size[2]
     N3 = size[3]
@@ -100,13 +109,15 @@ function DFT_to_beta_3d!(beta::Vector{Float64}, v::Array{ComplexF64,3}, size; rd
     P13 = P1 * P3
     P12 = P1 * P2
     P123 = P1 * P2 * P3
-    for i = 1:N1*N2*N3
-        kernel_DFT_to_beta_3d!(beta, v, N1, N2, N3, M1, M2, M3, P1, P2, P3, P23, P13, P12, P123, i; rdft)
-    end
+    backend = KA.get_backend(beta)
+    kernel = kernel_DFT_to_beta_3d!(backend)
+    kernel(beta, v, N1, N2, N3, M1, M2, M3, P1, P2, P3, P23, P13, P12, P123, rdft, ndrange=N1*N2*N3)
+    KA.synchronize(backend)
     return beta
 end
 
-function kernel_DFT_to_beta_3d!(beta::Vector{Float64}, v::Array{ComplexF64,3}, N1, N2, N3, M1, M2, M3, P1, P2, P3, P23, P13, P12, P123, i; rdft::Bool=false)
+@kernel function kernel_DFT_to_beta_3d!(beta, @Const(v), @Const(N1), @Const(N2), @Const(N3), @Const(M1), @Const(M2), @Const(M3), @Const(P1), @Const(P2), @Const(P3), @Const(P23), @Const(P13), @Const(P12), @Const(P123), @Const(rdft))
+    i = @index(Global, Linear)
     if i == 1
         beta[i] = real(v[1   , 1   , 1   ])
     elseif i == 2
@@ -348,19 +359,22 @@ function kernel_DFT_to_beta_3d!(beta::Vector{Float64}, v::Array{ComplexF64,3}, N
         i1 = mod(k-1, P1) + 1
         beta[i] = -sqrt(2) * imag(v[M1+1-i1, M2+1-i2, N3+1-i3])
     end
+    nothing
 end
 
 # dim = 1
-function beta_to_DFT_1d!(v::Vector{ComplexF64}, beta::StridedVector{Float64}, size; rdft::Bool=false)
+function beta_to_DFT_1d!(v::CuVector{ComplexF64}, beta::StridedCuVector{Float64}, size; rdft::Bool=false)
     N = size[1]
     M = N ÷ 2
-    for i = 1: (rdft ? M+1 : N)
-        kernel_beta_to_DFT_1d!(v, beta, N, M, i; rdft)
-    end
+    backend = KA.get_backend(v)
+    kernel = kernel_beta_to_DFT_1d!(backend)
+    kernel(v, beta, N, M, rdft, ndrange = rdft ? M+1 : N)
+    KA.synchronize(backend)
     return v
 end
 
-function kernel_beta_to_DFT_1d!(v::Vector{ComplexF64}, beta::StridedVector{Float64}, N, M, i; rdft::Bool=false)
+@kernel function kernel_beta_to_DFT_1d!(v, @Const(beta), @Const(N), @Const(M), @Const(rdft))
+    i = @index(Global, Linear)
     if i == 1
         v[i] = beta[1]
     elseif i == M+1
@@ -370,10 +384,11 @@ function kernel_beta_to_DFT_1d!(v::Vector{ComplexF64}, beta::StridedVector{Float
     else
         v[i] = (beta[N+3-i] - im*beta[(N+M+2)-i]) / sqrt(2)
     end
+    nothing
 end
 
 # dim = 2
-function beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta::StridedVector{Float64}, size; rdft::Bool=false)
+function beta_to_DFT_2d!(v::CuMatrix{ComplexF64}, beta::StridedCuVector{Float64}, size; rdft::Bool=false)
     N1 = size[1]
     N2 = size[2]
     M1 = N1 ÷ 2
@@ -381,15 +396,15 @@ function beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta::StridedVector{Float64}, si
     P1 = M1 - 1
     P2 = M2 - 1
     PP = P1 * P2
-    for i = 1: (rdft ? M1+1 : N1)
-        for j = 1:N2
-            kernel_beta_to_DFT_2d!(v, beta, N1, N2, M1, M2, P1, P2, PP, i, j; rdft)
-        end
-    end
+    backend = KA.get_backend(v)
+    kernel = kernel_beta_to_DFT_2d!(backend)
+    kernel(v, beta, N1, N2, M1, M2, P1, P2, PP, rdft, ndrange = rdft ? (M1+1,N2) : (N1,N2))
+    KA.synchronize(backend)
     return v
 end
 
-function kernel_beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta::StridedVector{Float64}, N1, N2, M1, M2, P1, P2, PP, i, j; rdft::Bool=false)
+@kernel function kernel_beta_to_DFT_2d!(v, @Const(beta), @Const(N1), @Const(N2), @Const(M1), @Const(M2), @Const(P1), @Const(P2), @Const(PP), @Const(rdft))
+    i, j = @index(Global, NTuple)
     # vertex
     if i == 1
         if j == 1
@@ -464,10 +479,11 @@ function kernel_beta_to_DFT_2d!(v::Matrix{ComplexF64}, beta::StridedVector{Float
             v[i,j] = (beta[offset-index] - im * beta[offset+PP-index]) / sqrt(2)
         end
     end
+    nothing
 end
 
 # dim = 3
-function beta_to_DFT_3d!(v::Array{ComplexF64, 3}, beta::StridedVector{Float64}, size; rdft::Bool=false)
+function beta_to_DFT_3d!(v::CuArray{ComplexF64, 3}, beta::StridedCuVector{Float64}, size; rdft::Bool=false)
     N1 = size[1]
     N2 = size[2]
     N3 = size[3]
@@ -481,17 +497,15 @@ function beta_to_DFT_3d!(v::Array{ComplexF64, 3}, beta::StridedVector{Float64}, 
     P13 = P1 * P3
     P12 = P1 * P2
     P123 = P1 * P2 * P3
-    for i = 1: (rdft ? M1+1 : N1)
-        for j = 1:N2
-            for k = 1:N3
-                kernel_beta_to_DFT_3d!(v, beta, N1, N2, N3, M1, M2, M3, P1, P2, P3, P23, P13, P12, P123, i, j, k; rdft)
-            end
-        end
-    end
+    backend = KA.get_backend(v)
+    kernel = kernel_beta_to_DFT_3d!(backend)
+    kernel(v, beta, N1, N2, N3, M1, M2, M3, P1, P2, P3, P23, P13, P12, P123, rdft, ndrange = rdft ? (M1+1,N2,N3) : (N1,N2,N3))
+    KA.synchronize(backend)
     return v
 end
 
-function kernel_beta_to_DFT_3d!(v::Array{ComplexF64, 3}, beta::StridedVector{Float64}, N1, N2, N3, M1, M2, M3, P1, P2, P3, P23, P13, P12, P123, i, j, k; rdft::Bool=false)
+@kernel function kernel_beta_to_DFT_3d!(v, @Const(beta), @Const(N1), @Const(N2), @Const(N3), @Const(M1), @Const(M2), @Const(M3), @Const(P1), @Const(P2), @Const(P3), @Const(P23), @Const(P13), @Const(P12), @Const(P123), @Const(rdft))
+    i, j, k = @index(Global, NTuple)
     #vertex
     if i == 1
         if j == 1
@@ -735,4 +749,5 @@ function kernel_beta_to_DFT_3d!(v::Array{ComplexF64, 3}, beta::StridedVector{Flo
             end
         end
     end
+    nothing
 end
