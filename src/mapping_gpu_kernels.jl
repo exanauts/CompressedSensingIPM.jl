@@ -1,3 +1,6 @@
+using KernelAbstractions
+const KA = KernelAbstractions
+
 # dim = 1
 function DFT_to_beta_1d!(beta::CuVector{Float64}, v::CuVector{ComplexF64}, size; rdft::Bool=false)
     N = size[1]
