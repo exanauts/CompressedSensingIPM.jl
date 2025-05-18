@@ -2,7 +2,7 @@ using CompressedSensingIPM
 import CompressedSensingIPM: M_perpt_M_perp_vec, M_perp_tz, M_perp_beta, DFT_to_beta
 
 using LinearAlgebra, Random, Test
-using MadNLP, MadNLPGPU, CUDA
+using MadNLP, MadNLPGPU, CUDA, AMDGPU
 using FFTW
 
 Random.seed!(1)

@@ -1,5 +1,5 @@
 ## 2D
-function fft_example_2D(Nt::Int, Ns::Int; gpu::Bool=false, rdft::Bool=false, check::Bool=false)
+function fft_example_2D(Nt::Int, Ns::Int; gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false, check::Bool=false)
     t = collect(0:(Nt-1))
     s = collect(0:(Ns-1))
 
@@ -31,8 +31,20 @@ function fft_example_2D(Nt::Int, Ns::Int; gpu::Bool=false, rdft::Bool=false, che
 
     # unify parameters for barrier method
     M_perptz = M_perp_tz_wei(DFTdim, DFTsize, z_zero)
+    AT = Array
+    S = Vector{Float64}
     if gpu
-        M_perptz = CuArray(M_perptz)
+        if gpu_arch == "cuda"
+            M_perptz = CuArray(M_perptz)
+            AT = CuArray
+            S = CuVector{Float64}
+        elseif gpu_arch == "rocm"
+            M_perptz = ROCArray(M_perptz)
+            AT = ROCArray
+            S = ROCVector{Float64}
+        else
+            error("Unsupported GPU architecture \"$gpu_arch\".")
+        end
     end
 
     lambda = check ? 0 : 5
@@ -48,7 +60,6 @@ function fft_example_2D(Nt::Int, Ns::Int; gpu::Bool=false, rdft::Bool=false, che
     beta_init = zeros(prod(DFTsize))
     c_init = ones(prod(DFTsize))
 
-    S = gpu ? CuVector{Float64} : Vector{Float64}
     nlp = FFTNLPModel{Float64, S}(parameters; rdft)
 
     # Solve with MadNLP/LBFGS
@@ -74,18 +85,19 @@ function fft_example_2D(Nt::Int, Ns::Int; gpu::Bool=false, rdft::Bool=false, che
 
     if check
         beta_MadNLP = results.solution[1:Nt*Ns]
-        beta_true = DFT_to_beta(DFTdim, DFTsize, gpu ? CuArray(w) : w)
+        beta_true = DFT_to_beta(DFTdim, DFTsize, w |> AT)
         @test norm(beta_true - beta_MadNLP) ≤ 1e-6
     end
 
     return nlp, solver, results, t2-t1
 end
 
-Nt = 16
-Ns = 16
-gpu = false
-rdft = true
-check = false
-nlp, solver, results, timer = fft_example_2D(Nt, Ns; gpu, rdft, check)
-beta_MadNLP = results.solution[1:Nt*Ns]
-println("Timer: $(timer)")
+# Nt = 16
+# Ns = 16
+# gpu = false
+# gpu_arch = "cuda"
+# rdft = true
+# check = false
+# nlp, solver, results, timer = fft_example_2D(Nt, Ns; gpu, gpu_arch, rdft, check)
+# beta_MadNLP = results.solution[1:Nt*Ns]
+# println("Timer: $(timer)")
