@@ -3,7 +3,8 @@ using LinearAlgebra, SparseArrays
 using LaplaceInterpolation, NPZ
 using DelimitedFiles
 using FFTW
-using MadNLP, MadNLPGPU, CUDA
+using MadNLP, MadNLPGPU
+using CUDA, AMDGPU
 using Test, LazyArtifacts
 using CompressedSensingIPM
 
@@ -25,7 +26,7 @@ function punch_3D_cart(center, radius, x, y, z; linear = false)
     end 
 end
 
-function crystal(z3d; variant::Bool=false, gpu::Bool=false, rdft::Bool=false)
+function crystal(z3d; variant::Bool=false, gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false)
     if !variant
         dx = 0.02
         dy = 0.02
@@ -83,8 +84,17 @@ function crystal(z3d; variant::Bool=false, gpu::Bool=false, rdft::Bool=false)
     DFTsize = size(punched_pmn)  # problem dim
     DFTdim = length(DFTsize)  # problem size
     M_perptz = M_perp_tz_wei(DFTdim, DFTsize, punched_pmn)
+    S = Vector{Float64}
     if gpu
-        M_perptz = CuArray(M_perptz)
+        if gpu_arch == "cuda"
+            M_perptz = CuArray(M_perptz)
+            S = CuVector{Float64}
+        elseif gpu_arch == "rocm"
+            M_perptz = ROCArray(M_perptz)
+            S = ROCVector{Float64}
+        else
+            error("Unsupported GPU architecture \"$gpu_arch\".")
+        end
     end
     Nt = prod(DFTsize)
 
@@ -102,7 +112,6 @@ function crystal(z3d; variant::Bool=false, gpu::Bool=false, rdft::Bool=false)
     beta_init = ones(Nt) ./ 2
     c_init = ones(Nt)
 
-    S = gpu ? CuVector{Float64} : Vector{Float64}
     nlp = FFTNLPModel{Float64, S}(parameters; rdft)
 
     # Solve with MadNLP/CG
@@ -124,11 +133,12 @@ function crystal(z3d; variant::Bool=false, gpu::Bool=false, rdft::Bool=false)
 end
 
 gpu = true
+gpu_arch = "cuda"
 rdft = true
 variant = true
 path_z3d = variant ? joinpath(artifact"punched_pmn", "punched_pmn.npy") : joinpath(artifact"z3d_movo", "z3d_movo.npy")
 z3d = npzread(path_z3d)
-nlp, solver, results, timer = crystal(z3d; variant, gpu, rdft)
+nlp, solver, results, timer = crystal(z3d; variant, gpu, gpu_arch, rdft)
 N = length(results.solution) ÷ 2
 beta_MadNLP = results.solution[1:N]
 println("Timer: $(timer)")
@@ -138,6 +148,9 @@ println("Timer: $(timer)")
 # nlp.fft_timer[]
 # nlp.mapping_timer[]
 
-open("sol_vishwas.txt", "w") do io
-    writedlm(io, Vector(beta_MadNLP))
+dump_solution = false
+if dump_solution
+    open("sol_vishwas.txt", "w") do io
+        writedlm(io, Vector(beta_MadNLP))
+    end
 end
