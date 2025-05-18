@@ -69,7 +69,7 @@ function fft_example_2D(Nt::Int, Ns::Int; gpu::Bool=false, rdft::Bool=false, che
         tol=1e-8,
         richardson_tol=Inf,
     )
-    results = ipm_solve!(solver)
+    results = CompressedSensingIPM.ipm_solve!(solver)
     t2 = time()
 
     if check

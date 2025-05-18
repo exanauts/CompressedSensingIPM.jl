@@ -10,13 +10,6 @@ using CompressedSensingIPM
 include("../test/fft_wei.jl")
 include("../test/punching_centering.jl")
 
-function ipm_solve!(solver::MadNLP.MadNLPSolver)
-    MadNLP.print_init(solver)
-    MadNLP.initialize!(solver)
-    MadNLP.regular!(solver)
-    return MadNLP.MadNLPExecutionStats(solver)
-end
-
 function punch_3D_cart(center, radius, x, y, z; linear = false)
     radius_x, radius_y, radius_z = (typeof(radius) <: Tuple) ? radius : 
                                                 (radius, radius, radius)
@@ -125,7 +118,7 @@ function crystal(z3d; variant::Bool=false, gpu::Bool=false, rdft::Bool=false)
         tol=1e-8,
         richardson_tol=Inf,
     )
-    results = ipm_solve!(solver)
+    results = CompressedSensingIPM.ipm_solve!(solver)
     t2 = time()
     return nlp, solver, results, t2-t1
 end

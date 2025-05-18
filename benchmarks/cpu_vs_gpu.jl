@@ -2,13 +2,6 @@ using CompressedSensingIPM, FFTW
 using MadNLP, MadNLPGPU
 using CUDA
 
-function ipm_solve!(solver::MadNLP.MadNLPSolver)
-    MadNLP.print_init(solver)
-    MadNLP.initialize!(solver)
-    MadNLP.regular!(solver)
-    return MadNLP.MadNLPExecutionStats(solver)
-end
-
 include("../test/fft_wei.jl")
 include("../test/punching_centering.jl")
 include("../test/fft_example_3D.jl")
