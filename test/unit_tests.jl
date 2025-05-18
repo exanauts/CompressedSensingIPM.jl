@@ -29,10 +29,29 @@ if dim1
       end
 
       if CUDA.functional()
-        @testset "1D -- GPU -- rdft=$rdft -- $N" begin
-          nlp, solver, results = fft_example_1D(N; gpu=true, rdft, check=true)
+        @testset "1D -- CUDA -- rdft=$rdft -- $N" begin
+          nlp, solver, results = fft_example_1D(N; gpu=true, gpu_arch="cuda", rdft, check=true)
 
           z_gpu = CuArray(z)
+
+          z2_gpu = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 1, (N,), z_gpu, Int[], nlp.fft_timer, nlp.mapping_timer; rdft)
+          @test z2_gpu ≈ z_gpu
+
+          res1_gpu = M_perp_tz(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 1, (N,), z_gpu, nlp.fft_timer, nlp.mapping_timer; rdft)
+          @test norm(res1_gpu) ≈ norm(z_gpu)
+          @test res1_wei ≈ collect(res1_gpu)
+
+          res2_gpu = M_perp_beta(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 1, (N,), z_gpu, Int[], nlp.fft_timer, nlp.mapping_timer; rdft)
+          @test norm(res2_gpu) ≈ norm(z_gpu)
+          @test res2_wei ≈ collect(res2_gpu)
+        end
+      end
+
+      if AMDGPU.functional()
+        @testset "1D -- ROCm -- rdft=$rdft -- $N" begin
+          nlp, solver, results = fft_example_1D(N; gpu=true, gpu_arch="rocm", rdft, check=true)
+
+          z_gpu = ROCArray(z)
 
           z2_gpu = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 1, (N,), z_gpu, Int[], nlp.fft_timer, nlp.mapping_timer; rdft)
           @test z2_gpu ≈ z_gpu
@@ -81,10 +100,28 @@ if dim2
       end
 
       if CUDA.functional()
-        @testset "2D -- GPU -- rdft=$rdft -- $N1 × $N2" begin
-          nlp, solver, results = fft_example_2D(N1, N2; gpu=true, rdft, check=true)
+        @testset "2D -- CUDA -- rdft=$rdft -- $N1 × $N2" begin
+          nlp, solver, results = fft_example_2D(N1, N2; gpu=true, gpu_arch="cuda", rdft, check=true)
 
           z_gpu = CuArray(z)
+
+          z2_gpu = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 2, (N1, N2), z_gpu, Int[], nlp.fft_timer, nlp.mapping_timer; rdft)
+          @test z2_gpu ≈ z_gpu
+
+          res1_gpu = M_perp_tz(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 2, (N1, N2), reshape(z_gpu, (N1, N2)), nlp.fft_timer, nlp.mapping_timer; rdft)
+          @test norm(res1_gpu) ≈ norm(z_gpu)
+          @test res1_wei ≈ collect(res1_gpu)
+
+          res2_gpu = M_perp_beta(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 2, (N1, N2), z_gpu, Int[], nlp.fft_timer, nlp.mapping_timer; rdft)
+          @test norm(res2_gpu) ≈ norm(z_gpu)
+          @test res2_wei ≈ collect(res2_gpu)
+        end
+      end
+      if AMDGPU.functional()
+        @testset "2D -- ROCm -- rdft=$rdft -- $N1 × $N2" begin
+          nlp, solver, results = fft_example_2D(N1, N2; gpu=true, gpu_arch="rocm", rdft, check=true)
+
+          z_gpu = ROCArray(z)
 
           z2_gpu = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 2, (N1, N2), z_gpu, Int[], nlp.fft_timer, nlp.mapping_timer; rdft)
           @test z2_gpu ≈ z_gpu
@@ -133,10 +170,29 @@ if dim3
       end
 
       if CUDA.functional()
-        @testset "3D -- GPU -- rdft=$rdft -- $N1 × $N2 × $N3" begin
-          nlp, solver, results = fft_example_3D(N1, N2, N3; gpu=true, rdft, check=true)
+        @testset "3D -- CUDA -- rdft=$rdft -- $N1 × $N2 × $N3" begin
+          nlp, solver, results = fft_example_3D(N1, N2, N3; gpu=true, gpu_arch="cuda", rdft, check=true)
 
           z_gpu = CuArray(z)
+
+          z2_gpu = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 3, (N1, N2, N3), z_gpu, Int[], nlp.fft_timer, nlp.mapping_timer; rdft)
+          @test z2_gpu ≈ z_gpu
+
+          res1_gpu = M_perp_tz(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 3, (N1, N2, N3), reshape(z_gpu, (N1, N2, N3)), nlp.fft_timer, nlp.mapping_timer; rdft)
+          @test norm(res1_gpu) ≈ norm(z_gpu)
+          @test res1_wei ≈ collect(res1_gpu)
+
+          res2_gpu = M_perp_beta(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 3, (N1, N2, N3), z_gpu, Int[], nlp.fft_timer, nlp.mapping_timer; rdft)
+          @test norm(res2_gpu) ≈ norm(z_gpu)
+          @test res2_wei ≈ collect(res2_gpu)
+        end
+      end
+
+      if AMDGPU.functional()
+        @testset "3D -- ROCm -- rdft=$rdft -- $N1 × $N2 × $N3" begin
+          nlp, solver, results = fft_example_3D(N1, N2, N3; gpu=true, gpu_arch="rocm", rdft, check=true)
+
+          z_gpu = ROCArray(z)
 
           z2_gpu = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 3, (N1, N2, N3), z_gpu, Int[], nlp.fft_timer, nlp.mapping_timer; rdft)
           @test z2_gpu ≈ z_gpu

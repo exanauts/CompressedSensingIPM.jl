@@ -374,16 +374,8 @@ function MadNLP.solve!(kkt::FFTKKTSystem, w::MadNLP.AbstractKKTVector)
 end
 
 function MadNLP.factorize_wrapper!(
-    solver::MadNLP.MadNLPSolver{T,Vector{T},Vector{Int},KKT}
-    ) where {T,KKT<:FFTKKTSystem{T,Vector{Int},Vector{T}}}
-    MadNLP.build_kkt!(solver.kkt)
-    # No factorization needed
-    return true
-end
-
-function MadNLP.factorize_wrapper!(
-    solver::MadNLP.MadNLPSolver{T,CuVector{T},CuVector{Int},KKT}
-    ) where {T,KKT<:FFTKKTSystem{T,CuVector{Int},CuVector{T}}}
+    solver::MadNLP.MadNLPSolver{T,VT,IT,KKT}
+    ) where {T, VT<:AbstractVector{T}, IT<:AbstractVector{Int}, KKT<:FFTKKTSystem{T,IT,VT}}
     MadNLP.build_kkt!(solver.kkt)
     # No factorization needed
     return true

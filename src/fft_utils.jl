@@ -113,6 +113,13 @@ function DFT_to_beta(dim::Int, size, v::CuArray{ComplexF64}; rdft::Bool=false)
     return beta
 end
 
+function DFT_to_beta(dim::Int, size, v::ROCArray{ComplexF64}; rdft::Bool=false)
+    N = prod(size)
+    beta = ROCVector{Float64}(undef, N)
+    DFT_to_beta!(beta, dim, size, v; rdft)
+    return beta
+end
+
 # mapping beta to DFT
 # @param dim The dimension of the problem (dim = 1, 2, 3)
 # @param size The size of each dimension of the problem
@@ -151,6 +158,12 @@ end
 
 function beta_to_DFT(dim::Int, size, beta::StridedCuVector{Float64}; rdft::Bool=false)
     v = CuArray{ComplexF64}(undef, size)
+    beta_to_DFT!(v, dim, size, beta; rdft)
+    return v
+end
+
+function beta_to_DFT(dim::Int, size, beta::AMDGPU.StridedROCVector{Float64}; rdft::Bool=false)
+    v = ROCArray{ComplexF64}(undef, size)
     beta_to_DFT!(v, dim, size, beta; rdft)
     return v
 end
