@@ -14,6 +14,8 @@ include("fft_model.jl")
 
 include("mapping_cpu.jl")
 # include("mapping_cpu_kernels.jl")
+
+include("gpu_utils.jl")
 include("mapping_cuda.jl")
 include("mapping_rocm.jl")
 # include("mapping_gpu_kernels.jl")
