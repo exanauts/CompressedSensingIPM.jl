@@ -162,7 +162,7 @@ function beta_to_DFT(dim::Int, size, beta::StridedCuVector{Float64}; rdft::Bool=
     return v
 end
 
-function beta_to_DFT(dim::Int, size, beta::AMDGPU.StridedCuVector{Float64}; rdft::Bool=false)
+function beta_to_DFT(dim::Int, size, beta::AMDGPU.StridedROCVector{Float64}; rdft::Bool=false)
     v = ROCArray{ComplexF64}(undef, size)
     beta_to_DFT!(v, dim, size, beta; rdft)
     return v
