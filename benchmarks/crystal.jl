@@ -133,7 +133,7 @@ function crystal(z3d; variant::Bool=false, gpu::Bool=false, gpu_arch::String="cu
 end
 
 gpu = true
-gpu_arch = "cuda"
+gpu_arch = "cuda"  # "rocm"
 rdft = true
 variant = true
 path_z3d = variant ? joinpath(artifact"punched_pmn", "punched_pmn.npy") : joinpath(artifact"z3d_movo", "z3d_movo.npy")

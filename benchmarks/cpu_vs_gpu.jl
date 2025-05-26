@@ -23,7 +23,7 @@ end
 
 # GPU
 gpu = true
-gpu_arch = "cuda"
+gpu_arch = "cuda"  # "rocm"
 rdft = true
 check = false
 
