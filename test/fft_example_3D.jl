@@ -1,5 +1,5 @@
 ## 3D
-function fft_example_3D(N1::Int, N2::Int, N3::Int; gpu::Bool=false, rdft::Bool=false, check::Bool=false)
+function fft_example_3D(N1::Int, N2::Int, N3::Int; gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false, check::Bool=false)
     idx1 = collect(0:(N1-1))
     idx2 = collect(0:(N2-1))
     idx3 = collect(0:(N3-1))
@@ -31,8 +31,20 @@ function fft_example_3D(N1::Int, N2::Int, N3::Int; gpu::Bool=false, rdft::Bool=f
 
     # unify parameters for barrier method
     M_perptz = M_perp_tz_wei(DFTdim, DFTsize, z_zero)
+    AT = Array
+    S = Vector{Float64}
     if gpu
-        M_perptz = CuArray(M_perptz)
+        if gpu_arch == "cuda"
+            M_perptz = CuArray(M_perptz)
+            AT = CuArray
+            S = CuVector{Float64}
+        elseif gpu_arch == "rocm"
+            M_perptz = ROCArray(M_perptz)
+            AT = ROCArray
+            S = ROCVector{Float64}
+        else
+            error("Unsupported GPU architecture \"$gpu_arch\".")
+        end
     end
 
     lambda = check ? 0 : 5
@@ -48,7 +60,6 @@ function fft_example_3D(N1::Int, N2::Int, N3::Int; gpu::Bool=false, rdft::Bool=f
     beta_init = zeros(prod(DFTsize))
     c_init = ones(prod(DFTsize))
 
-    S = gpu ? CuVector{Float64} : Vector{Float64}
     nlp = FFTNLPModel{Float64, S}(parameters; rdft)
 
     # Solve with MadNLP/LBFGS
@@ -74,19 +85,20 @@ function fft_example_3D(N1::Int, N2::Int, N3::Int; gpu::Bool=false, rdft::Bool=f
 
     if check
         beta_MadNLP = results.solution[1:N1*N2*N3]
-        beta_true = DFT_to_beta(DFTdim, DFTsize, gpu ? CuArray(w) : w)
+        beta_true = DFT_to_beta(DFTdim, DFTsize, w |> AT)
         @test norm(beta_true - beta_MadNLP) ≤ 1e-6
     end
 
     return nlp, solver, results, t2-t1
 end
 
-N1 = 8
-N2 = 8
-N3 = 8
-gpu = false
-rdft = true
-check = false
-nlp, solver, results, timer = fft_example_3D(N1, N2, N3; gpu, rdft, check)
-beta_MadNLP = results.solution[1:N1*N2*N3]
-println("Timer: $(timer)")
+# N1 = 8
+# N2 = 8
+# N3 = 8
+# gpu = false
+# gpu_arch = "cuda"
+# rdft = true
+# check = false
+# nlp, solver, results, timer = fft_example_3D(N1, N2, N3; gpu, gpu_arch, rdft, check)
+# beta_MadNLP = results.solution[1:N1*N2*N3]
+# println("Timer: $(timer)")
