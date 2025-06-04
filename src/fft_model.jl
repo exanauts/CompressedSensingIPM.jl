@@ -54,8 +54,8 @@ function FFTNLPModel{T,VT}(parameters::FFTParameters; krylov_solver::Symbol=:cg,
         y0 = y0,
         lcon = lcon,
         ucon = ucon,
-        nnzj = 1, # 2 * ncon,
-        nnzh = 1, # div(N * (N + 1), 2),
+        nnzj = 0, # 2 * ncon,
+        nnzh = 0, # div(N * (N + 1), 2),
         minimize = true,
         islp = false,
         name = "CompressedSensing-$(DFTdim)D",
@@ -100,7 +100,7 @@ function NLPModels.cons!(nlp::FFTNLPModel, x::AbstractVector, c::AbstractVector)
 end
 
 function NLPModels.jac_structure!(nlp::FFTNLPModel, rows::AbstractVector{Int}, cols::AbstractVector{Int})
-    if nlp.meta.nnzj > 1
+    if nlp.meta.nnzj > 0
         N = nlp.N
         k = 0
         for i = 1:N
@@ -124,7 +124,7 @@ function NLPModels.jac_structure!(nlp::FFTNLPModel, rows::AbstractVector{Int}, c
 end
 
 function NLPModels.jac_coord!(nlp::FFTNLPModel, x::AbstractVector{T}, vals::AbstractVector{T}) where T
-    if nlp.meta.nnzj > 1
+    if nlp.meta.nnzj > 0
         increment!(nlp, :neval_jac)
         N = nlp.N
         k = 0
@@ -237,7 +237,7 @@ function NLPModels.hprod!(
 end
 
 function NLPModels.hess_structure!(nlp::FFTNLPModel, rows::AbstractVector{Int}, cols::AbstractVector{Int})
-    if nlp.meta.nnzh > 1
+    if nlp.meta.nnzh > 0
         nβ = nlp.N
         cnt = 1
         for i in 1:nβ
@@ -261,7 +261,7 @@ function NLPModels.hess_coord!(
     hess::AbstractVector;
     obj_weight::Float64 = 1.0,
 )
-    if nlp.meta.nnzh > 1
+    if nlp.meta.nnzh > 0
         increment!(nlp, :neval_hess)
         DFTdim = nlp.parameters.paramf[1]
         DFTsize = nlp.parameters.paramf[2]
