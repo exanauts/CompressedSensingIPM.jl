@@ -14,7 +14,7 @@ if dim1
 
     for rdft in (false, true)
       @testset "1D -- CPU -- rdft=$rdft -- $N" begin
-        nlp, solver, results = fft_example_1D(N; gpu=false, rdft, check=true, preconditioner=false)
+        nlp, solver, results = fft_example_1D(N; gpu=false, rdft, check=true)
 
         z2 = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 1, (N,), z, Int[], nlp.fft_timer, nlp.mapping_timer; rdft)
         @test z2 ≈ z
