@@ -25,9 +25,10 @@ mutable struct FFTNLPModel{T,VT,FFT,R,C} <: AbstractNLPModel{T,VT}
     fft_timer::Ref{Float64}
     mapping_timer::Ref{Float64}
     krylov_solver::Symbol
+    preconditioner::Bool
 end
 
-function FFTNLPModel{T,VT}(parameters::FFTParameters; krylov_solver::Symbol=:cg, rdft::Bool=false) where {T,VT}
+function FFTNLPModel{T,VT}(parameters::FFTParameters; krylov_solver::Symbol=:cg, rdft::Bool=false, preconditioner::Bool=true) where {T,VT}
     DFTdim = parameters.paramf[1]   # problem size (1, 2, 3)
     DFTsize = parameters.paramf[2]  # problem dimension
     N = prod(DFTsize)
@@ -84,7 +85,7 @@ function FFTNLPModel{T,VT}(parameters::FFTParameters; krylov_solver::Symbol=:cg,
     fft_timer = Ref{Float64}(0.0)
     mapping_timer = Ref{Float64}(0.0)
     return FFTNLPModel(meta, parameters, N, Counters(), op, buffer_real, buffer_complex1,
-                       buffer_complex2, rdft, fft_timer, mapping_timer, krylov_solver)
+                       buffer_complex2, rdft, fft_timer, mapping_timer, krylov_solver, preconditioner)
 end
 
 function NLPModels.cons!(nlp::FFTNLPModel, x::AbstractVector, c::AbstractVector)
