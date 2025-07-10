@@ -363,8 +363,8 @@ function MadNLP.solve!(kkt::FFTKKTSystem, w::MadNLP.AbstractKKTVector)
     push!(kkt.krylov_timer, kkt.linear_solver |> Krylov.elapsed_time)
 
     # Unpack solution
-    w1 .= x[1:nβ]                              # / x
-    w2 .= x[(nβ+1):(2*nβ)]                     # / z
+    w1 .= view(x, 1:nβ)                        # / x
+    w2 .= view(x, (nβ+1):(2*nβ))               # / z
     w5 .= .-(w3 .+ Σ1 .* (w1 .+ w2 .+ w5))     # / y1
     w6 .= .-(w4 .+ Σ2 .* (.-w1 .+ w2 .+ w6))   # / y2
     w3 .= (w3 .+ w5) ./ Σ1                     # / s1
