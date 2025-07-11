@@ -112,7 +112,7 @@ function crystal(z3d; variant::Bool=false, gpu::Bool=false, gpu_arch::String="cu
     beta_init = ones(Nt) ./ 2
     c_init = ones(Nt)
 
-    nlp = FFTNLPModel{Float64, S}(parameters; rdft)
+    nlp = FFTNLPModel{Float64, S}(parameters; rdft, preconditioner=true)
 
     # Solve with MadNLP/CG
     t1 = time()
