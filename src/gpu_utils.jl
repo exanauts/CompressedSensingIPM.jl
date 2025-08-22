@@ -36,7 +36,7 @@ end
     ROCSparseMatrixCSC to ROCMatrix
 =#
 
-function MadNLPGPU.transfer!(y::ROCMatrix{T}, x::ROCSparseMatrixCSC{T}) where {T}
+function MadNLPGPU.gpu_transfer!(y::ROCMatrix{T}, x::ROCSparseMatrixCSC{T}) where {T}
     n = size(y, 2)
     fill!(y, zero(T))
     backend = ROCBackend()
