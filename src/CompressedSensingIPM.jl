@@ -11,6 +11,7 @@ export FFTNLPModel, FFTKKTSystem, FFTParameters
 
 include("fft_utils.jl")
 include("fft_model.jl")
+# include("gondzio_fft_model.jl")
 
 include("mapping_cpu.jl")
 # include("mapping_cpu_kernels.jl")
