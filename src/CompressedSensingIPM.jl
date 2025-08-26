@@ -7,7 +7,7 @@ using FFTW
 using Krylov
 using NLPModels
 
-export FFTNLPModel, FFTKKTSystem, FFTParameters
+export FFTNLPModel, FFTKKTSystem, FFTParameters, FFTOperator
 
 include("fft_utils.jl")
 include("fft_model.jl")
