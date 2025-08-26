@@ -22,8 +22,8 @@ mutable struct FFTNLPModel{T,VT,FFT,R,C} <: AbstractNLPModel{T,VT}
     buffer_complex1::C
     buffer_complex2::C
     rdft::Bool
-    fft_timer::Ref{Float64}
-    mapping_timer::Ref{Float64}
+    fft_timer::Base.RefValue{Float64}
+    mapping_timer::Base.RefValue{Float64}
     krylov_solver::Symbol
     preconditioner::Bool
 end
