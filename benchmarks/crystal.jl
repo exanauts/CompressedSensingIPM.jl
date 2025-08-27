@@ -85,16 +85,16 @@ function crystal(z3d; variant::Bool=false, gpu::Bool=false, gpu_arch::String="cu
     DFTdim = length(DFTsize)  # problem size
     if gpu
         if gpu_arch == "cuda"
-            AT = CuArray
+            AT = CuArray{Float64}
             VT = CuVector{Float64}
         elseif gpu_arch == "rocm"
-            AT = ROCArray
+            AT = ROCArray{Float64}
             VT = ROCVector{Float64}
         else
             error("Unsupported GPU architecture \"$gpu_arch\".")
         end
     else
-        AT = Array
+        AT = Array{Float64}
         VT = Vector{Float64}
     end
 
