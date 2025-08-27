@@ -1,30 +1,11 @@
-# compute M_{\perp}^{\top}z
-
-# @param z_zero The zero-imputed signal, i.e. replacing all the missing values in the signal with 0.
-# e.g. The signal is [2;3;missing;4], then z_zero = [2;3;0;4].
-# @param dim The dimension of the problem (dim = 1, 2, 3)
-# @param size The size of each dimension of the problem
-#(we only consider the cases when the sizes are even for all the dimenstions)
-#(size is a tuple, e.g. size = (10, 20, 30))
-
-# @details This function computes M_{\perp}^{\top}z.
-
-# @return M_{\perp}^{\top}z A vector with length equal to the product of size
-# @example
-# >widetildez = [2;3;missing;4]
-# >z_zero  = [2;3;0;4]
-# >dim = 1;
-# >size1 = 4;
-# >M_perptz = M_perp_tz(z_zero, dim, size1)
-
-function M_perp_tz(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, z_zero, fft_timer, mapping_timer; rdft::Bool=false)
+function M_perpt_z(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, z, fft_timer, mapping_timer; rdft::Bool=false)
     N = prod(_size)
 
     t1 = time_ns()
     if rdft
-        temp = mul!(buffer_complex1, op, z_zero)  # op_rfft
+        temp = mul!(buffer_complex1, op, z)  # op_rfft
     else
-        buffer_complex2 .= z_zero  # z_zero should be store in a complex buffer for mul!
+        buffer_complex2 .= z  # z should be store in a complex buffer for mul!
         temp = mul!(buffer_complex1, op, buffer_complex2)  # op_fft
     end
     temp ./= sqrt(N)
@@ -65,7 +46,7 @@ end
 
 function M_perpt_M_perp_vec(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, vec, idx_missing, fft_timer, mapping_timer; rdft::Bool=false)
     temp = M_perp_beta(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, vec, idx_missing, fft_timer, mapping_timer; rdft)
-    temp = M_perp_tz(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, temp, fft_timer, mapping_timer; rdft)
+    temp = M_perpt_z(buffer_real, buffer_complex1, buffer_complex2, op, dim, _size, temp, fft_timer, mapping_timer; rdft)
     return temp
 end
 

@@ -6,52 +6,44 @@
 
 =#
 
-struct CondensedFFTKKT{T, VT, FFT, R, C} <: AbstractMatrix{T}
-    nβ::Int
-    params::FFTParameters  # for MᵀM
+struct CondensedFFTKKTSystem{T,VT,NLP} <: AbstractMatrix{T}
+    nlp::NLP
     buf1::VT
     Λ1::VT  # Σ₁ + Σ₂
     Λ2::VT  # Σ₁ - Σ₂
-    op::FFT # FFT operator
-    buffer_real::R      # Buffer for fft and ifft
-    buffer_complex1::C  # Buffer for fft and ifft
-    buffer_complex2::C  # Buffer for fft and ifft
-    rdft::Bool
-    fft_timer::Ref{Float64}
-    mapping_timer::Ref{Float64}
 end
 
-function CondensedFFTKKT{T, VT}(nlp::FFTNLPModel{T, VT}) where {T, VT}
-    nβ = nlp.N
-    buf1 = VT(undef, nβ)
-    Λ1 = VT(undef, nβ)
-    Λ2 = VT(undef, nβ)
-    return CondensedFFTKKT{T, VT, typeof(nlp.op), typeof(nlp.buffer_real), typeof(nlp.buffer_complex1)}(
-                nβ, nlp.parameters, buf1, Λ1, Λ2, nlp.op, nlp.buffer_real,
-                nlp.buffer_complex1, nlp.buffer_complex2, nlp.rdft, nlp.fft_timer, nlp.mapping_timer)
+function CondensedFFTKKTSystem{T,VT}(nlp::FFTNLPModel{T,VT}) where {T,VT}
+    buf1 = VT(undef, nlp.nβ)
+    Λ1 = VT(undef, nlp.nβ)
+    Λ2 = VT(undef, nlp.nβ)
+    NLP = typeof(nlp)
+    return CondensedFFTKKTSystem{T,VT,NLP}(nlp, buf1, Λ1, Λ2)
 end
 
-Base.size(K::CondensedFFTKKT) = (2*K.nβ, 2*K.nβ)
-Base.eltype(K::CondensedFFTKKT{T, VT}) where {T, VT} = T
+Base.size(K::CondensedFFTKKTSystem) = (2*K.nlp.nβ, 2*K.nlp.nβ)
+Base.eltype(K::CondensedFFTKKTSystem{T, VT}) where {T, VT} = T
 
-function LinearAlgebra.mul!(y::AbstractVector, K::CondensedFFTKKT, x::AbstractVector, alpha::Number, beta::Number)
-    nβ = K.nβ
+function LinearAlgebra.mul!(y::AbstractVector, K::CondensedFFTKKTSystem, x::AbstractVector, alpha::Number, beta::Number)
+    nlp = K.nlp
+    nβ = nlp.nβ
+    parameters = nlp.parameters
+
     @assert length(y) == length(x) == 2 * nβ
     # Load parameters
-    DFTdim = K.params.paramf[1]
-    DFTsize = K.params.paramf[2]
-    M_perptz = K.params.paramf[3]
-    lambda = K.params.paramf[4]
-    index_missing = K.params.paramf[5]
+    DFTdim = parameters.DFTdim
+    DFTsize = parameters.DFTsize
+    lambda = parameters.lambda
+    index_missing = parameters.index_missing
 
     Mβ = K.buf1
-    yβ  = view(y, 1:nβ)
-    yz  = view(y, nβ+1:2*nβ)
-    xβ  = view(x, 1:nβ)
-    xz  = view(x, nβ+1:2*nβ)
+    yβ = view(y, 1:nβ)
+    yz = view(y, nβ+1:2*nβ)
+    xβ = view(x, 1:nβ)
+    xz = view(x, nβ+1:2*nβ)
 
     # Evaluate Mᵀ M xβ
-    Mβ .= M_perpt_M_perp_vec(K.buffer_real, K.buffer_complex1, K.buffer_complex2, K.op, DFTdim, DFTsize, xβ, index_missing, K.fft_timer, K.mapping_timer; K.rdft)
+    Mβ .= M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, DFTdim, DFTsize, xβ, index_missing, nlp.fft_timer, nlp.mapping_timer; K.nlp.rdft)
 
     yβ .= beta .* yβ .+ alpha .* (Mβ .+ K.Λ1 .* xβ .+ K.Λ2 .* xz)
     yz .= beta .* yz .+ alpha .* (K.Λ2 .* xβ .+ K.Λ1 .* xz)
@@ -103,8 +95,8 @@ end
     FFTKKTSystem
 =#
 
-struct FFTKKTSystem{T, VI, VT, MT, LS} <: MadNLP.AbstractReducedKKTSystem{T, VT, MT, MadNLP.ExactHessian{T, VT}}
-    nlp::FFTNLPModel{T, VT}
+struct FFTKKTSystem{T, VI, VT, MT, LS, NLP} <: MadNLP.AbstractReducedKKTSystem{T, VT, MT, MadNLP.ExactHessian{T, VT}}
+    nlp::NLP
     # Operators
     K::MT
     P::FFTPreconditioner{T, VT}
@@ -118,8 +110,8 @@ struct FFTKKTSystem{T, VI, VT, MT, LS} <: MadNLP.AbstractReducedKKTSystem{T, VT,
     ind_lb::VI
     ind_ub::VI
     # Buffers
-    z1::VT           # dimension nβ
-    z2::VT           # dimension 2 * nβ
+    z1::VT  # dimension nβ
+    z2::VT  # dimension 2 * nβ
     linear_solver::LS
     krylov_iterations::Vector{Int}
     krylov_timer::Vector{Float64}
@@ -136,7 +128,7 @@ function MadNLP.create_kkt_system(
 ) where {T, VT}
     # Load original model
     nlp = cb.nlp
-    nβ = nlp.N
+    nβ = nlp.nβ
     nlb, nub = length(ind_cons.ind_lb), length(ind_cons.ind_ub)
     n_ineq = length(ind_cons.ind_ineq)
 
@@ -158,11 +150,11 @@ function MadNLP.create_kkt_system(
     z1 = VT(undef, nβ)
     z2 = VT(undef, 2*nβ)
 
-    K = CondensedFFTKKT{T, VT}(nlp)
-    P = FFTPreconditioner{T, VT}(nβ)
+    K = CondensedFFTKKTSystem{T, VT}(nlp)
+    P = FFTPreconditioner{T, VT}(nlp.nβ)
     VI = Vector{Int}
 
-    return FFTKKTSystem{T, VI, VT, typeof(K), typeof(workspace)}(
+    return FFTKKTSystem{T, VI, VT, typeof(K), typeof(workspace), typeof(nlp)}(
         nlp, K, P,
         reg, pr_diag, du_diag, l_diag, u_diag, l_lower, u_lower,
         ind_cons.ind_lb, ind_cons.ind_ub,
@@ -171,7 +163,7 @@ function MadNLP.create_kkt_system(
     )
 end
 
-MadNLP.num_variables(kkt::FFTKKTSystem) = 2*kkt.nlp.N
+MadNLP.num_variables(kkt::FFTKKTSystem) = 2*kkt.nlp.nβ
 MadNLP.get_hessian(kkt::FFTKKTSystem) = nothing
 MadNLP.get_jacobian(kkt::FFTKKTSystem) = nothing
 
@@ -228,12 +220,14 @@ end
 
 function MadNLP.mul!(y::VT, kkt::FFTKKTSystem, x::VT, alpha::Number, beta::Number) where VT <: MadNLP.AbstractKKTVector
     nlp = kkt.nlp
+    nβ = nlp.nβ
+    parameters = nlp.parameters
+
     # FFT parameters
-    DFTdim = nlp.parameters.paramf[1]
-    DFTsize = nlp.parameters.paramf[2]
-    M_perptz = nlp.parameters.paramf[3]
-    lambda = nlp.parameters.paramf[4]
-    index_missing = nlp.parameters.paramf[5]
+    DFTdim = parameters.DFTdim
+    DFTsize = parameters.DFTsize
+    lambda = parameters.lambda
+    index_missing = parameters.index_missing
 
     n = NLPModels.get_nvar(nlp)
     m = NLPModels.get_ncon(nlp)
@@ -241,7 +235,6 @@ function MadNLP.mul!(y::VT, kkt::FFTKKTSystem, x::VT, alpha::Number, beta::Numbe
     _x = MadNLP.full(x)
     _y = MadNLP.full(y)
 
-    nβ = nlp.N
     Mβ = kkt.z1
 
     yβ  = view(_y, 1:nβ)
@@ -259,7 +252,7 @@ function MadNLP.mul!(y::VT, kkt::FFTKKTSystem, x::VT, alpha::Number, beta::Numbe
     xy2 = view(_x, 5*nβ+1:6*nβ)
 
     # Evaluate (MᵀM) * xβ
-    Mβ .= M_perpt_M_perp_vec(kkt.K.buffer_real, kkt.K.buffer_complex1, kkt.K.buffer_complex2, kkt.K.op, DFTdim, DFTsize, xβ, index_missing, kkt.K.fft_timer, kkt.K.mapping_timer; kkt.K.rdft)
+    Mβ .= M_perpt_M_perp_vec(kkt.nlp.buffer_real, kkt.nlp.buffer_complex1, kkt.nlp.buffer_complex2, kkt.nlp.op, DFTdim, DFTsize, xβ, index_missing, kkt.nlp.fft_timer, kkt.nlp.mapping_timer; kkt.nlp.rdft)
     yβ .= beta .* yβ .+ alpha .* (Mβ .- xy1 .+ xy2)
     yz .= beta .* yz .- alpha .* (xy1 .+ xy2)
     ys1 .= beta .* ys1 .- alpha .* xy1
@@ -278,7 +271,7 @@ function MadNLP.jtprod!(
     x::AbstractVector,
 ) where {T, VI, VT, MT}
     nlp = kkt.nlp
-    nβ = nlp.N
+    nβ = nlp.nβ
 
     xy1 = view(x, 1:nβ)
     xy2 = view(x, nβ+1:2*nβ)
@@ -306,7 +299,7 @@ end
 
 function MadNLP.build_kkt!(kkt::FFTKKTSystem)
     nlp = kkt.nlp
-    nβ = nlp.N
+    nβ = nlp.nβ
     # Assemble preconditioner
     Σ1 = view(kkt.pr_diag, 2*nβ+1:3*nβ)
     Σ2 = view(kkt.pr_diag, 3*nβ+1:4*nβ)
@@ -315,7 +308,7 @@ function MadNLP.build_kkt!(kkt::FFTKKTSystem)
     Λ2 = kkt.K.Λ2
     Minv = kkt.z1
 
-    # Update values in CondensedFFTKKT
+    # Update values in CondensedFFTKKTSystem
     Λ1 .= Σ1 .+ Σ2
     Λ2 .= Σ1 .- Σ2
 
@@ -330,7 +323,7 @@ end
 
 function MadNLP.solve!(kkt::FFTKKTSystem, w::MadNLP.AbstractKKTVector)
     nlp = kkt.nlp
-    nβ = nlp.N
+    nβ = nlp.nβ
     # Build reduced KKT vector.
     MadNLP.reduce_rhs!(w.xp_lr, MadNLP.dual_lb(w), kkt.l_diag, w.xp_ur, MadNLP.dual_ub(w), kkt.u_diag)
 

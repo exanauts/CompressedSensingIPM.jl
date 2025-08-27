@@ -20,52 +20,33 @@ function fft_example_3D(N1::Int, N2::Int, N3::Int; gpu::Bool=false, gpu_arch::St
     print("Generate missing indices: ")
     if check
         index_missing = Int[]
-        z_zero = y
+        z0 = y
     else
         missing_prob = 0.15
         centers = centering(DFTdim, DFTsize, missing_prob)
         radius = 1
-        index_missing, z_zero = punching(DFTdim, DFTsize, centers, radius, y)
+        index_missing, z0 = punching(DFTdim, DFTsize, centers, radius, y)
     end
     println("✓")
 
-    # unify parameters for barrier method
-    M_perptz = M_perp_tz_wei(DFTdim, DFTsize, z_zero)
-    AT = Array
-    S = Vector{Float64}
     if gpu
         if gpu_arch == "cuda"
-            M_perptz = CuArray(M_perptz)
             AT = CuArray
-            S = CuVector{Float64}
+            VT = CuVector{Float64}
         elseif gpu_arch == "rocm"
-            M_perptz = ROCArray(M_perptz)
             AT = ROCArray
-            S = ROCVector{Float64}
+            VT = ROCVector{Float64}
         else
             error("Unsupported GPU architecture \"$gpu_arch\".")
         end
+    else
+        AT = Array
+        VT = Vector{Float64}
     end
 
     lambda = check ? 0 : 5
-    alpha_LS = 0.1
-    gamma_LS = 0.8
-    eps_NT = 1e-6
-    eps_barrier = 1e-6
-    mu_barrier = 10
-
-    parameters = FFTParameters(DFTdim, DFTsize, M_perptz, lambda, index_missing, alpha_LS, gamma_LS, eps_NT, mu_barrier, eps_barrier)
-
-    t_init = 1
-    beta_init = zeros(prod(DFTsize))
-    c_init = ones(prod(DFTsize))
-
-    nlp = FFTNLPModel{Float64, S}(parameters; rdft)
-
-    # Solve with MadNLP/LBFGS
-    # solver = MadNLP.MadNLPSolver(nlp; hessian_approximation=MadNLP.CompactLBFGS)
-    # results = MadNLP.solve!(solver)
-    # beta_MadNLP = results.solution[1:N1*N2*N3]
+    parameters = FFTParameters(DFTdim, DFTsize, z0 |> AT, lambda, index_missing)
+    nlp = FFTNLPModel{VT}(parameters; rdft)
 
     # Solve with MadNLP/CG
     t1 = time()

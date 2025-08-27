@@ -6,7 +6,7 @@ if dim1
     z2_wei = M_perpt_M_perp_vec_wei(1, (N,), z, Int[])
     @test z2_wei ≈ z
 
-    res1_wei = M_perp_tz_wei(1, (N,), z)
+    res1_wei = M_perpt_z_wei(1, (N,), z)
     @test norm(res1_wei) ≈ norm(z)
 
     res2_wei = M_perp_beta_wei(1, (N,), z, Int[])
@@ -19,7 +19,7 @@ if dim1
         z2 = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 1, (N,), z, Int[], nlp.fft_timer, nlp.mapping_timer; rdft)
         @test z2 ≈ z
 
-        res1 = M_perp_tz(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 1, (N,), z, nlp.fft_timer, nlp.mapping_timer; rdft)
+        res1 = M_perpt_z(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 1, (N,), z, nlp.fft_timer, nlp.mapping_timer; rdft)
         @test norm(res1) ≈ norm(z)
         @test res1_wei ≈ res1
 
@@ -37,7 +37,7 @@ if dim1
           z2_gpu = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 1, (N,), z_gpu, Int[], nlp.fft_timer, nlp.mapping_timer; rdft)
           @test z2_gpu ≈ z_gpu
 
-          res1_gpu = M_perp_tz(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 1, (N,), z_gpu, nlp.fft_timer, nlp.mapping_timer; rdft)
+          res1_gpu = M_perpt_z(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 1, (N,), z_gpu, nlp.fft_timer, nlp.mapping_timer; rdft)
           @test norm(res1_gpu) ≈ norm(z_gpu)
           @test res1_wei ≈ collect(res1_gpu)
 
@@ -56,7 +56,7 @@ if dim1
           z2_gpu = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 1, (N,), z_gpu, Int[], nlp.fft_timer, nlp.mapping_timer; rdft)
           @test z2_gpu ≈ z_gpu
 
-          res1_gpu = M_perp_tz(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 1, (N,), z_gpu, nlp.fft_timer, nlp.mapping_timer; rdft)
+          res1_gpu = M_perpt_z(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 1, (N,), z_gpu, nlp.fft_timer, nlp.mapping_timer; rdft)
           @test norm(res1_gpu) ≈ norm(z_gpu)
           @test res1_wei ≈ collect(res1_gpu)
 
@@ -77,7 +77,7 @@ if dim2
     z2_wei = M_perpt_M_perp_vec_wei(2, (N1, N2), z, Int[])
     @test z2_wei ≈ z
 
-    res1_wei = M_perp_tz_wei(2, (N1, N2), reshape(z, (N1, N2)))
+    res1_wei = M_perpt_z_wei(2, (N1, N2), reshape(z, (N1, N2)))
     @test norm(res1_wei) ≈ norm(z)
 
     res2_wei = M_perp_beta_wei(2, (N1, N2), z, Int[])
@@ -90,7 +90,7 @@ if dim2
         z2 = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 2, (N1, N2), z, Int[], nlp.fft_timer, nlp.mapping_timer; rdft)
         @test z2 ≈ z
 
-        res1 = M_perp_tz(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 2, (N1, N2), reshape(z, (N1, N2)), nlp.fft_timer, nlp.mapping_timer; rdft)
+        res1 = M_perpt_z(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 2, (N1, N2), reshape(z, (N1, N2)), nlp.fft_timer, nlp.mapping_timer; rdft)
         @test norm(res1) ≈ norm(z)
         @test res1_wei ≈ res1
 
@@ -108,7 +108,7 @@ if dim2
           z2_gpu = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 2, (N1, N2), z_gpu, Int[], nlp.fft_timer, nlp.mapping_timer; rdft)
           @test z2_gpu ≈ z_gpu
 
-          res1_gpu = M_perp_tz(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 2, (N1, N2), reshape(z_gpu, (N1, N2)), nlp.fft_timer, nlp.mapping_timer; rdft)
+          res1_gpu = M_perpt_z(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 2, (N1, N2), reshape(z_gpu, (N1, N2)), nlp.fft_timer, nlp.mapping_timer; rdft)
           @test norm(res1_gpu) ≈ norm(z_gpu)
           @test res1_wei ≈ collect(res1_gpu)
 
@@ -126,7 +126,7 @@ if dim2
           z2_gpu = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 2, (N1, N2), z_gpu, Int[], nlp.fft_timer, nlp.mapping_timer; rdft)
           @test z2_gpu ≈ z_gpu
 
-          res1_gpu = M_perp_tz(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 2, (N1, N2), reshape(z_gpu, (N1, N2)), nlp.fft_timer, nlp.mapping_timer; rdft)
+          res1_gpu = M_perpt_z(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 2, (N1, N2), reshape(z_gpu, (N1, N2)), nlp.fft_timer, nlp.mapping_timer; rdft)
           @test norm(res1_gpu) ≈ norm(z_gpu)
           @test res1_wei ≈ collect(res1_gpu)
 
@@ -147,7 +147,7 @@ if dim3
     z2_wei = M_perpt_M_perp_vec_wei(3, (N1, N2, N3), z, Int[])
     @test z2_wei ≈ z
 
-    res1_wei = M_perp_tz_wei(3, (N1, N2, N3), reshape(z, (N1, N2, N3)))
+    res1_wei = M_perpt_z_wei(3, (N1, N2, N3), reshape(z, (N1, N2, N3)))
     @test norm(res1_wei) ≈ norm(z)
 
     res2_wei = M_perp_beta_wei(3, (N1, N2, N3), z, Int[])
@@ -160,7 +160,7 @@ if dim3
         z2 = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 3, (N1, N2, N3), z, Int[], nlp.fft_timer, nlp.mapping_timer; rdft)
         @test z2 ≈ z
 
-        res1 = M_perp_tz(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 3, (N1, N2, N3), reshape(z, (N1, N2, N3)), nlp.fft_timer, nlp.mapping_timer; rdft)
+        res1 = M_perpt_z(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 3, (N1, N2, N3), reshape(z, (N1, N2, N3)), nlp.fft_timer, nlp.mapping_timer; rdft)
         @test norm(res1) ≈ norm(z)
         @test res1_wei ≈ res1
 
@@ -178,7 +178,7 @@ if dim3
           z2_gpu = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 3, (N1, N2, N3), z_gpu, Int[], nlp.fft_timer, nlp.mapping_timer; rdft)
           @test z2_gpu ≈ z_gpu
 
-          res1_gpu = M_perp_tz(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 3, (N1, N2, N3), reshape(z_gpu, (N1, N2, N3)), nlp.fft_timer, nlp.mapping_timer; rdft)
+          res1_gpu = M_perpt_z(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 3, (N1, N2, N3), reshape(z_gpu, (N1, N2, N3)), nlp.fft_timer, nlp.mapping_timer; rdft)
           @test norm(res1_gpu) ≈ norm(z_gpu)
           @test res1_wei ≈ collect(res1_gpu)
 
@@ -197,7 +197,7 @@ if dim3
           z2_gpu = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 3, (N1, N2, N3), z_gpu, Int[], nlp.fft_timer, nlp.mapping_timer; rdft)
           @test z2_gpu ≈ z_gpu
 
-          res1_gpu = M_perp_tz(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 3, (N1, N2, N3), reshape(z_gpu, (N1, N2, N3)), nlp.fft_timer, nlp.mapping_timer; rdft)
+          res1_gpu = M_perpt_z(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, 3, (N1, N2, N3), reshape(z_gpu, (N1, N2, N3)), nlp.fft_timer, nlp.mapping_timer; rdft)
           @test norm(res1_gpu) ≈ norm(z_gpu)
           @test res1_wei ≈ collect(res1_gpu)
 

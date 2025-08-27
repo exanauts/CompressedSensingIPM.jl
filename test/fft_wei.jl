@@ -1,6 +1,6 @@
-function M_perp_tz_wei(dim, size, z_zero)
+function M_perpt_z_wei(dim, size, z)
     N = prod(size)
-    temp = fft(z_zero) ./ sqrt(N)
+    temp = fft(z) ./ sqrt(N)
     beta = DFT_to_beta_wei(dim, size, temp)
     return beta
 end
@@ -14,7 +14,7 @@ function M_perp_beta_wei(dim, size, beta, idx_missing)
 end
 function M_perpt_M_perp_vec_wei(dim, size, vec, idx_missing)
     temp = M_perp_beta_wei(dim, size, vec, idx_missing)
-    temp = M_perp_tz_wei(dim, size, temp)
+    temp = M_perpt_z_wei(dim, size, temp)
     return temp
 end
 

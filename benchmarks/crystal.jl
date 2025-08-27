@@ -42,14 +42,14 @@ function crystal(z3d; variant::Bool=false, gpu::Bool=false, gpu_arch::String="cu
         punched_pmn = copy(z3d)
         punched_pmn = punched_pmn[1:210, 1:310, 1:310]
 
-        index_missing_2D = CartesianIndex{3}[]
+        index_missing_3D = CartesianIndex{3}[]
         for i=0:4.
             for j=0:6.
                 for k = 0:6.
                     center =[i,j,k]
                     absolute_indices1 = punch_3D_cart(center, radius, x, y, z)
                     punched_pmn[absolute_indices1] .= 0
-                    append!(index_missing_2D, absolute_indices1)
+                    append!(index_missing_3D, absolute_indices1)
                 end
             end
         end
@@ -68,14 +68,14 @@ function crystal(z3d; variant::Bool=false, gpu::Bool=false, gpu_arch::String="cu
         punched_pmn = copy(z3d)
         punched_pmn = punched_pmn[1:310, 1:410, 1:410]
 
-        index_missing_2D = CartesianIndex{3}[]
+        index_missing_3D = CartesianIndex{3}[]
         for i=0:6.
             for j=0:8.
                 for k = 0:8.
                     center =[i,j,k]
                     absolute_indices1 = punch_3D_cart(center, radius, x, y, z)
                     punched_pmn[absolute_indices1] .= 0
-                    append!(index_missing_2D, absolute_indices1)
+                    append!(index_missing_3D, absolute_indices1)
                 end
             end
         end
@@ -83,36 +83,24 @@ function crystal(z3d; variant::Bool=false, gpu::Bool=false, gpu_arch::String="cu
 
     DFTsize = size(punched_pmn)  # problem dim
     DFTdim = length(DFTsize)  # problem size
-    M_perptz = M_perp_tz_wei(DFTdim, DFTsize, punched_pmn)
-    S = Vector{Float64}
     if gpu
         if gpu_arch == "cuda"
-            M_perptz = CuArray(M_perptz)
-            S = CuVector{Float64}
+            AT = CuArray{Float64}
+            VT = CuVector{Float64}
         elseif gpu_arch == "rocm"
-            M_perptz = ROCArray(M_perptz)
-            S = ROCVector{Float64}
+            AT = ROCArray{Float64}
+            VT = ROCVector{Float64}
         else
             error("Unsupported GPU architecture \"$gpu_arch\".")
         end
+    else
+        AT = Array{Float64}
+        VT = Vector{Float64}
     end
-    Nt = prod(DFTsize)
 
     lambda = 1
-
-    alpha_LS = 0.1
-    gamma_LS = 0.8
-    eps_NT = 1e-6
-    eps_barrier = 1e-6
-    mu_barrier = 10
-
-    parameters = FFTParameters(DFTdim, DFTsize, M_perptz, lambda, index_missing_2D, alpha_LS, gamma_LS, eps_NT, mu_barrier, eps_barrier)
-
-    t_init = 1
-    beta_init = ones(Nt) ./ 2
-    c_init = ones(Nt)
-
-    nlp = FFTNLPModel{Float64, S}(parameters; rdft, preconditioner=true)
+    parameters = FFTParameters(DFTdim, DFTsize, punched_pmn |> AT, lambda, index_missing_3D)
+    nlp = FFTNLPModel{VT}(parameters; rdft, preconditioner=true)
 
     # Solve with MadNLP/CG
     t1 = time()
