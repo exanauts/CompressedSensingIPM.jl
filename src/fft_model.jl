@@ -29,7 +29,11 @@ mutable struct FFTNLPModel{T,VT,FFT,R,C,N,IM} <: AbstractNLPModel{T,VT}
     preconditioner::Bool
 end
 
-function FFTNLPModel{T,VT}(parameters::FFTParameters{VT}; krylov_solver::Symbol=:cg, rdft::Bool=false, preconditioner::Bool=true) where {T,VT}
+function FFTNLPModel(parameters::FFTParameters{VT};
+                     krylov_solver::Symbol=:cg,
+                     rdft::Bool=false,
+                     preconditioner::Bool=true) where {VT <: AbstractVector}
+    T = eltype(VT)
     DFTdim = parameters.DFTdim   # problem size (1, 2, 3)
     DFTsize = parameters.DFTsize  # problem dimension
     N = prod(DFTsize)
