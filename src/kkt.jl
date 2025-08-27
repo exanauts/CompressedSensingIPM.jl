@@ -43,7 +43,7 @@ function LinearAlgebra.mul!(y::AbstractVector, K::CondensedFFTKKTSystem, x::Abst
     xz = view(x, nβ+1:2*nβ)
 
     # Evaluate Mᵀ M xβ
-    Mβ .= M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, DFTdim, DFTsize, xβ, index_missing, nlp.fft_timer, nlp.mapping_timer; K.nlp.rdft)
+    Mβ .= M_perpt_M_perp_vec(nlp.op_fft, xβ)
 
     yβ .= beta .* yβ .+ alpha .* (Mβ .+ K.Λ1 .* xβ .+ K.Λ2 .* xz)
     yz .= beta .* yz .+ alpha .* (K.Λ2 .* xβ .+ K.Λ1 .* xz)
