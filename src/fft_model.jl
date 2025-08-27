@@ -1,27 +1,28 @@
-mutable struct FFTParameters{VT,N,IM}
+mutable struct FFTParameters{AT,N,IM}
     DFTdim::Int64
     DFTsize::NTuple{N,Int64}
-    M_perptz::VT
+    z0::AT
     lambda::Float64
     index_missing::IM
 
-    function FFTParameters(DFTdim, DFTsize, M_perptz, lambda, index_missing)
-        VT = typeof(M_perptz)
+    function FFTParameters(DFTdim, DFTsize, z0, lambda, index_missing)
+        AT = typeof(z0)
         IM = typeof(index_missing)
         N = DFTdim
-        new{VT,N,IM}(DFTdim, DFTsize, M_perptz, lambda, index_missing)
+        new{AT,N,IM}(DFTdim, DFTsize, z0, lambda, index_missing)
     end
 end
 
-mutable struct FFTNLPModel{T,VT,FFT,R,C,N,IM} <: AbstractNLPModel{T,VT}
+mutable struct FFTNLPModel{T,VT,FFT,R,C,P} <: AbstractNLPModel{T,VT}
     meta::NLPModelMeta{T,VT}
-    parameters::FFTParameters{VT,N,IM}
+    parameters::P
     nβ::Int
     counters::Counters
     op::FFT
     buffer_real::R
     buffer_complex1::C
     buffer_complex2::C
+    M_perpt_z0::VT
     rdft::Bool
     fft_timer::Base.RefValue{Float64}
     mapping_timer::Base.RefValue{Float64}
@@ -29,10 +30,10 @@ mutable struct FFTNLPModel{T,VT,FFT,R,C,N,IM} <: AbstractNLPModel{T,VT}
     preconditioner::Bool
 end
 
-function FFTNLPModel(parameters::FFTParameters{VT};
-                     krylov_solver::Symbol=:cg,
-                     rdft::Bool=false,
-                     preconditioner::Bool=true) where {VT <: AbstractVector}
+function FFTNLPModel{VT}(parameters::FFTParameters;
+                         krylov_solver::Symbol=:cg,
+                         rdft::Bool=false,
+                         preconditioner::Bool=true) where {VT <: AbstractVector}
     T = eltype(VT)
     DFTdim = parameters.DFTdim   # problem size (1, 2, 3)
     DFTsize = parameters.DFTsize  # problem dimension
@@ -89,23 +90,24 @@ function FFTNLPModel(parameters::FFTParameters{VT};
     end
     fft_timer = Ref{Float64}(0.0)
     mapping_timer = Ref{Float64}(0.0)
+    tmp = M_perpt_z(buffer_real, buffer_complex1, buffer_complex2, op, DFTdim, DFTsize, parameters.z0, fft_timer, mapping_timer; rdft=rdft)
+    M_perpt_z0 = copy(tmp)
     return FFTNLPModel(meta, parameters, nβ, Counters(), op, buffer_real, buffer_complex1,
-                       buffer_complex2, rdft, fft_timer, mapping_timer, krylov_solver, preconditioner)
+                       buffer_complex2, M_perpt_z0, rdft, fft_timer, mapping_timer, krylov_solver, preconditioner)
 end
 
 function NLPModels.obj(nlp::FFTNLPModel, x::AbstractVector)
     increment!(nlp, :neval_obj)
     DFTdim = nlp.parameters.DFTdim
     DFTsize = nlp.parameters.DFTsize
-    M_perptz = nlp.parameters.M_perptz
     lambda = nlp.parameters.lambda
     index_missing = nlp.parameters.index_missing
 
-    fft_val = M_perp_beta(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, DFTdim, DFTsize, x, index_missing, nlp.fft_timer, nlp.mapping_timer; nlp.rdft)
+    fft_val = M_perp_beta(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, DFTdim, DFTsize, x, index_missing, nlp.fft_timer, nlp.mapping_timer; rdft=nlp.rdft)
     nβ = nlp.nβ
     beta = view(x, 1:nβ)
     c = view(x, nβ+1:2*nβ)
-    fval = 0.5 * dot(fft_val, fft_val) - dot(beta, M_perptz) + lambda * sum(c)
+    fval = 0.5 * dot(fft_val, fft_val) - dot(beta, nlp.M_perpt_z0) + lambda * sum(c)
     return fval
 end
 
@@ -113,7 +115,6 @@ function NLPModels.grad!(nlp::FFTNLPModel, x::AbstractVector, g::AbstractVector)
     increment!(nlp, :neval_grad)
     DFTdim = nlp.parameters.DFTdim
     DFTsize = nlp.parameters.DFTsize
-    M_perptz = nlp.parameters.M_perptz
     lambda = nlp.parameters.lambda
     index_missing = nlp.parameters.index_missing
 
@@ -121,8 +122,8 @@ function NLPModels.grad!(nlp::FFTNLPModel, x::AbstractVector, g::AbstractVector)
     g_b = view(g, 1:nβ)
     g_c = view(g, nβ+1:2*nβ)
     beta = view(x, 1:nβ)
-    res = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, DFTdim, DFTsize, beta, index_missing, nlp.fft_timer, nlp.mapping_timer; nlp.rdft)
-    g_b .= res .- M_perptz
+    res = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, DFTdim, DFTsize, beta, index_missing, nlp.fft_timer, nlp.mapping_timer; rdft=nlp.rdft)
+    g_b .= res .- nlp.M_perpt_z0
     fill!(g_c, lambda)
     return g
 end

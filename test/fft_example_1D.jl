@@ -33,22 +33,21 @@ function fft_example_1D(Nt::Int; gpu::Bool=false, gpu_arch::String="cuda", rdft:
     if gpu
         if gpu_arch == "cuda"
             AT = CuArray
-            S = CuVector{Float64}
+            VT = CuVector{Float64}
         elseif gpu_arch == "rocm"
             AT = ROCArray
-            S = ROCVector{Float64}
+            VT = ROCVector{Float64}
         else
             error("Unsupported GPU architecture \"$gpu_arch\".")
         end
     else
         AT = Array
-        S = Vector{Float64}
+        VT = Vector{Float64}
     end
 
     lambda = check ? 0 : 1
-    M_perptz = M_perpt_z_wei(DFTdim, DFTsize, z0) |> S
-    parameters = FFTParameters(DFTdim, DFTsize, M_perptz, lambda, index_missing)
-    nlp = FFTNLPModel(parameters; rdft)
+    parameters = FFTParameters(DFTdim, DFTsize, z0 |> AT, lambda, index_missing)
+    nlp = FFTNLPModel{VT}(parameters; rdft)
 
     # Solve with MadNLP/CG
     t1 = time()

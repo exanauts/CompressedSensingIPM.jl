@@ -33,7 +33,6 @@ function LinearAlgebra.mul!(y::AbstractVector, K::CondensedFFTKKTSystem, x::Abst
     # Load parameters
     DFTdim = parameters.DFTdim
     DFTsize = parameters.DFTsize
-    M_perptz = parameters.M_perptz
     lambda = parameters.lambda
     index_missing = parameters.index_missing
 
@@ -96,8 +95,8 @@ end
     FFTKKTSystem
 =#
 
-struct FFTKKTSystem{T, VI, VT, MT, LS} <: MadNLP.AbstractReducedKKTSystem{T, VT, MT, MadNLP.ExactHessian{T, VT}}
-    nlp::FFTNLPModel{T, VT}
+struct FFTKKTSystem{T, VI, VT, MT, LS, NLP} <: MadNLP.AbstractReducedKKTSystem{T, VT, MT, MadNLP.ExactHessian{T, VT}}
+    nlp::NLP
     # Operators
     K::MT
     P::FFTPreconditioner{T, VT}
@@ -155,7 +154,7 @@ function MadNLP.create_kkt_system(
     P = FFTPreconditioner{T, VT}(nlp.nβ)
     VI = Vector{Int}
 
-    return FFTKKTSystem{T, VI, VT, typeof(K), typeof(workspace)}(
+    return FFTKKTSystem{T, VI, VT, typeof(K), typeof(workspace), typeof(nlp)}(
         nlp, K, P,
         reg, pr_diag, du_diag, l_diag, u_diag, l_lower, u_lower,
         ind_cons.ind_lb, ind_cons.ind_ub,
@@ -227,7 +226,6 @@ function MadNLP.mul!(y::VT, kkt::FFTKKTSystem, x::VT, alpha::Number, beta::Numbe
     # FFT parameters
     DFTdim = parameters.DFTdim
     DFTsize = parameters.DFTsize
-    M_perptz = parameters.M_perptz
     lambda = parameters.lambda
     index_missing = parameters.index_missing
 

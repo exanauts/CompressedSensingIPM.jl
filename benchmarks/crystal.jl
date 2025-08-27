@@ -85,21 +85,22 @@ function crystal(z3d; variant::Bool=false, gpu::Bool=false, gpu_arch::String="cu
     DFTdim = length(DFTsize)  # problem size
     if gpu
         if gpu_arch == "cuda"
-            S = CuVector{Float64}
+            AT = CuArray
+            VT = CuVector{Float64}
         elseif gpu_arch == "rocm"
-            S = ROCVector{Float64}
+            AT = ROCArray
+            VT = ROCVector{Float64}
         else
             error("Unsupported GPU architecture \"$gpu_arch\".")
         end
     else
-        S = Vector{Float64}
+        AT = Array
+        VT = Vector{Float64}
     end
-    Nt = prod(DFTsize)
 
     lambda = 1
-    M_perptz = M_perpt_z_wei(DFTdim, DFTsize, punched_pmn) |> S
-    parameters = FFTParameters(DFTdim, DFTsize, M_perptz, lambda, index_missing_3D)
-    nlp = FFTNLPModel(parameters; rdft, preconditioner=true)
+    parameters = FFTParameters(DFTdim, DFTsize, punched_pmn |> AT, lambda, index_missing_3D)
+    nlp = FFTNLPModel{VT}(parameters; rdft, preconditioner=true)
 
     # Solve with MadNLP/CG
     t1 = time()
