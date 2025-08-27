@@ -16,7 +16,7 @@ end
 mutable struct FFTNLPModel{T,VT,FFT,R,C,N,IM} <: AbstractNLPModel{T,VT}
     meta::NLPModelMeta{T,VT}
     parameters::FFTParameters{VT,N,IM}
-    N::Int
+    nβ::Int
     counters::Counters
     op::FFT
     buffer_real::R
@@ -36,9 +36,9 @@ function FFTNLPModel(parameters::FFTParameters{VT};
     T = eltype(VT)
     DFTdim = parameters.DFTdim   # problem size (1, 2, 3)
     DFTsize = parameters.DFTsize  # problem dimension
-    N = prod(DFTsize)
-    nvar = 2 * N
-    ncon = 2 * N
+    nβ = prod(DFTsize)
+    nvar = 2 * nβ
+    ncon = 2 * nβ
     x0 = VT(undef, nvar)
     y0 = VT(undef, ncon)
     lvar = VT(undef, nvar)
@@ -61,14 +61,14 @@ function FFTNLPModel(parameters::FFTParameters{VT};
         lcon = lcon,
         ucon = ucon,
         nnzj = 0, # 2 * ncon,
-        nnzh = 0, # div(N * (N + 1), 2),
+        nnzh = 0, # div(nβ * (nβ + 1), 2),
         minimize = true,
         islp = false,
         name = "CompressedSensing-$(DFTdim)D",
     )
 
     # FFT operator
-    A_vec = VT(undef, N)
+    A_vec = VT(undef, nβ)
     A = reshape(A_vec, DFTsize)
     buffer_real = A
     if rdft == true
@@ -89,7 +89,7 @@ function FFTNLPModel(parameters::FFTParameters{VT};
     end
     fft_timer = Ref{Float64}(0.0)
     mapping_timer = Ref{Float64}(0.0)
-    return FFTNLPModel(meta, parameters, N, Counters(), op, buffer_real, buffer_complex1,
+    return FFTNLPModel(meta, parameters, nβ, Counters(), op, buffer_real, buffer_complex1,
                        buffer_complex2, rdft, fft_timer, mapping_timer, krylov_solver, preconditioner)
 end
 
@@ -102,9 +102,9 @@ function NLPModels.obj(nlp::FFTNLPModel, x::AbstractVector)
     index_missing = nlp.parameters.index_missing
 
     fft_val = M_perp_beta(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, DFTdim, DFTsize, x, index_missing, nlp.fft_timer, nlp.mapping_timer; nlp.rdft)
-    N = nlp.N
-    beta = view(x, 1:N)
-    c = view(x, N+1:2*N)
+    nβ = nlp.nβ
+    beta = view(x, 1:nβ)
+    c = view(x, nβ+1:2*nβ)
     fval = 0.5 * dot(fft_val, fft_val) - dot(beta, M_perptz) + lambda * sum(c)
     return fval
 end
@@ -117,10 +117,10 @@ function NLPModels.grad!(nlp::FFTNLPModel, x::AbstractVector, g::AbstractVector)
     lambda = nlp.parameters.lambda
     index_missing = nlp.parameters.index_missing
 
-    n = prod(DFTsize)
-    g_b = view(g, 1:n)
-    g_c = view(g, n+1:2*n)
-    beta = view(x, 1:n)
+    nβ = nlp.nβ
+    g_b = view(g, 1:nβ)
+    g_c = view(g, nβ+1:2*nβ)
+    beta = view(x, 1:nβ)
     res = M_perpt_M_perp_vec(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, DFTdim, DFTsize, beta, index_missing, nlp.fft_timer, nlp.mapping_timer; nlp.rdft)
     g_b .= res .- M_perptz
     fill!(g_c, lambda)
@@ -129,12 +129,12 @@ end
 
 function NLPModels.cons!(nlp::FFTNLPModel, x::AbstractVector, c::AbstractVector)
     increment!(nlp, :neval_cons)
-    N = nlp.N
-    xβ = view(x, 1:N)
-    xc = view(x, N+1:2*N)
-    cβ = view(c, 1:N)
-    cc = view(c, N+1:2*N)
-    cβ .= .- xβ .- xc  # -βᵢ - cᵢ for 1 ≤ i ≤ N
-    cc .=    xβ .- xc  #  βᵢ - cᵢ for N+1 ≤ i ≤ 2N
+    nβ = nlp.nβ
+    xβ = view(x, 1:nβ)
+    xc = view(x, nβ+1:2*nβ)
+    cβ = view(c, 1:nβ)
+    cc = view(c, nβ+1:2*nβ)
+    cβ .= .- xβ .- xc  # -βᵢ - cᵢ for 1 ≤ i ≤ nβ
+    cc .=    xβ .- xc  #  βᵢ - cᵢ for nβ+1 ≤ i ≤ 2nβ
     return c
 end
