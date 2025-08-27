@@ -252,7 +252,7 @@ function MadNLP.mul!(y::VT, kkt::FFTKKTSystem, x::VT, alpha::Number, beta::Numbe
     xy2 = view(_x, 5*nβ+1:6*nβ)
 
     # Evaluate (MᵀM) * xβ
-    Mβ .= M_perpt_M_perp_vec(kkt.nlp.op_fft)
+    Mβ .= M_perpt_M_perp_vec(kkt.nlp.op_fft, xβ)
     yβ .= beta .* yβ .+ alpha .* (Mβ .- xy1 .+ xy2)
     yz .= beta .* yz .- alpha .* (xy1 .+ xy2)
     ys1 .= beta .* ys1 .- alpha .* xy1

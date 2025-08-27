@@ -67,7 +67,7 @@ function FFTNLPModel{VT}(parameters::FFTParameters;
     op_fft = FFTOperator{VT}(nβ, DFTdim, DFTsize, index_missing, rdft)
     tmp = M_perpt_z(op_fft, parameters.z0)
     M_perpt_z0 = copy(tmp)
-    return FFTNLPModel(meta, Counters(), parameters, nβ, op_fft, krylov_solver, preconditioner)
+    return FFTNLPModel(meta, Counters(), parameters, nβ, op_fft, M_perpt_z0, krylov_solver, preconditioner)
 end
 
 function NLPModels.obj(nlp::FFTNLPModel, x::AbstractVector)
@@ -77,7 +77,7 @@ function NLPModels.obj(nlp::FFTNLPModel, x::AbstractVector)
     lambda = nlp.parameters.lambda
     index_missing = nlp.parameters.index_missing
 
-    fft_val = M_perp_beta(nlp.op_fft)
+    fft_val = M_perp_beta(nlp.op_fft, x)
     nβ = nlp.nβ
     beta = view(x, 1:nβ)
     c = view(x, nβ+1:2*nβ)
@@ -96,7 +96,7 @@ function NLPModels.grad!(nlp::FFTNLPModel, x::AbstractVector, g::AbstractVector)
     g_b = view(g, 1:nβ)
     g_c = view(g, nβ+1:2*nβ)
     beta = view(x, 1:nβ)
-    res = M_perpt_M_perp_vec(nlp.op_fft)
+    res = M_perpt_M_perp_vec(nlp.op_fft, beta)
     g_b .= res .- nlp.M_perpt_z0
     fill!(g_c, lambda)
     return g
