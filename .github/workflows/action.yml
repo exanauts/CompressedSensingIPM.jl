@@ -34,7 +34,7 @@ jobs:
     runs-on: cuda
     strategy:
       matrix:
-        julia-version: ['lts', '1']
+        julia-version: ['1']
         julia-arch: [x64]
 
     steps:
@@ -54,7 +54,7 @@ jobs:
     runs-on: amdgpu
     strategy:
       matrix:
-        julia-version: ['lts', '1']
+        julia-version: ['1']
         julia-arch: [x64]
 
     steps:
