@@ -79,7 +79,7 @@ function NLPModels.obj(nlp::GondzioFFTNLPModel, x::AbstractVector)
     N = nlp.N
     u = view(x, 1:N)
     v = view(x, N+1:2*N)
-    fval = 0.5 * dot(fft_val, fft_val) lambda * sum(x)
+    fval = 0.5 * dot(fft_val, fft_val) + lambda * sum(x)
     return fval
 end
 

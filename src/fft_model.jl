@@ -1,20 +1,21 @@
-mutable struct FFTParameters
-    paramB  # ::Tuple{Float64, Int64}
-    eps_NT  # ::Float64
-    paramLS # ::Tuple{Float64, Float64}
-    paramf  # ::Tuple{Int64, Tuple{Int64}, Vector{Float64}, Int64, Vector{Int64}}
+mutable struct FFTParameters{VT,N,IM}
+    DFTdim::Int64
+    DFTsize::NTuple{N,Int64}
+    M_perptz::VT
+    lambda::Float64
+    index_missing::IM
+
+    function FFTParameters(DFTdim, DFTsize, M_perptz, lambda, index_missing)
+        VT = typeof(M_perptz)
+        IM = typeof(index_missing)
+        N = DFTdim
+        new{VT,N,IM}(DFTdim, DFTsize, M_perptz, lambda, index_missing)
+    end
 end
 
-function FFTParameters(DFTdim, DFTsize, M_perptz, lambda, index_missing, alpha_LS, gamma_LS, eps_NT, mu_barrier, eps_barrier)
-    paramf = (DFTdim, DFTsize, M_perptz, lambda, index_missing)
-    paramLS = (alpha_LS, gamma_LS)
-    paramB = (eps_barrier, mu_barrier)
-    FFTParameters(paramB, eps_NT, paramLS, paramf)
-end
-
-mutable struct FFTNLPModel{T,VT,FFT,R,C} <: AbstractNLPModel{T,VT}
+mutable struct FFTNLPModel{T,VT,FFT,R,C,N,IM} <: AbstractNLPModel{T,VT}
     meta::NLPModelMeta{T,VT}
-    parameters::FFTParameters
+    parameters::FFTParameters{VT,N,IM}
     N::Int
     counters::Counters
     op::FFT
@@ -28,9 +29,9 @@ mutable struct FFTNLPModel{T,VT,FFT,R,C} <: AbstractNLPModel{T,VT}
     preconditioner::Bool
 end
 
-function FFTNLPModel{T,VT}(parameters::FFTParameters; krylov_solver::Symbol=:cg, rdft::Bool=false, preconditioner::Bool=true) where {T,VT}
-    DFTdim = parameters.paramf[1]   # problem size (1, 2, 3)
-    DFTsize = parameters.paramf[2]  # problem dimension
+function FFTNLPModel{T,VT}(parameters::FFTParameters{VT}; krylov_solver::Symbol=:cg, rdft::Bool=false, preconditioner::Bool=true) where {T,VT}
+    DFTdim = parameters.DFTdim   # problem size (1, 2, 3)
+    DFTsize = parameters.DFTsize  # problem dimension
     N = prod(DFTsize)
     nvar = 2 * N
     ncon = 2 * N
@@ -88,26 +89,13 @@ function FFTNLPModel{T,VT}(parameters::FFTParameters; krylov_solver::Symbol=:cg,
                        buffer_complex2, rdft, fft_timer, mapping_timer, krylov_solver, preconditioner)
 end
 
-function NLPModels.cons!(nlp::FFTNLPModel, x::AbstractVector, c::AbstractVector)
-    increment!(nlp, :neval_cons)
-    N = nlp.N
-    xβ = view(x, 1:N)
-    xc = view(x, N+1:2*N)
-    cβ = view(c, 1:N)
-    cc = view(c, N+1:2*N)
-    cβ .= .- xβ .- xc  # -βᵢ - cᵢ for 1 ≤ i ≤ N
-    cc .=    xβ .- xc  #  βᵢ - cᵢ for N+1 ≤ i ≤ 2N
-    return c
-end
-
 function NLPModels.obj(nlp::FFTNLPModel, x::AbstractVector)
     increment!(nlp, :neval_obj)
-    DFTdim = nlp.parameters.paramf[1]
-    DFTsize = nlp.parameters.paramf[2]
-    M_perptz = nlp.parameters.paramf[3]
-    lambda = nlp.parameters.paramf[4]
-    index_missing = nlp.parameters.paramf[5]
-    # Mt = nlp.parameters.paramf[6]
+    DFTdim = nlp.parameters.DFTdim
+    DFTsize = nlp.parameters.DFTsize
+    M_perptz = nlp.parameters.M_perptz
+    lambda = nlp.parameters.lambda
+    index_missing = nlp.parameters.index_missing
 
     fft_val = M_perp_beta(nlp.buffer_real, nlp.buffer_complex1, nlp.buffer_complex2, nlp.op, DFTdim, DFTsize, x, index_missing, nlp.fft_timer, nlp.mapping_timer; nlp.rdft)
     N = nlp.N
@@ -119,12 +107,11 @@ end
 
 function NLPModels.grad!(nlp::FFTNLPModel, x::AbstractVector, g::AbstractVector)
     increment!(nlp, :neval_grad)
-    DFTdim = nlp.parameters.paramf[1]
-    DFTsize = nlp.parameters.paramf[2]
-    M_perptz = nlp.parameters.paramf[3]
-    lambda = nlp.parameters.paramf[4]
-    index_missing = nlp.parameters.paramf[5]
-    # Mt = nlp.parameters.paramf[6]
+    DFTdim = nlp.parameters.DFTdim
+    DFTsize = nlp.parameters.DFTsize
+    M_perptz = nlp.parameters.M_perptz
+    lambda = nlp.parameters.lambda
+    index_missing = nlp.parameters.index_missing
 
     n = prod(DFTsize)
     g_b = view(g, 1:n)
@@ -134,4 +121,16 @@ function NLPModels.grad!(nlp::FFTNLPModel, x::AbstractVector, g::AbstractVector)
     g_b .= res .- M_perptz
     fill!(g_c, lambda)
     return g
+end
+
+function NLPModels.cons!(nlp::FFTNLPModel, x::AbstractVector, c::AbstractVector)
+    increment!(nlp, :neval_cons)
+    N = nlp.N
+    xβ = view(x, 1:N)
+    xc = view(x, N+1:2*N)
+    cβ = view(c, 1:N)
+    cc = view(c, N+1:2*N)
+    cβ .= .- xβ .- xc  # -βᵢ - cᵢ for 1 ≤ i ≤ N
+    cc .=    xβ .- xc  #  βᵢ - cᵢ for N+1 ≤ i ≤ 2N
+    return c
 end

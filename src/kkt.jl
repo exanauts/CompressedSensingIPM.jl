@@ -6,9 +6,9 @@
 
 =#
 
-struct CondensedFFTKKT{T, VT, FFT, R, C} <: AbstractMatrix{T}
+struct CondensedFFTKKT{T,VT,FFT,R,C,N,IM} <: AbstractMatrix{T}
     nβ::Int
-    params::FFTParameters  # for MᵀM
+    parameters::FFTParameters{VT,N,IM}  # for MᵀM
     buf1::VT
     Λ1::VT  # Σ₁ + Σ₂
     Λ2::VT  # Σ₁ - Σ₂
@@ -17,8 +17,8 @@ struct CondensedFFTKKT{T, VT, FFT, R, C} <: AbstractMatrix{T}
     buffer_complex1::C  # Buffer for fft and ifft
     buffer_complex2::C  # Buffer for fft and ifft
     rdft::Bool
-    fft_timer::Ref{Float64}
-    mapping_timer::Ref{Float64}
+    fft_timer::Base.RefValue{Float64}
+    mapping_timer::Base.RefValue{Float64}
 end
 
 function CondensedFFTKKT{T, VT}(nlp::FFTNLPModel{T, VT}) where {T, VT}
@@ -26,9 +26,13 @@ function CondensedFFTKKT{T, VT}(nlp::FFTNLPModel{T, VT}) where {T, VT}
     buf1 = VT(undef, nβ)
     Λ1 = VT(undef, nβ)
     Λ2 = VT(undef, nβ)
-    return CondensedFFTKKT{T, VT, typeof(nlp.op), typeof(nlp.buffer_real), typeof(nlp.buffer_complex1)}(
-                nβ, nlp.parameters, buf1, Λ1, Λ2, nlp.op, nlp.buffer_real,
-                nlp.buffer_complex1, nlp.buffer_complex2, nlp.rdft, nlp.fft_timer, nlp.mapping_timer)
+    FFT = typeof(nlp.op)
+    R = typeof(nlp.buffer_real)
+    C = typeof(nlp.buffer_complex1)
+    IM = typeof(nlp.parameters.index_missing)
+    N = nlp.parameters.DFTdim
+    return CondensedFFTKKT{T,VT,FFT,R,C,N,IM}(nβ, nlp.parameters, buf1, Λ1, Λ2, nlp.op, nlp.buffer_real,
+                                              nlp.buffer_complex1, nlp.buffer_complex2, nlp.rdft, nlp.fft_timer, nlp.mapping_timer)
 end
 
 Base.size(K::CondensedFFTKKT) = (2*K.nβ, 2*K.nβ)
@@ -38,11 +42,11 @@ function LinearAlgebra.mul!(y::AbstractVector, K::CondensedFFTKKT, x::AbstractVe
     nβ = K.nβ
     @assert length(y) == length(x) == 2 * nβ
     # Load parameters
-    DFTdim = K.params.paramf[1]
-    DFTsize = K.params.paramf[2]
-    M_perptz = K.params.paramf[3]
-    lambda = K.params.paramf[4]
-    index_missing = K.params.paramf[5]
+    DFTdim = K.parameters.DFTdim
+    DFTsize = K.parameters.DFTsize
+    M_perptz = K.parameters.M_perptz
+    lambda = K.parameters.lambda
+    index_missing = K.parameters.index_missing
 
     Mβ = K.buf1
     yβ  = view(y, 1:nβ)
@@ -228,12 +232,13 @@ end
 
 function MadNLP.mul!(y::VT, kkt::FFTKKTSystem, x::VT, alpha::Number, beta::Number) where VT <: MadNLP.AbstractKKTVector
     nlp = kkt.nlp
+
     # FFT parameters
-    DFTdim = nlp.parameters.paramf[1]
-    DFTsize = nlp.parameters.paramf[2]
-    M_perptz = nlp.parameters.paramf[3]
-    lambda = nlp.parameters.paramf[4]
-    index_missing = nlp.parameters.paramf[5]
+    DFTdim = nlp.parameters.DFTdim
+    DFTsize = nlp.parameters.DFTsize
+    M_perptz = nlp.parameters.M_perptz
+    lambda = nlp.parameters.lambda
+    index_missing = nlp.parameters.index_missing
 
     n = NLPModels.get_nvar(nlp)
     m = NLPModels.get_ncon(nlp)

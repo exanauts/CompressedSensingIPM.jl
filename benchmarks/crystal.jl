@@ -42,14 +42,14 @@ function crystal(z3d; variant::Bool=false, gpu::Bool=false, gpu_arch::String="cu
         punched_pmn = copy(z3d)
         punched_pmn = punched_pmn[1:210, 1:310, 1:310]
 
-        index_missing_2D = CartesianIndex{3}[]
+        index_missing_3D = CartesianIndex{3}[]
         for i=0:4.
             for j=0:6.
                 for k = 0:6.
                     center =[i,j,k]
                     absolute_indices1 = punch_3D_cart(center, radius, x, y, z)
                     punched_pmn[absolute_indices1] .= 0
-                    append!(index_missing_2D, absolute_indices1)
+                    append!(index_missing_3D, absolute_indices1)
                 end
             end
         end
@@ -68,14 +68,14 @@ function crystal(z3d; variant::Bool=false, gpu::Bool=false, gpu_arch::String="cu
         punched_pmn = copy(z3d)
         punched_pmn = punched_pmn[1:310, 1:410, 1:410]
 
-        index_missing_2D = CartesianIndex{3}[]
+        index_missing_3D = CartesianIndex{3}[]
         for i=0:6.
             for j=0:8.
                 for k = 0:8.
                     center =[i,j,k]
                     absolute_indices1 = punch_3D_cart(center, radius, x, y, z)
                     punched_pmn[absolute_indices1] .= 0
-                    append!(index_missing_2D, absolute_indices1)
+                    append!(index_missing_3D, absolute_indices1)
                 end
             end
         end
@@ -99,19 +99,7 @@ function crystal(z3d; variant::Bool=false, gpu::Bool=false, gpu_arch::String="cu
     Nt = prod(DFTsize)
 
     lambda = 1
-
-    alpha_LS = 0.1
-    gamma_LS = 0.8
-    eps_NT = 1e-6
-    eps_barrier = 1e-6
-    mu_barrier = 10
-
-    parameters = FFTParameters(DFTdim, DFTsize, M_perptz, lambda, index_missing_2D, alpha_LS, gamma_LS, eps_NT, mu_barrier, eps_barrier)
-
-    t_init = 1
-    beta_init = ones(Nt) ./ 2
-    c_init = ones(Nt)
-
+    parameters = FFTParameters(DFTdim, DFTsize, M_perptz, lambda, index_missing_3D)
     nlp = FFTNLPModel{Float64, S}(parameters; rdft, preconditioner=true)
 
     # Solve with MadNLP/CG

@@ -48,24 +48,8 @@ function fft_example_3D(N1::Int, N2::Int, N3::Int; gpu::Bool=false, gpu_arch::St
     end
 
     lambda = check ? 0 : 5
-    alpha_LS = 0.1
-    gamma_LS = 0.8
-    eps_NT = 1e-6
-    eps_barrier = 1e-6
-    mu_barrier = 10
-
-    parameters = FFTParameters(DFTdim, DFTsize, M_perptz, lambda, index_missing, alpha_LS, gamma_LS, eps_NT, mu_barrier, eps_barrier)
-
-    t_init = 1
-    beta_init = zeros(prod(DFTsize))
-    c_init = ones(prod(DFTsize))
-
+    parameters = FFTParameters(DFTdim, DFTsize, M_perptz, lambda, index_missing)
     nlp = FFTNLPModel{Float64, S}(parameters; rdft)
-
-    # Solve with MadNLP/LBFGS
-    # solver = MadNLP.MadNLPSolver(nlp; hessian_approximation=MadNLP.CompactLBFGS)
-    # results = MadNLP.solve!(solver)
-    # beta_MadNLP = results.solution[1:N1*N2*N3]
 
     # Solve with MadNLP/CG
     t1 = time()
