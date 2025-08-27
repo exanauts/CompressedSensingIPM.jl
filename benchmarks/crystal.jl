@@ -97,7 +97,7 @@ function crystal(z3d; variant::Bool=false, gpu::Bool=false, gpu_arch::String="cu
     Nt = prod(DFTsize)
 
     lambda = 1
-    M_perptz = M_perp_tz_wei(DFTdim, DFTsize, punched_pmn) |> S
+    M_perptz = M_perpt_z_wei(DFTdim, DFTsize, punched_pmn) |> S
     parameters = FFTParameters(DFTdim, DFTsize, M_perptz, lambda, index_missing_3D)
     nlp = FFTNLPModel(parameters; rdft, preconditioner=true)
 

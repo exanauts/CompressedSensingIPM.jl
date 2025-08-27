@@ -19,12 +19,12 @@ function fft_example_2D(Nt::Int, Ns::Int; gpu::Bool=false, gpu_arch::String="cud
     print("Generate missing indices: ")
     if check
         index_missing = Int[]
-        z_zero = y
+        z0 = y
     else
         missing_prob = 0.15
         centers = centering(DFTdim, DFTsize, missing_prob)
         radius = 1
-        index_missing, z_zero = punching(DFTdim, DFTsize, centers, radius, y)
+        index_missing, z0 = punching(DFTdim, DFTsize, centers, radius, y)
         # println("length(index_missing) = ", length(index_missing))
     end
     println("✓")
@@ -45,7 +45,7 @@ function fft_example_2D(Nt::Int, Ns::Int; gpu::Bool=false, gpu_arch::String="cud
     end
 
     lambda = check ? 0 : 5
-    M_perptz = M_perp_tz_wei(DFTdim, DFTsize, z_zero) |> S
+    M_perptz = M_perpt_z_wei(DFTdim, DFTsize, z0) |> S
     parameters = FFTParameters(DFTdim, DFTsize, M_perptz, lambda, index_missing)
     nlp = FFTNLPModel(parameters; rdft)
 

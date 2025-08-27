@@ -1,5 +1,5 @@
 using CompressedSensingIPM
-import CompressedSensingIPM: M_perpt_M_perp_vec, M_perp_tz, M_perp_beta, DFT_to_beta
+import CompressedSensingIPM: M_perpt_M_perp_vec, M_perpt_z, M_perp_beta, DFT_to_beta
 
 using LinearAlgebra, Random, Test
 using MadNLP, MadNLPGPU, CUDA, AMDGPU

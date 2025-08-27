@@ -6,25 +6,25 @@
 
 =#
 
-struct CondensedFFTKKT{T,VT,NLP} <: AbstractMatrix{T}
+struct CondensedFFTKKTSystem{T,VT,NLP} <: AbstractMatrix{T}
     nlp::NLP
     buf1::VT
     Λ1::VT  # Σ₁ + Σ₂
     Λ2::VT  # Σ₁ - Σ₂
 end
 
-function CondensedFFTKKT{T,VT}(nlp::FFTNLPModel{T,VT}) where {T,VT}
+function CondensedFFTKKTSystem{T,VT}(nlp::FFTNLPModel{T,VT}) where {T,VT}
     buf1 = VT(undef, nlp.nβ)
     Λ1 = VT(undef, nlp.nβ)
     Λ2 = VT(undef, nlp.nβ)
     NLP = typeof(nlp)
-    return CondensedFFTKKT{T,VT,NLP}(nlp, buf1, Λ1, Λ2)
+    return CondensedFFTKKTSystem{T,VT,NLP}(nlp, buf1, Λ1, Λ2)
 end
 
-Base.size(K::CondensedFFTKKT) = (2*K.nlp.nβ, 2*K.nlp.nβ)
-Base.eltype(K::CondensedFFTKKT{T, VT}) where {T, VT} = T
+Base.size(K::CondensedFFTKKTSystem) = (2*K.nlp.nβ, 2*K.nlp.nβ)
+Base.eltype(K::CondensedFFTKKTSystem{T, VT}) where {T, VT} = T
 
-function LinearAlgebra.mul!(y::AbstractVector, K::CondensedFFTKKT, x::AbstractVector, alpha::Number, beta::Number)
+function LinearAlgebra.mul!(y::AbstractVector, K::CondensedFFTKKTSystem, x::AbstractVector, alpha::Number, beta::Number)
     nlp = K.nlp
     nβ = nlp.nβ
     parameters = nlp.parameters
@@ -151,7 +151,7 @@ function MadNLP.create_kkt_system(
     z1 = VT(undef, nβ)
     z2 = VT(undef, 2*nβ)
 
-    K = CondensedFFTKKT{T, VT}(nlp)
+    K = CondensedFFTKKTSystem{T, VT}(nlp)
     P = FFTPreconditioner{T, VT}(nlp.nβ)
     VI = Vector{Int}
 
@@ -310,7 +310,7 @@ function MadNLP.build_kkt!(kkt::FFTKKTSystem)
     Λ2 = kkt.K.Λ2
     Minv = kkt.z1
 
-    # Update values in CondensedFFTKKT
+    # Update values in CondensedFFTKKTSystem
     Λ1 .= Σ1 .+ Σ2
     Λ2 .= Σ1 .- Σ2
 
