@@ -8,7 +8,6 @@ using CUDA, AMDGPU
 using Test, LazyArtifacts
 using CompressedSensingIPM
 
-include("../test/fft_wei.jl")
 include("../test/punching_centering.jl")
 
 function punch_3D_cart(center, radius, x, y, z; linear = false)
