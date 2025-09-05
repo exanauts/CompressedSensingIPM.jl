@@ -6,8 +6,10 @@ using AMDGPU
 using FFTW
 using Krylov
 using NLPModels
+using LinearOperators
 
 export FFTNLPModel, FFTKKTSystem, FFTParameters, FFTOperator
+export CompressedSensingADMM
 
 include("fft_utils.jl")
 include("fft_model.jl")

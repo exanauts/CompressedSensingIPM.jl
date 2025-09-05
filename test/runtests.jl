@@ -12,8 +12,9 @@ dim2 = true
 dim3 = true
 
 include("punching_centering.jl")
-
 include("fft_wei.jl")
+
+include("test_admm.jl")
 
 dim1 && include("fft_example_1D.jl")
 dim2 && include("fft_example_2D.jl")
