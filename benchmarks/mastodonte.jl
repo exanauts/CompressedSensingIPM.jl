@@ -8,29 +8,11 @@ using CUDA, AMDGPU
 using Test
 using CompressedSensingIPM
 
-include("../test/fft_wei.jl")
-include("../test/punching_centering.jl")
+function mastodonte(z0, mask; gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false)
+  nnz_missing = length(mask) - length(vec(mask) |> sparse)
+  index_missing = Vector{CartesianIndex{3}}(undef, nnz_missing)
 
-function punch_3D_cart(center, radius, x, y, z; linear = false)
-    radius_x, radius_y, radius_z = (typeof(radius) <: Tuple) ? radius : 
-                                                (radius, radius, radius)
-    inds = filter(i -> (((x[i[1]]-center[1])/radius_x)^2 
-                        + ((y[i[2]]-center[2])/radius_y)^2 
-                        + ((z[i[3]] - center[3])/radius_z)^2 <= 1.0),
-                  CartesianIndices((1:length(x), 1:length(y), 1:length(z))))
-    (length(inds) == 0) && error("Empty punch.")
-    if linear == false
-      return inds
-    else
-      return LinearIndices(zeros(length(x), length(y), length(z)))[inds]
-    end 
-end
-
-function mastodonte(A; gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false)
-  punched_pmn = copy(A)
-  index_missing_3D = CartesianIndex{3}[]
-
-  DFTsize = size(punched_pmn)  # problem dim
+  DFTsize = size(z0)  # problem dim
   DFTdim = length(DFTsize)  # problem size
   if gpu
     if gpu_arch == "cuda"
@@ -47,8 +29,16 @@ function mastodonte(A; gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=fals
     VT = Vector{Float64}
   end
 
-  lambda = 1
-  parameters = FFTParameters(DFTdim, DFTsize, punched_pmn |> AT, lambda, index_missing_3D)
+  pos = 0
+  for (i,j,k) in DFTsize
+    if  mask[i,j,k] == 0
+      pos += 1
+      index_missing[pos] = CartesianIndex{3}(i, j, k)
+    end
+  end
+
+  lambda = 1.0
+  parameters = FFTParameters(DFTdim, DFTsize, z0 |> AT, lambda, index_missing)
   nlp = FFTNLPModel{VT}(parameters; rdft, preconditioner=true)
 
   # Solve with MadNLP/CG
@@ -73,11 +63,13 @@ end
 gpu = true
 gpu_arch = "cuda"  # "rocm"
 rdft = true
-path_h5 = "mask_template_800_800_200.h5"
-h5 = h5open(path_h5, "r")
-obj = h5["data"]
-A = read(obj)
-nlp, solver, results, timer = mastodonte(A; gpu, gpu_arch, rdft)
+path_z0_h5 = "7_7_sec_ord_rings_800_800_200.h5"
+z0_h5 = h5open(path_z0_h5, "r")
+z0 = read(z0_h5["data"])
+path_mask_h5 = "mask_template_800_800_200.h5"
+mask_h5 = h5open(path_mask_h5, "r")
+mask = read(mask_h5["data"])
+nlp, solver, results, timer = mastodonte(z0, mask; gpu, gpu_arch, rdft)
 N = length(results.solution) ÷ 2
 beta_MadNLP = results.solution[1:N]
 println("Timer: $(timer)")
@@ -87,9 +79,9 @@ println("Timer: $(timer)")
 # nlp.fft_timer[]
 # nlp.mapping_timer[]
 
-dump_solution = false
+dump_solution = true
 if dump_solution
-    open("sol_vishwas.txt", "w") do io
-        writedlm(io, Vector(beta_MadNLP))
-    end
+  open("7_7_sec_ord_rings_800_800_200_solution.txt", "w") do io
+    writedlm(io, Vector(beta_MadNLP))
+  end
 end
