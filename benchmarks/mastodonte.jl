@@ -27,29 +27,8 @@ function punch_3D_cart(center, radius, x, y, z; linear = false)
 end
 
 function mastodonte(A; gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false)
-  # dx = 0.02
-  # dy = 0.02
-  # dz = 0.02
-  # x = -0.2:dx:6.01
-  # y = -0.2:dy:8.01
-  # z = -0.2:dz:8.01
-  # x = x[1:310]
-  # y = y[1:410]
-  # z = z[1:410]
-
-  # radius = 0.2001
   punched_pmn = copy(A)
   index_missing_3D = CartesianIndex{3}[]
-  # for i=0:6.
-  #   for j=0:8.
-  #     for k = 0:8.
-  #       center =[i,j,k]
-  #       absolute_indices1 = punch_3D_cart(center, radius, x, y, z)
-  #       punched_pmn[absolute_indices1] .= 0
-  #       append!(index_missing_3D, absolute_indices1)
-  #     end
-  #   end
-  # end
 
   DFTsize = size(punched_pmn)  # problem dim
   DFTdim = length(DFTsize)  # problem size
@@ -94,7 +73,7 @@ end
 gpu = true
 gpu_arch = "cuda"  # "rocm"
 rdft = true
-path_h5 = "7_7_full_800_800_800.h5"
+path_h5 = "mask_template_800_800_200.h5"
 h5 = h5open(path_h5, "r")
 obj = h5["data"]
 A = read(obj)
