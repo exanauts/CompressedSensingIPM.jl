@@ -8,18 +8,25 @@ end
 function CompressedSensingADMM(fft_parameter, fft_operator; rho=1, maxt = 1000, tol = 1e-6)
     DFTdim = fft_parameter.DFTdim
     DFTsize = fft_parameter.DFTsize
-    
+    VT = ...
+
     tmp = M_perpt_z(fft_operator, fft_parameter.z0)
     M_perpt_z0 = copy(tmp)
     lambda = fft_parameter.lambda
     index_missing = fft_parameter.index_missing
     n = prod(DFTsize)
-    x0 = ones(n)
-    ztemp = ones(n)
-    y0 = zeros(n)
+    x0 = VT(undef, n)
+    fill!(x0, 1.0)
+    ztemp = VT(undef, n)
+    fill!(ztemp, 1.0)
+    y0 = VT(undef, n)
+    fill!(y0, 0.0)
+    y1 = VT(undef, n)
+    z1 = VT(undef, n)
     t = 0
     err = 1
-    workspace = CgWorkspace(n, n, Vector{Float64})
+    buffer = VT(undef, n)
+    workspace = CgWorkspace(n, n, VT)
     op_fft = LinearOperator(Float64, n, n, true, true, (y_op, v_ip) -> MperptMRho(y_op, v_ip, fft_operator, rho))
 
     while (t < maxt) && (err > tol)
@@ -30,32 +37,39 @@ function CompressedSensingADMM(fft_parameter, fft_operator; rho=1, maxt = 1000, 
         x1 = workspace.x
 
         # update z
-        z1 = softthreshold.(x1 + y0/rho, lambda/rho)
+        z1 = softthreshold!(z1, x1 + y0/rho, lambda/rho)
 
         # update y
-        y1 = y0 + rho * (x1 - z1)
+        y1 .= y0 .+ rho .* (x1 .- z1)
 
         # check the convergence
-        err = max(norm(x1 - x0, 2), norm(y1 - y0, 2), norm(z1 - ztemp, 2))
+        buffer .= x1 .- x0
+        err1 = norm(buffer, 2)
+        buffer .= y1 .- y0
+        err2 = norm(buffer, 2)
+        buffer .= z1.- ztemp
+        err3 = norm(buffer,2)
+        err = max(err1, err2, err3)
 
-        x0 = x1
-        ztemp = z1
-        y0 = y1
+        x0 .= x1
+        ztemp .= z1
+        y0 .= y1
         t = t + 1
-        println(err)
     end
     return ztemp
 end
 
-function softthreshold(x, thre)
-    if(x > thre)
-        y = x - thre
+
+function softthreshold!(z1, x, thre)
+        
+    if(x .> thre)
+        z1 = x - thre
     elseif(x < -thre)
-        y = x + thre
+        z1 = x + thre
     else
-        y = 0
+        z1 = 0
     end
 
-    return(y)
+    return z1
 end
 
