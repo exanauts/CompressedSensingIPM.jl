@@ -6,6 +6,7 @@ CompressedSensingIPM = "a233cb7d-456e-4e77-9608-b71e27ae00f8"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
+HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
 LaplaceInterpolation = "afb1b68e-e51f-4e49-a799-0e085170423d"
 LazyArtifacts = "4af54fe1-eca0-43a8-85a7-787d91b784e3"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -16,4 +17,4 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [sources]
-LaplaceInterpolation = {url = "https://github.com/vishwas1984/LaplaceInterpolation.jl", rev = "master"}
+LaplaceInterpolation = {rev = "master", url = "https://github.com/vishwas1984/LaplaceInterpolation.jl"}

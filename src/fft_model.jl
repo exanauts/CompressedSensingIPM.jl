@@ -72,11 +72,7 @@ end
 
 function NLPModels.obj(nlp::FFTNLPModel, x::AbstractVector)
     increment!(nlp, :neval_obj)
-    DFTdim = nlp.parameters.DFTdim
-    DFTsize = nlp.parameters.DFTsize
     lambda = nlp.parameters.lambda
-    index_missing = nlp.parameters.index_missing
-
     fft_val = M_perp_beta(nlp.op_fft, x)
     nβ = nlp.nβ
     beta = view(x, 1:nβ)
@@ -87,10 +83,7 @@ end
 
 function NLPModels.grad!(nlp::FFTNLPModel, x::AbstractVector, g::AbstractVector)
     increment!(nlp, :neval_grad)
-    DFTdim = nlp.parameters.DFTdim
-    DFTsize = nlp.parameters.DFTsize
     lambda = nlp.parameters.lambda
-    index_missing = nlp.parameters.index_missing
 
     nβ = nlp.nβ
     g_b = view(g, 1:nβ)

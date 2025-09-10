@@ -27,14 +27,7 @@ Base.eltype(K::CondensedFFTKKTSystem{T, VT}) where {T, VT} = T
 function LinearAlgebra.mul!(y::AbstractVector, K::CondensedFFTKKTSystem, x::AbstractVector, alpha::Number, beta::Number)
     nlp = K.nlp
     nβ = nlp.nβ
-    parameters = nlp.parameters
-
     @assert length(y) == length(x) == 2 * nβ
-    # Load parameters
-    DFTdim = parameters.DFTdim
-    DFTsize = parameters.DFTsize
-    lambda = parameters.lambda
-    index_missing = parameters.index_missing
 
     Mβ = K.buf1
     yβ = view(y, 1:nβ)
@@ -221,13 +214,6 @@ end
 function MadNLP.mul!(y::VT, kkt::FFTKKTSystem, x::VT, alpha::Number, beta::Number) where VT <: MadNLP.AbstractKKTVector
     nlp = kkt.nlp
     nβ = nlp.nβ
-    parameters = nlp.parameters
-
-    # FFT parameters
-    DFTdim = parameters.DFTdim
-    DFTsize = parameters.DFTsize
-    lambda = parameters.lambda
-    index_missing = parameters.index_missing
 
     n = NLPModels.get_nvar(nlp)
     m = NLPModels.get_ncon(nlp)
