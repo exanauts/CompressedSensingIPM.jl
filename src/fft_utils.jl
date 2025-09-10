@@ -97,7 +97,7 @@ function M_perp_beta(buffer_real, buffer_complex1, buffer_complex2, op, DFTdim, 
     t2 = time_ns()
     fft_timer[] = fft_timer[] + (t2 - t1) / 1e9
 
-    buffer_real[index_missing] .= 0
+    view(buffer_real, index_missing) .= 0
     return buffer_real
 end
 
