@@ -59,17 +59,17 @@ function CompressedSensingADMM(fft_parameter, fft_operator; rho=1, maxt = 1000, 
     return ztemp
 end
 
-
-function softthreshold!(z1, x, thre)
-        
-    if(x .> thre)
-        z1 = x - thre
-    elseif(x < -thre)
-        z1 = x + thre
+function softthreshold_scalar(x, thre)
+    if x > thre
+        return x - thre
+    elseif x < -thre
+        return x + thre
     else
-        z1 = 0
+        return 0.0
     end
-
-    return z1
 end
 
+function softthreshold!(z1, x, thre)
+    map!(xi -> softthreshold_scalar(xi, thre), z1, x)
+    return z
+end
