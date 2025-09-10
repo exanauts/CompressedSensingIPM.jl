@@ -4,7 +4,7 @@ using CUDA, AMDGPU
 
 include("../test/fft_wei.jl")
 include("../test/punching_centering.jl")
-include("../test/fft_example_3D.jl")
+include("../test/ipm_example_3D.jl")
 
 # CPU
 run_cpu = true
@@ -18,7 +18,7 @@ if run_cpu
                          (384, 384, 384), (512, 512, 512), (560, 560, 560)]
 
         println("$N1 | $N2 | $N3")
-        nlp, solver, results, timer = fft_example_3D(N1, N2, N3; gpu=false, rdft=rdft_cpu, check=check_cpu)
+        nlp, solver, results, timer = ipm_example_3D(N1, N2, N3; gpu=false, rdft=rdft_cpu, check=check_cpu)
         println("Timer: $(timer)")
     end
 end
@@ -36,7 +36,7 @@ if run_gpu
                          (384, 384, 384), (512, 512, 512), (560, 560, 560)]
 
         println("$N1 | $N2 | $N3")
-        nlp, solver, results, timer = fft_example_3D(N1, N2, N3; gpu=true, gpu_arch, rdft=rdft_gpu, check=check_gpu)
+        nlp, solver, results, timer = ipm_example_3D(N1, N2, N3; gpu=true, gpu_arch, rdft=rdft_gpu, check=check_gpu)
         println("Timer: $(timer)")
     end
 end

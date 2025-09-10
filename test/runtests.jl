@@ -12,11 +12,14 @@ dim2 = true
 dim3 = true
 
 include("punching_centering.jl")
-
 include("fft_wei.jl")
 
-dim1 && include("fft_example_1D.jl")
-dim2 && include("fft_example_2D.jl")
-dim3 && include("fft_example_3D.jl")
+dim1 && include("admm_example_1D.jl")
+dim2 && include("admm_example_2D.jl")
+dim3 && include("admm_example_3D.jl")
+include("unit_tests_admm.jl")
 
-include("unit_tests.jl")
+dim1 && include("ipm_example_1D.jl")
+dim2 && include("ipm_example_2D.jl")
+dim3 && include("ipm_example_3D.jl")
+include("unit_tests_ipm.jl")

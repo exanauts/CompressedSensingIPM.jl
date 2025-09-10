@@ -1,5 +1,5 @@
 ## 3D
-function fft_example_3D(N1::Int, N2::Int, N3::Int; gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false, check::Bool=false)
+function admm_example_3D(N1::Int, N2::Int, N3::Int; gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false, check::Bool=false)
     idx1 = collect(0:(N1-1))
     idx2 = collect(0:(N2-1))
     idx3 = collect(0:(N3-1))
@@ -44,42 +44,21 @@ function fft_example_3D(N1::Int, N2::Int, N3::Int; gpu::Bool=false, gpu_arch::St
         VT = Vector{Float64}
     end
 
-    lambda = check ? 0 : 5
+    lambda = check ? 0 : 1
     parameters = FFTParameters(DFTdim, DFTsize, z0 |> AT, lambda, index_missing)
-    nlp = FFTNLPModel{VT}(parameters; rdft)
+    fft_operator = FFTOperator{VT}(prod(DFTsize), DFTdim, DFTsize, index_missing, rdft)
 
-    # Solve with MadNLP/CG
+    # Solve with ADMM
     t1 = time()
-    solver = MadNLP.MadNLPSolver(
-        nlp;
-        max_iter=2000,
-        kkt_system=FFTKKTSystem,
-        print_level=MadNLP.INFO,
-        nlp_scaling=false,
-        dual_initialized=true,
-        richardson_max_iter=0,
-        tol=1e-8,
-        richardson_tol=Inf,
-    )
-    results = CompressedSensingIPM.ipm_solve!(solver)
+    solution = CompressedSensingADMM(parameters, fft_operator; rho=1, maxt=1000, tol=1e-8)
     t2 = time()
 
+
     if check
-        beta_MadNLP = results.solution[1:N1*N2*N3]
+        beta_ADMM = solution[1:N1*N2*N3]
         beta_true = DFT_to_beta(DFTdim, DFTsize, w |> AT)
-        @test norm(beta_true - beta_MadNLP) ≤ 1e-6
+        @test norm(beta_true - beta_ADMM) ≤ 1e-6
     end
 
-    return nlp, solver, results, t2-t1
+    return solution, t2-t1
 end
-
-# N1 = 8
-# N2 = 8
-# N3 = 8
-# gpu = false
-# gpu_arch = "cuda"
-# rdft = true
-# check = false
-# nlp, solver, results, timer = fft_example_3D(N1, N2, N3; gpu, gpu_arch, rdft, check)
-# beta_MadNLP = results.solution[1:N1*N2*N3]
-# println("Timer: $(timer)")

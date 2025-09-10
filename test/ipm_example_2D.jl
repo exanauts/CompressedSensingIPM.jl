@@ -1,5 +1,5 @@
 ## 2D
-function fft_example_2D(Nt::Int, Ns::Int; gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false, check::Bool=false)
+function ipm_example_2D(Nt::Int, Ns::Int; gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false, check::Bool=false)
     t = collect(0:(Nt-1))
     s = collect(0:(Ns-1))
 
@@ -79,6 +79,6 @@ end
 # gpu_arch = "cuda"
 # rdft = true
 # check = false
-# nlp, solver, results, timer = fft_example_2D(Nt, Ns; gpu, gpu_arch, rdft, check)
+# nlp, solver, results, timer = ipm_example_2D(Nt, Ns; gpu, gpu_arch, rdft, check)
 # beta_MadNLP = results.solution[1:Nt*Ns]
 # println("Timer: $(timer)")

@@ -13,8 +13,8 @@ if dim1
     @test norm(res2_wei) ≈ norm(z)
 
     for rdft in (false, true)
-      @testset "1D -- CPU -- rdft=$rdft -- $N" begin
-        nlp, solver, results = fft_example_1D(N; gpu=false, rdft, check=true)
+      @testset "1D -- IPM -- CPU -- rdft=$rdft -- $N" begin
+        nlp, solver, results, timer = ipm_example_1D(N; gpu=false, rdft, check=true)
         op_fft = nlp.op_fft
 
         z2 = M_perpt_M_perp_vec(op_fft, z)
@@ -30,8 +30,8 @@ if dim1
       end
 
       if CUDA.functional()
-        @testset "1D -- CUDA -- rdft=$rdft -- $N" begin
-          nlp, solver, results = fft_example_1D(N; gpu=true, gpu_arch="cuda", rdft, check=true)
+        @testset "1D -- IPM -- CUDA -- rdft=$rdft -- $N" begin
+          nlp, solver, results, timer = ipm_example_1D(N; gpu=true, gpu_arch="cuda", rdft, check=true)
           op_fft = nlp.op_fft
 
           z_gpu = CuArray(z)
@@ -50,8 +50,8 @@ if dim1
       end
 
       if AMDGPU.functional()
-        @testset "1D -- ROCm -- rdft=$rdft -- $N" begin
-          nlp, solver, results = fft_example_1D(N; gpu=true, gpu_arch="rocm", rdft, check=true)
+        @testset "1D -- IPM -- ROCm -- rdft=$rdft -- $N" begin
+          nlp, solver, results, timer = ipm_example_1D(N; gpu=true, gpu_arch="rocm", rdft, check=true)
           op_fft = nlp.op_fft
 
           z_gpu = ROCArray(z)
@@ -87,8 +87,8 @@ if dim2
     @test norm(res2_wei) ≈ norm(z)
 
     for rdft in (false, true)
-      @testset "2D -- CPU -- rdft=$rdft -- $N1 × $N2" begin
-        nlp, solver, results = fft_example_2D(N1, N2; gpu=false, rdft, check=true)
+      @testset "2D -- IPM -- CPU -- rdft=$rdft -- $N1 × $N2" begin
+        nlp, solver, results, timer = ipm_example_2D(N1, N2; gpu=false, rdft, check=true)
         op_fft = nlp.op_fft
 
         z2 = M_perpt_M_perp_vec(op_fft, z)
@@ -104,8 +104,8 @@ if dim2
       end
 
       if CUDA.functional()
-        @testset "2D -- CUDA -- rdft=$rdft -- $N1 × $N2" begin
-          nlp, solver, results = fft_example_2D(N1, N2; gpu=true, gpu_arch="cuda", rdft, check=true)
+        @testset "2D -- IPM -- CUDA -- rdft=$rdft -- $N1 × $N2" begin
+          nlp, solver, results, timer = ipm_example_2D(N1, N2; gpu=true, gpu_arch="cuda", rdft, check=true)
           op_fft = nlp.op_fft
 
           z_gpu = CuArray(z)
@@ -123,8 +123,8 @@ if dim2
         end
       end
       if AMDGPU.functional()
-        @testset "2D -- ROCm -- rdft=$rdft -- $N1 × $N2" begin
-          nlp, solver, results = fft_example_2D(N1, N2; gpu=true, gpu_arch="rocm", rdft, check=true)
+        @testset "2D -- IPM -- ROCm -- rdft=$rdft -- $N1 × $N2" begin
+          nlp, solver, results, timer = ipm_example_2D(N1, N2; gpu=true, gpu_arch="rocm", rdft, check=true)
           op_fft = nlp.op_fft
 
           z_gpu = ROCArray(z)
@@ -160,8 +160,8 @@ if dim3
     @test norm(res2_wei) ≈ norm(z)
 
     for rdft in (false, true)
-      @testset "3D -- CPU -- rdft=$rdft -- $N1 × $N2 × $N3" begin
-        nlp, solver, results = fft_example_3D(N1, N2, N3; gpu=false, rdft, check=true)
+      @testset "3D -- IPM -- CPU -- rdft=$rdft -- $N1 × $N2 × $N3" begin
+        nlp, solver, results, timer = ipm_example_3D(N1, N2, N3; gpu=false, rdft, check=true)
         op_fft = nlp.op_fft
 
         z2 = M_perpt_M_perp_vec(op_fft, z)
@@ -177,8 +177,8 @@ if dim3
       end
 
       if CUDA.functional()
-        @testset "3D -- CUDA -- rdft=$rdft -- $N1 × $N2 × $N3" begin
-          nlp, solver, results = fft_example_3D(N1, N2, N3; gpu=true, gpu_arch="cuda", rdft, check=true)
+        @testset "3D -- IPM -- CUDA -- rdft=$rdft -- $N1 × $N2 × $N3" begin
+          nlp, solver, results, timer = ipm_example_3D(N1, N2, N3; gpu=true, gpu_arch="cuda", rdft, check=true)
           op_fft = nlp.op_fft
 
           z_gpu = CuArray(z)
@@ -197,8 +197,8 @@ if dim3
       end
 
       if AMDGPU.functional()
-        @testset "3D -- ROCm -- rdft=$rdft -- $N1 × $N2 × $N3" begin
-          nlp, solver, results = fft_example_3D(N1, N2, N3; gpu=true, gpu_arch="rocm", rdft, check=true)
+        @testset "3D -- IPM -- ROCm -- rdft=$rdft -- $N1 × $N2 × $N3" begin
+          nlp, solver, results, timer = ipm_example_3D(N1, N2, N3; gpu=true, gpu_arch="rocm", rdft, check=true)
           op_fft = nlp.op_fft
 
           z_gpu = ROCArray(z)
