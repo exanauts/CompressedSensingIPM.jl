@@ -8,7 +8,9 @@ end
 function CompressedSensingADMM(fft_parameter, fft_operator; rho=1, maxt = 1000, tol = 1e-6)
     DFTdim = fft_parameter.DFTdim
     DFTsize = fft_parameter.DFTsize
-    z0 = fft_parameter.z0
+    
+    tmp = M_perpt_z(fft_operator, fft_parameter.z0)
+    M_perpt_z0 = copy(tmp)
     lambda = fft_parameter.lambda
     index_missing = fft_parameter.index_missing
     n = prod(DFTsize)
@@ -21,7 +23,7 @@ function CompressedSensingADMM(fft_parameter, fft_operator; rho=1, maxt = 1000, 
     op_fft = LinearOperator(Float64, n, n, true, true, (y_op, v_ip) -> MperptMRho(y_op, v_ip, fft_operator, rho))
 
     while (t < maxt) && (err > tol)
-        b = z0 .+ (rho .* ztemp) .- y0
+        b = M_perpt_z0 .+ (rho .* ztemp) .- y0
 
         # update x
         cg!(workspace, op_fft, b)
@@ -34,12 +36,13 @@ function CompressedSensingADMM(fft_parameter, fft_operator; rho=1, maxt = 1000, 
         y1 = y0 + rho * (x1 - z1)
 
         # check the convergence
-        err = max(norm(x1 - x0, 2), norm(y1 - y0, 2), norm(z1 - z0, 2))
+        err = max(norm(x1 - x0, 2), norm(y1 - y0, 2), norm(z1 - ztemp, 2))
 
         x0 = x1
         ztemp = z1
         y0 = y1
         t = t + 1
+        println(err)
     end
     return ztemp
 end
