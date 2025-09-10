@@ -62,14 +62,3 @@ function admm_example_3D(N1::Int, N2::Int, N3::Int; gpu::Bool=false, gpu_arch::S
 
     return solution, t2-t1
 end
-
-# N1 = 8
-# N2 = 8
-# N3 = 8
-# gpu = false
-# gpu_arch = "cuda"
-# rdft = true
-# check = false
-# nlp, solver, results, timer = fft_example_3D(N1, N2, N3; gpu, gpu_arch, rdft, check)
-# beta_MadNLP = results.solution[1:N1*N2*N3]
-# println("Timer: $(timer)")
