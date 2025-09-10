@@ -61,4 +61,3 @@ function admm_example_2D(Nt::Int, Ns::Int; gpu::Bool=false, gpu_arch::String="cu
 
     return solution, t2-t1
 end
-
