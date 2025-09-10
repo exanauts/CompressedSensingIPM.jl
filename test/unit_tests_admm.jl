@@ -6,17 +6,17 @@ if dim1
         solution, timer = admm_example_1D(N; gpu=false, rdft, check=true)
       end
 
-      # if CUDA.functional()
-      #   @testset "1D -- ADMM -- CUDA -- rdft=$rdft -- $N" begin
-      #     solution, timer = admm_example_1D(N; gpu=true, gpu_arch="cuda", rdft, check=true)
-      #   end
-      # end
+      if CUDA.functional()
+        @testset "1D -- ADMM -- CUDA -- rdft=$rdft -- $N" begin
+          solution, timer = admm_example_1D(N; gpu=true, gpu_arch="cuda", rdft, check=true)
+        end
+      end
 
-      # if AMDGPU.functional()
-      #   @testset "1D -- ADMM -- ROCm -- rdft=$rdft -- $N" begin
-      #     solution, timer = admm_example_1D(N; gpu=true, gpu_arch="rocm", rdft, check=true)
-      #   end
-      # end
+      if AMDGPU.functional()
+        @testset "1D -- ADMM -- ROCm -- rdft=$rdft -- $N" begin
+          solution, timer = admm_example_1D(N; gpu=true, gpu_arch="rocm", rdft, check=true)
+        end
+      end
     end
   end
 end
@@ -30,17 +30,17 @@ if dim2
         solution, timer = admm_example_2D(N1, N2; gpu=false, rdft, check=true)
       end
 
-      # if CUDA.functional()
-      #   @testset "2D -- ADMM -- CUDA -- rdft=$rdft -- $N1 × $N2" begin
-      #     solution, timer = admm_example_2D(N1, N2; gpu=true, gpu_arch="cuda", rdft, check=true)
-      #   end
-      # end
+      if CUDA.functional()
+        @testset "2D -- ADMM -- CUDA -- rdft=$rdft -- $N1 × $N2" begin
+          solution, timer = admm_example_2D(N1, N2; gpu=true, gpu_arch="cuda", rdft, check=true)
+        end
+      end
 
-      # if AMDGPU.functional()
-      #   @testset "2D -- ADMM -- ROCm -- rdft=$rdft -- $N1 × $N2" begin
-      #     solution, timer = admm_example_2D(N1, N2; gpu=true, gpu_arch="rocm", rdft, check=true)
-      #   end
-      # end
+      if AMDGPU.functional()
+        @testset "2D -- ADMM -- ROCm -- rdft=$rdft -- $N1 × $N2" begin
+          solution, timer = admm_example_2D(N1, N2; gpu=true, gpu_arch="rocm", rdft, check=true)
+        end
+      end
     end
   end
 end
@@ -54,17 +54,17 @@ if dim3
         solution, timer = admm_example_3D(N1, N2, N3; gpu=false, rdft, check=true)
       end
 
-      # if CUDA.functional()
-      #   @testset "3D -- ADMM -- CUDA -- rdft=$rdft -- $N1 × $N2 × $N3" begin
-      #     solution, timer = admm_example_3D(N1, N2, N3; gpu=true, gpu_arch="cuda", rdft, check=true)
-      #   end
-      # end
+      if CUDA.functional()
+        @testset "3D -- ADMM -- CUDA -- rdft=$rdft -- $N1 × $N2 × $N3" begin
+          solution, timer = admm_example_3D(N1, N2, N3; gpu=true, gpu_arch="cuda", rdft, check=true)
+        end
+      end
 
-      # if AMDGPU.functional()
-      #   @testset "3D -- ADMM -- ROCm -- rdft=$rdft -- $N1 × $N2 × $N3" begin
-      #     solution, timer = admm_example_3D(N1, N2, N3; gpu=true, gpu_arch="rocm", rdft, check=true)
-      #   end
-      # end
+      if AMDGPU.functional()
+        @testset "3D -- ADMM -- ROCm -- rdft=$rdft -- $N1 × $N2 × $N3" begin
+          solution, timer = admm_example_3D(N1, N2, N3; gpu=true, gpu_arch="rocm", rdft, check=true)
+        end
+      end
     end
   end
 end
