@@ -54,7 +54,7 @@ function admm_example_2D(Nt::Int, Ns::Int; gpu::Bool=false, gpu_arch::String="cu
     t2 = time()
 
     if check
-        beta_ADMM = results.solution[1:Nt*Ns]
+        beta_ADMM = solution[1:Nt*Ns]
         beta_true = DFT_to_beta(DFTdim, DFTsize, w |> AT)
         @test norm(beta_true - beta_ADMM) ≤ 1e-6
     end
