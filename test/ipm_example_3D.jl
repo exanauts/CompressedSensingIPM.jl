@@ -1,5 +1,5 @@
 ## 3D
-function fft_example_3D(N1::Int, N2::Int, N3::Int; gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false, check::Bool=false)
+function ipm_example_3D(N1::Int, N2::Int, N3::Int; gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false, check::Bool=false)
     idx1 = collect(0:(N1-1))
     idx2 = collect(0:(N2-1))
     idx3 = collect(0:(N3-1))
@@ -80,6 +80,6 @@ end
 # gpu_arch = "cuda"
 # rdft = true
 # check = false
-# nlp, solver, results, timer = fft_example_3D(N1, N2, N3; gpu, gpu_arch, rdft, check)
+# nlp, solver, results, timer = ipm_example_3D(N1, N2, N3; gpu, gpu_arch, rdft, check)
 # beta_MadNLP = results.solution[1:N1*N2*N3]
 # println("Timer: $(timer)")
