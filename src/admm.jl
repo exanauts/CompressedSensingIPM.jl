@@ -8,7 +8,7 @@ end
 function CompressedSensingADMM(fft_parameter, fft_operator; rho=1, maxt = 1000, tol = 1e-6)
     DFTdim = fft_parameter.DFTdim
     DFTsize = fft_parameter.DFTsize
-    VT = ...
+    VT = typeof(vec(fft_parameter.z0))
 
     tmp = M_perpt_z(fft_operator, fft_parameter.z0)
     M_perpt_z0 = copy(tmp)
@@ -37,7 +37,8 @@ function CompressedSensingADMM(fft_parameter, fft_operator; rho=1, maxt = 1000, 
         x1 = workspace.x
 
         # update z
-        z1 = softthreshold!(z1, x1 + y0/rho, lambda/rho)
+        buffer .= x1 .+ y0 ./ rho
+        z1 = softthreshold!(z1, buffer, lambda/rho)
 
         # update y
         y1 .= y0 .+ rho .* (x1 .- z1)
@@ -71,5 +72,5 @@ end
 
 function softthreshold!(z1, x, thre)
     map!(xi -> softthreshold_scalar(xi, thre), z1, x)
-    return z
+    return z1
 end
