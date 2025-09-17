@@ -359,27 +359,3 @@ function MadNLP.factorize_wrapper!(
     # No factorization needed
     return true
 end
-
-#=
-    Uncomment to have custom control on iterative refinement
-=#
-
-# function MadNLP.solve_refine_wrapper!(
-#     d,
-#     solver::MadNLP.MadNLPSolver{T,Vector{T},Vector{Int},KKT},
-#     p,
-#     w,
-# ) where {T,KKT<:FFTKKTSystem{T,Vector{Int},Vector{T}}}
-#     result = false
-#     kkt = solver.kkt
-#     copyto!(MadNLP.full(d), MadNLP.full(p))
-#     MadNLP.solve!(kkt, d)
-#     return true
-# end
-
-function ipm_solve!(solver::MadNLP.MadNLPSolver)
-    MadNLP.print_init(solver)
-    MadNLP.initialize!(solver)
-    MadNLP.regular!(solver)
-    return MadNLP.MadNLPExecutionStats(solver)
-end

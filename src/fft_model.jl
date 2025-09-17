@@ -1,18 +1,3 @@
-mutable struct FFTParameters{AT,N,IM}
-    DFTdim::Int64
-    DFTsize::NTuple{N,Int64}
-    z0::AT
-    lambda::Float64
-    index_missing::IM
-
-    function FFTParameters(DFTdim, DFTsize, z0, lambda, index_missing)
-        AT = typeof(z0)
-        IM = typeof(index_missing)
-        N = DFTdim
-        new{AT,N,IM}(DFTdim, DFTsize, z0, lambda, index_missing)
-    end
-end
-
 mutable struct FFTNLPModel{T,VT,FFT,P} <: AbstractNLPModel{T,VT}
     meta::NLPModelMeta{T,VT}
     counters::Counters
