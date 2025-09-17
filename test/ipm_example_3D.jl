@@ -1,5 +1,5 @@
 ## 3D
-function ipm_example_3D(N1::Int, N2::Int, N3::Int; gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false, check::Bool=false)
+function ipm_example_3D(N1::Int, N2::Int, N3::Int; kkt=FFTKKTSystem, gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false, check::Bool=false)
     idx1 = collect(0:(N1-1))
     idx2 = collect(0:(N2-1))
     idx3 = collect(0:(N3-1))
@@ -46,14 +46,18 @@ function ipm_example_3D(N1::Int, N2::Int, N3::Int; gpu::Bool=false, gpu_arch::St
 
     lambda = check ? 0 : 5
     parameters = FFTParameters(DFTdim, DFTsize, z0 |> AT, lambda, index_missing)
-    nlp = FFTNLPModel{VT}(parameters; rdft)
+    if kkt == FFTKKTSystem
+        nlp = FFTNLPModel{VT}(parameters; rdft)
+    else
+        nlp = GondzioNLPModel{VT}(parameters; rdft)
+    end
 
     # Solve with MadNLP/CG
     t1 = time()
     solver = MadNLP.MadNLPSolver(
         nlp;
         max_iter=2000,
-        kkt_system=FFTKKTSystem,
+        kkt_system=kkt,
         print_level=MadNLP.INFO,
         nlp_scaling=false,
         dual_initialized=true,
