@@ -1,5 +1,5 @@
 ## 1D
-function ipm_example_1D(Nt::Int; gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false, check::Bool=false)
+function ipm_example_1D(Nt::Int; kkt=FFTKKTSystem, gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false, check::Bool=false)
     t = collect(0:(Nt-1))
 
     print("Generate x: ")
@@ -47,14 +47,18 @@ function ipm_example_1D(Nt::Int; gpu::Bool=false, gpu_arch::String="cuda", rdft:
 
     lambda = check ? 0 : 1
     parameters = FFTParameters(DFTdim, DFTsize, z0 |> AT, lambda, index_missing)
-    nlp = FFTNLPModel{VT}(parameters; rdft)
+    if kkt == FFTKKTSystem
+        nlp = FFTNLPModel{VT}(parameters; rdft)
+    else
+        nlp = GondzioNLPModel{VT}(parameters; rdft)
+    end
 
     # Solve with MadNLP/CG
     t1 = time()
     solver = MadNLP.MadNLPSolver(
         nlp;
         max_iter=2000,
-        kkt_system=FFTKKTSystem,
+        kkt_system=kkt,
         nlp_scaling=false,
         print_level=MadNLP.INFO,
         dual_initialized=true,
