@@ -30,6 +30,7 @@ julia --project=. -e 'include("benchmarks_cufft.jl")'
 julia --project=. -e 'include("benchmarks_rocfft.jl")'
 julia --project=. -e 'include("cpu_vs_gpu.jl")'
 julia --project=. -e 'include("crystal.jl")'
+julia --project=. -e 'include("mastodonte.jl")'
 ```
 
 ## Scripts
@@ -50,7 +51,11 @@ Similar to the cuFFT benchmarks; results were not included in the final paper.
 
 - **crystal.jl**  
  
-Applies the same solver to a real-world problem of **104 million variables**, comparing CPU and GPU performance on a crystallographic dataset.
+Applies our compressed sensing solver on a real-world problem of **104 million variables**, comparing CPU and GPU performance on a crystallographic dataset.
+
+- **mastodonte.jl** 
+
+Applies our compressed sensing solver on problems from ANL stored in files `*.h5`.
 
 ## Preferences
 
