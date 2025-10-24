@@ -25,7 +25,7 @@ function punch_3D_cart(center, radius, x, y, z; linear = false)
     end 
 end
 
-function crystal(z3d; variant::Bool=false, gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false)
+function crystal(z3d; variant::Bool=false, lambda::Float64=1.0, gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false)
     if !variant
         dx = 0.02
         dy = 0.02
@@ -97,7 +97,6 @@ function crystal(z3d; variant::Bool=false, gpu::Bool=false, gpu_arch::String="cu
         VT = Vector{Float64}
     end
 
-    lambda = 1
     parameters = FFTParameters(DFTdim, DFTsize, punched_pmn |> AT, lambda, index_missing_3D)
     nlp = FFTNLPModel{VT}(parameters; rdft, preconditioner=true)
 
@@ -125,7 +124,8 @@ rdft = true
 variant = true
 path_z3d = variant ? joinpath(artifact"punched_pmn", "punched_pmn.npy") : joinpath(artifact"z3d_movo", "z3d_movo.npy")
 z3d = npzread(path_z3d)
-nlp, solver, results, timer = crystal(z3d; variant, gpu, gpu_arch, rdft)
+lambda = 1.0
+nlp, solver, results, timer = crystal(z3d; variant, lambda, gpu, gpu_arch, rdft)
 N = length(results.solution) ÷ 2
 beta_MadNLP = results.solution[1:N]
 println("Timer: $(timer)")

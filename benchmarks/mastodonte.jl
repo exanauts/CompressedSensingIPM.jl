@@ -8,7 +8,7 @@ using CUDA, AMDGPU
 using Test
 using CompressedSensingIPM
 
-function mastodonte(z0, mask; gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false)
+function mastodonte(z0, mask; lambda::Float64=1.0, gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false)
   nnz_missing = length(mask) - nnz(vec(mask) |> sparse)
   # index_missing = Vector{CartesianIndex{3}}(undef, nnz_missing)
   index_missing = Vector{Int}(undef, nnz_missing)
@@ -47,7 +47,6 @@ function mastodonte(z0, mask; gpu::Bool=false, gpu_arch::String="cuda", rdft::Bo
   end
   index_missing = VI(index_missing)
 
-  lambda = 1.0
   parameters = FFTParameters(DFTdim, DFTsize, z0 |> AT, lambda, index_missing)
   nlp = FFTNLPModel{VT}(parameters; rdft, preconditioner=true)
 
@@ -80,7 +79,8 @@ z0 = read(z0_h5["data"])
 path_mask_h5 = "mask_template_f_n_s_800_800_200.h5"
 mask_h5 = h5open(path_mask_h5, "r")
 mask = read(mask_h5["data"])
-nlp, solver, results, timer = mastodonte(z0, mask; gpu, gpu_arch, rdft)
+lambda = 1.0
+nlp, solver, results, timer = mastodonte(z0, mask; lambda, gpu, gpu_arch, rdft)
 N = length(results.solution) ÷ 2
 beta_MadNLP = results.solution[1:N]
 println("Timer: $(timer)")
