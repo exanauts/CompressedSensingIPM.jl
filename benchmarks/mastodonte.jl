@@ -10,11 +10,13 @@ using CompressedSensingIPM
 
 function mastodonte(z0, mask; lambda::Float64=1.0, gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false)
   nnz_missing = length(mask) - nnz(vec(mask) |> sparse)
+
   # index_missing = Vector{CartesianIndex{3}}(undef, nnz_missing)
   index_missing = Vector{Int}(undef, nnz_missing)
 
-  DFTsize = size(z0)  # problem dim
+  DFTsize = size(mask)  # problem dim
   DFTdim = length(DFTsize)  # problem size
+
   if gpu
     if gpu_arch == "cuda"
       AT = CuArray{Float64}
@@ -34,9 +36,9 @@ function mastodonte(z0, mask; lambda::Float64=1.0, gpu::Bool=false, gpu_arch::St
   end
 
   pos = 0
-  for i in 1:DFTsize[1]
+  for k in 1:DFTsize[3]
     for j in 1:DFTsize[2]
-      for k in 1:DFTsize[3]
+      for i in 1:DFTsize[1]
         if mask[i,j,k] == 0
           pos += 1
           # index_missing[pos] = CartesianIndex{3}(i, j, k)
@@ -54,7 +56,7 @@ function mastodonte(z0, mask; lambda::Float64=1.0, gpu::Bool=false, gpu_arch::St
   t1 = time()
   solver = MadNLP.MadNLPSolver(
     nlp;
-    max_iter=10000,
+    max_iter=2000,
     kkt_system=FFTKKTSystem,
     nlp_scaling=false,
     print_level=MadNLP.INFO,
@@ -69,17 +71,30 @@ function mastodonte(z0, mask; lambda::Float64=1.0, gpu::Bool=false, gpu_arch::St
   return nlp, solver, results, t2-t1
 end
 
-gpu = true
-gpu_arch = "cuda"  # "rocm"
-rdft = true
-path_z0_h5 = "7_7_sec_ord_rings_800_800_200.h5"
-z0_h5 = h5open(path_z0_h5, "r")
-z0 = read(z0_h5["data"])
+# Data
+# path_z0_h5 = "7_7_sec_ord_rings_800_800_200.h5"
+# z0_h5 = h5open(path_z0_h5, "r")
+# z0 = read(z0_h5["data"])
+
 # path_mask_h5 = "mask_template_800_800_200.h5"
-path_mask_h5 = "mask_template_f_n_s_800_800_200.h5"
-mask_h5 = h5open(path_mask_h5, "r")
-mask = read(mask_h5["data"])
+# path_mask_h5 = "mask_template_f_n_s_800_800_200.h5"
+# mask_h5 = h5open(path_mask_h5, "r")
+# mask = read(mask_h5["data"])
+
+# New storage
+path_h5 = "movo2_40_120K_slice_pm4.0xpm4.0xpm4.0_br0.20_sg123.nxs.h5"
+file_h5 = file_h5 = h5open(path_h5, "r")
+mask = read(file_h5["entry"]["data"]["weights"])
+z0 = read(file_h5["entry"]["data"]["signal"])
+
+# Options for the solver
+gpu = true
+gpu_arch = "cuda"
+# gpu_arch = "rocm"
+rdft = true
 lambda = 1.0
+
+# Solve the problem and recover the solution
 nlp, solver, results, timer = mastodonte(z0, mask; lambda, gpu, gpu_arch, rdft)
 N = length(results.solution) ÷ 2
 beta_MadNLP = results.solution[1:N]
@@ -90,12 +105,12 @@ println("Timer: $(timer)")
 # nlp.fft_timer[]
 # nlp.mapping_timer[]
 
-dump_solution = true
+# Dump the solution in a file
+dump_solution = false
 if dump_solution
-  v = beta_to_DFT(3, DFTsize, beta_MadNLP; rdft=rdft)
+  DFTsize = size(mask)
+  v = CompressedSensingIPM.beta_to_DFT(3, DFTsize, beta_MadNLP; rdft=rdft)
   x_recovered = ifft(v) .* sqrt(prod(DFTsize))
-  x_recovered = Vector(x_recovered) |> real
-  open("7_7_sec_ord_rings_800_800_200_solution.txt", "w") do io
-    writedlm(io, x_recovered)
-  end
+  x_recovered = Array(x_recovered) |> real
+  h5write("solution_movo2_40_120K.h5", "solution", x_recovered)
 end
