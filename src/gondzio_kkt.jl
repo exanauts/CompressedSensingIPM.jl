@@ -235,6 +235,7 @@ function MadNLP.mul!(y::VT, kkt::GondzioKKTSystem, x::VT, alpha::Number, beta::N
     nlp = kkt.nlp
     nβ = nlp.nβ
     parameters = nlp.parameters
+    buffer1 = kkt.buffer1
 
     # FFT parameters
     DFTdim = parameters.DFTdim
@@ -248,37 +249,33 @@ function MadNLP.mul!(y::VT, kkt::GondzioKKTSystem, x::VT, alpha::Number, beta::N
     _x = MadNLP.full(x)
     _y = MadNLP.full(y)
 
-    temp = kkt.z1 #I know this size is not proper, this has to be changed
+    y_x = view(_y, 1:2*nβ)
+    y_r = view(_y, 2*nβ+1:2*nβ+m)
+    y_y = view(_y, 2*nβ+m+1:2*nβ+2*m)
+    y_w = view(_y, 2*nβ+2*m+1:4*nβ+2*m)
 
-    yp  = view(_y, 1:nβ)
-    yq  = view(_y, nβ+1:2*nβ)
-    y_con1 = view(_y, 2*nβ+1:2*nβ+m)
-    y_con2 = view(_y, 2*nβ+m+1:2*nβ+2*m)
-    yy1 = view(_y, 2*nβ+2*m+1:3*nβ+2*m)
-    yy2 = view(_y, 3*nβ+2*m+1:4*nβ+2*m)
+    y_p = view(_y, 1:nβ)
+    y_q = view(_y, nβ+1:2*nβ)
+    y_wp = view(_y, 2*nβ+2*m+1:3*nβ+2*m)
+    y_wq = view(_y, 3*nβ+2*m+1:4*nβ+2*m)
 
-    xp  = view(_y, 1:nβ)
-    xq  = view(_y, nβ+1:2*nβ)
-    x_con1 = view(_y, 2*nβ+1:2*nβ+m)
-    x_con2 = view(_y, 2*nβ+m+1:2*nβ+2*m)
-    xy1 = view(_y, 2*nβ+2*m+1:3*nβ+2*m)
-    xy2 = view(_y, 3*nβ+2*m+1:4*nβ+2*m)
+    x_x = view(_x, 1:2*nβ)
+    x_r = view(_x, 2*nβ+1:2*nβ+m)
+    x_y = view(_x, 2*nβ+m+1:2*nβ+2*m)
+    x_w = view(_x, 2*nβ+2*m+1:4*nβ+2*m)
 
-    temp .= M_perpt_z(kkt.nlp.op_fft, x_con2)
-    yp .= -temp .- xy1
-    yq .= -temp .- xy2
-    y_con1 .= x_con1 .- x_con2
+    x_p = view(_x, 1:nβ)
+    x_q = view(_x, nβ+1:2*nβ)
+    x_wp = view(_x, 2*nβ+2*m+1:3*nβ+2*m)
+    x_wq = view(_x, 3*nβ+2*m+1:4*nβ+2*m)
 
-    temp = kkt.z1 #Same comment about the size
-    temp2 = kkt.z2
-    temp .= xp .- xq
-
-    temp2 .= -M_perp(kkt.nlp.op_fft, temp)
-
-    y_con2 .= temp2 .- x_con1
-    # Have to do W \Deltax + X \Delta w
-
-
+    buffer1 .= x_q .- x_p
+    tmp = M_perpt_z(kkt.nlp.op_fft, x_y)
+    y_p .=   tmp .- x_wp
+    y_q .= .-tmp .- x_wq
+    y_r .= x_r .- x_y
+    y_y .= M_perp_beta(kkt.nlp.op_fft, buffer1) .- x_r
+    y_w .= diag(l_lower) .* x_x .+ diag(l_lower) .* x_w
     return y
 end
 
