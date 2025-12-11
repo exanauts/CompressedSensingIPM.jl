@@ -67,7 +67,7 @@ function NLPModels.obj(nlp::GondzioNLPModel, x::AbstractVector)
     nβ = nlp.nβ
     theta_x = view(x, 1:2*nβ)
     theta_r = view(x, 2*nβ+1:nvar)
-    fval = 0.5 * dot(theta_r, theta_r)  + lambda * sum(theta_x)
+    fval = 0.5 * dot(theta_r, theta_r) + lambda * sum(theta_x)
     return fval
 end
 

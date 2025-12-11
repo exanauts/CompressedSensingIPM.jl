@@ -287,22 +287,7 @@ function MadNLP.jtprod!(
     kkt::GondzioKKTSystem{T, VI, VT, MT},
     x::AbstractVector,
 ) where {T, VI, VT, MT}
-    nlp = kkt.nlp
-    nβ = nlp.nβ
-
-    xy1 = view(x, 1:nβ)
-    xy2 = view(x, nβ+1:2*nβ)
-
-    yβ = view(y, 1:nβ)
-    yz = view(y, nβ+1:2*nβ)
-    ys1 = view(y, 2*nβ+1:3*nβ)
-    ys2 = view(y, 3*nβ+1:4*nβ)
-
-    yβ .= .-xy1 .+ xy2
-    yz .= .-xy1 .- xy2
-    ys1 .= .-xy1
-    ys2 .= .-xy2
-
+    ...
     return y
 end
 
