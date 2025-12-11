@@ -18,15 +18,21 @@ function GondzioNLPModel{VT}(parameters::FFTParameters;
     DFTsize = parameters.DFTsize  # problem dimension
     index_missing = parameters.index_missing
     nβ = prod(DFTsize)
+    m = nβ - length(index_missing)
 
-    nvar = ...
-    ncon = ...
-    x0 = ...
-    y0 = ...
-    lvar = ...
-    uvar = ...
-    lcon = ...
-    ucon = ...
+    nvar = 2 * nβ + m
+    ncon = m
+    x0 = VT(undef, nvar)
+    y0 = VT(undef, ncon)
+    lvar = VT(undef, nvar)
+    view(lvar, 1:2*nβ) .= 0
+    view(lvar, 2*nβ+1:nvar) .= -Inf
+    uvar = VT(undef, nvar) 
+    uvar .= Inf
+    lcon = VT(undef, ncon)
+    lcon .= 0
+    ucon = VT(undef, ncon)
+    ucon .= 0
     meta = NLPModelMeta(
         nvar,
         x0 = x0,
@@ -55,9 +61,13 @@ function NLPModels.obj(nlp::GondzioNLPModel, x::AbstractVector)
     DFTdim = nlp.parameters.DFTdim
     DFTsize = nlp.parameters.DFTsize
     lambda = nlp.parameters.lambda
-    index_missing = nlp.parameters.index_missing
+    nvar = nlp.meta.nvar
 
-    fval = ...
+    fft_val = M_perp_beta(nlp.op_fft, x)
+    nβ = nlp.nβ
+    theta_x = view(x, 1:2*nβ)
+    theta_r = view(x, 2*nβ+1:nvar)
+    fval = 0.5 * dot(theta_r, theta_r)  + lambda * sum(theta_x)
     return fval
 end
 
@@ -67,13 +77,29 @@ function NLPModels.grad!(nlp::GondzioNLPModel, x::AbstractVector, g::AbstractVec
     DFTsize = nlp.parameters.DFTsize
     lambda = nlp.parameters.lambda
     index_missing = nlp.parameters.index_missing
+    nvar = nlp.meta.nvar
 
-    ...
+    nβ = nlp.nβ
+    g_b = view(g, 1:2*nβ)
+    g_b .= lambda
+    g_c = view(g, 2*nβ+1:nvar)
+    g_c .= view(x, 2*nβ+1:nvar)
     return g
 end
 
 function NLPModels.cons!(nlp::GondzioNLPModel, x::AbstractVector, c::AbstractVector)
     increment!(nlp, :neval_cons)
-    ...
+    DFTdim = nlp.parameters.DFTdim
+    DFTsize = nlp.parameters.DFTsize
+    lambda = nlp.parameters.lambda
+    index_missing = nlp.parameters.index_missing
+    nvar = nlp.meta.nvar
+
+    theta_r = view(x, 2*nβ+1:nvar)
+    b = nlp.M_perpt_z0
+    theta_x = view(x, 1:2*nβ)
+    diff_x = view(x, 1:nβ) - view(x, nβ+1:2*nβ)
+    Ux = M_perp_beta(nlp.op_fft, diff_x)
+    c .= Ux .+ theta_r .- b
     return c
 end
