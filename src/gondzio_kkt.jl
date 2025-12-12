@@ -284,7 +284,15 @@ function MadNLP.jtprod!(
     kkt::GondzioKKTSystem{T, VI, VT, MT},
     x::AbstractVector,
 ) where {T, VI, VT, MT}
-    ...
+    nlp = kkt.nlp
+    nβ = nlp.nβ
+    tmp = M_perpt_z(kkt.nlp.op_fft, x)
+
+    y1 = view(y, 1:nβ)
+    y2 = view(y, nβ+1:2*nβ)
+
+    y1 .= -tmp
+    y2 .= tmp
     return y
 end
 
