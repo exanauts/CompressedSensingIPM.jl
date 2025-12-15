@@ -370,8 +370,8 @@ function MadNLP.solve!(kkt::GondzioKKTSystem, w::MadNLP.AbstractKKTVector)
 
     Buf1 = M_perpt_z(kkt.nlp.op_fft, nlp.M_perpt_z0) - M_perpt_M_perp_vec(kkt.nlp.op_fft, p .- q)
 
-    b_rhs1 .= Buf1 .- lambda + reg./p
-    b_rhs2 .= -Buf1 .- lambda + reg./q
+    b_rhs1 .= Buf1 .- lambda + mu./p
+    b_rhs2 .= -Buf1 .- lambda + mu./q
 
     P = kkt.nlp.preconditioner ? kkt.P : I
     Krylov.krylov_solve!(kkt.linear_solver, kkt.K, b_rhs, M=P, atol=1e-12, rtol=0.0, verbose=0)
