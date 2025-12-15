@@ -63,7 +63,7 @@ function NLPModels.obj(nlp::GondzioNLPModel, x::AbstractVector)
     lambda = nlp.parameters.lambda
     nvar = nlp.meta.nvar
 
-    fft_val = M_perp_beta(nlp.op_fft, x)
+    # fft_val = M_perp_beta(nlp.op_fft, x)
     nβ = nlp.nβ
     theta_x = view(x, 1:2*nβ)
     theta_r = view(x, 2*nβ+1:nvar)

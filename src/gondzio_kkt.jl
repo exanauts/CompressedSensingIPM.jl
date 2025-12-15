@@ -344,8 +344,10 @@ function MadNLP.solve!(kkt::GondzioKKTSystem, w::MadNLP.AbstractKKTVector)
     MadNLP.reduce_rhs!(w.xp_lr, MadNLP.dual_lb(w), kkt.l_diag, w.xp_ur, MadNLP.dual_ub(w), kkt.u_diag)
 
     #Parameters
+    parameters = nlp.parameters
     lambda = parameters.lambda
     mu = kkt.reg
+    m = NLPModels.get_ncon(nlp)
  
     # Buffers
     Buf1 = kkt.buffer1
