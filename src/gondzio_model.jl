@@ -92,6 +92,7 @@ function NLPModels.cons!(nlp::GondzioNLPModel, x::AbstractVector, c::AbstractVec
     DFTdim = nlp.parameters.DFTdim
     DFTsize = nlp.parameters.DFTsize
     lambda = nlp.parameters.lambda
+    nβ = nlp.nβ
     index_missing = nlp.parameters.index_missing
     nvar = nlp.meta.nvar
 

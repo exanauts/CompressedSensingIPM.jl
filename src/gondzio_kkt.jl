@@ -14,7 +14,7 @@ struct CondensedGondzioKKTSystem{T,VT,NLP} <: AbstractMatrix{T}
     InvQ_Wq::VT  # Q^{-1}W_q
 end
 
-function CondensedGondzioKKTSystem{T,VT}(nlp::FFTNLPModel{T,VT}) where {T,VT}
+function CondensedGondzioKKTSystem{T,VT}(nlp::GondzioNLPModel{T,VT}) where {T,VT}
     buf1 = VT(undef, nlp.nβ)
     InvP_Wp = VT(undef, nlp.nβ)
     InvQ_Wq = VT(undef, nlp.nβ)
@@ -181,11 +181,11 @@ MadNLP.get_hessian(kkt::GondzioKKTSystem) = nothing
 MadNLP.get_jacobian(kkt::GondzioKKTSystem) = nothing
 
 # Dirty wrapper to MadNLP's linear solver
-MadNLP.is_inertia(::Krylov.KrylovWorkspace) = true
-MadNLP.inertia(::Krylov.KrylovWorkspace) = (0, 0, 0)
-MadNLP.introduce(::Krylov.KrylovWorkspace) = "Krylov"
-MadNLP.improve!(::Krylov.KrylovWorkspace) = true
-MadNLP.factorize!(::Krylov.KrylovWorkspace) = nothing
+# MadNLP.is_inertia(::Krylov.KrylovWorkspace) = true
+# MadNLP.inertia(::Krylov.KrylovWorkspace) = (0, 0, 0)
+# MadNLP.introduce(::Krylov.KrylovWorkspace) = "Krylov"
+# MadNLP.improve!(::Krylov.KrylovWorkspace) = true
+# MadNLP.factorize!(::Krylov.KrylovWorkspace) = nothing
 
 MadNLP.is_inertia_correct(kkt::GondzioKKTSystem, p, n, z) = true
 
@@ -324,7 +324,7 @@ function MadNLP.build_kkt!(kkt::GondzioKKTSystem)
     InvQ_Wq .= Wq./q
 
     # Update values in Gondzio Preconditioner
-    kkt.P.P22 .= 1.0./((1.0 .+ InvQ_Wq) .- 1./(1.0 .+ InvP_Wp))
+    kkt.P.P22 .= 1.0 ./ ((1.0 .+ InvQ_Wq) .- 1.0 ./ (1.0 .+ InvP_Wp))
     S = kkt.P.P22
 
     Buff1 = 1.0./(1 .+ InvP_Wp)

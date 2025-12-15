@@ -1,6 +1,6 @@
 # 1D
 if dim1
-  for (kkt, kkt_name) in ((FFTKKTSystem, "FFTKKTSystem"), (GondzioKKTSystem, "GondzioKKTSystem"))
+  for (kkt, kkt_name) in ((GondzioKKTSystem, "GondzioKKTSystem"), (FFTKKTSystem, "FFTKKTSystem"))
     for N in (100, 200, 500)
       z = rand(N)
 
