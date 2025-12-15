@@ -305,7 +305,32 @@ function MadNLP.compress_hessian!(kkt::GondzioKKTSystem)
 end
 
 function MadNLP.build_kkt!(kkt::GondzioKKTSystem)
-    ...
+    nlp = kkt.nlp
+    nβ = nlp.nβ
+    n = NLPModels.get_nvar(nlp)
+    m = NLPModels.get_ncon(nlp)
+    # Assemble preconditioner
+
+    p = view(kkt.pr_diag, 2*nβ+2*m+1:3*nβ+2*m)
+    q = view(kkt.pr_diag, 3*nβ+2*m+1:4*nβ+2*m)
+
+    InvP_Wp  = kkt.K.InvP_Wp
+    InvQ_Wq = kkt.K.InvQ_Wq
+
+    #I am not sure how to get the Wp and Wq. This has to be built.
+
+    # Update values in FFTPreconditioner
+    S = kkt.P.P22
+    S .= 1.0./((1.0 .+ InvQ_Wq) .- 1./(1.0 .+ InvP_Wp))
+
+    Ainv = 1.0./(1 .+ InvP_Wp)
+
+    kkt.P.P12 .= Ainv .* S
+    kkt.P.P11 .= Ainv .+ Ainv.*S.*Ainv
+    return
+
+    
+
     return
 end
 
