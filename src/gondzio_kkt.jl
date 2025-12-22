@@ -374,8 +374,8 @@ function MadNLP.solve!(kkt::GondzioKKTSystem, w::MadNLP.AbstractKKTVector)
     tmp = M_perpt_z(kkt.nlp.op_fft, buffer3)
     rhs1 = view(rhs, 1:nβ)
     rhs2 = view(rhs, nβ+1:2*nβ)
-    rhs1 .= w_p .- buffer1
-    rhs2 .= w_q .+ buffer1
+    rhs1 .= w_p .- tmp
+    rhs2 .= w_q .+ tmp
     rhs .+= w_z ./ w_x
 
     # Solve with the Krylov solver (CG by default)
