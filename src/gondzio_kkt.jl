@@ -298,8 +298,8 @@ function MadNLP.build_kkt!(kkt::GondzioKKTSystem)
     buffer1 = kkt.buffer1
 
     # Assemble preconditioner
-    p = view(kkt.l_diag, 1:nβ)       # it is wrong!
-    q = view(kkt.l_diag, nβ+1:2*nβ)  # it is wrong!
+    p = view(kkt.l_diag, 1:nβ)
+    q = view(kkt.l_diag, nβ+1:2*nβ)
     Wp = view(kkt.l_lower, 1:nβ)
     Wq = view(kkt.l_lower, nβ+1:2*nβ)
 
@@ -338,11 +338,10 @@ function MadNLP.solve!(kkt::GondzioKKTSystem, w::MadNLP.AbstractKKTVector)
     rhs = kkt.buffer2
 
     # Variables
-    p = view(kkt.l_diag, 1:nβ)            # it is wrong!    
-    q = view(kkt.l_diag, nβ+1:2*nβ)       # it is wrong!
-    r = view(kkt.l_diag, 2*nβ+1:2*nβ+m)   # it is wrong!
-    y = kkt.du_diag                        # it is wrong!
-    _w_ = kkt.l_lower
+    p = view(kkt.l_diag, 1:nβ)
+    q = view(kkt.l_diag, nβ+1:2*nβ)
+    x = view(kkt.l_diag, 1:2*nβ)
+    z = kkt.l_lower  # It is w in our notes!
 
     # Unpack right-hand-side
     _w = MadNLP.full(w)
@@ -351,36 +350,36 @@ function MadNLP.solve!(kkt::GondzioKKTSystem, w::MadNLP.AbstractKKTVector)
     w_q = view(_w, nβ+1:2*nβ)            # / q
     w_r = view(_w, 2*nβ+1:2*nβ+m)        # / r
     w_y = view(_w, 2*nβ+m+1:2*nβ+2*m)    # / y
-    w_w = view(_w, 2*nβ+2*m+1:4*nβ+2*m)  # / w
+    w_z = view(_w, 2*nβ+2*m+1:4*nβ+2*m)  # / z
 
     # Assemble right-hand side
     buffer1 .= p .- q
-    tmp = M_perpt_M_perp_vec(kkt.nlp.op_fft, buffer1)
+    Ux = M_perpt_M_perp_vec(kkt.nlp.op_fft, buffer1)
     rhs1 = view(rhs, 1:nβ)
-    rhs2 = view(rhs, nβ:2*nβ)
-    rhs1 .=   nlp.M_perpt_z0 .- tmp .- lambda .+ mu ./ p
-    rhs2 .= .-nlp.M_perpt_z0 .+ tmp .- lambda .+ mu ./ q
+    rhs2 = view(rhs, nβ+1:2*nβ)
+    rhs1 .=   nlp.M_perpt_z0 .- Ux .- lambda .+ mu ./ p
+    rhs2 .= .-nlp.M_perpt_z0 .+ Ux .- lambda .+ mu ./ q
 
     # Solve with the Krylov solver (CG by default)
     P = kkt.nlp.preconditioner ? kkt.P : I
     Krylov.krylov_solve!(kkt.linear_solver, kkt.K, rhs, M=P, atol=1e-12, rtol=0.0, verbose=0)
-    Δx = Krylov.solution(kkt.linear_solver)
+    w_x .= Krylov.solution(kkt.linear_solver)
     push!(kkt.krylov_iterations, kkt.linear_solver |> Krylov.iteration_count)
     push!(kkt.krylov_timer, kkt.linear_solver |> Krylov.elapsed_time)
     
     # Unpack solution
-    aux = copy(tmp) # Ux
-    new_p = view(Δx, 1:nβ)
-    new_q = view(Δx, nβ+1:2*nβ)
-    buffer1 .= new_p .- new_q
-    tmp = M_perp_beta(kkt.nlp.op_fft, buffer1)
-    Δy = -buffer -y + parameters.z0 .- aux
-    Δr = Δy .+ y .- r
-    Δw = - _w_ ./ x .* Δx .- _w_ .+ mu ./ x
-    w_x .= Δx  # / x
-    w_r .= Δr  # / r
-    w_y .= Δy  # / y
-    w_w .= Δw  # / w
+    # [  0   0  -Uᵀ -I ] [ Δx ]   [ r₁ ]
+    # [  0   I  -I   0 ] [ Δr ] = [ r₂ ]
+    # [ -U  -I   0   0 ] [ Δy ]   [ r₃ ]
+    # [  Z   0   0   X ] [ Δz ]   [ r₄ ]
+    #
+    # -IΔy - UΔx = r₃ => Δy = -r₃ - Ux
+    #  ZΔx + XΔz = r₄ => Δz = X⁻¹(r₄ - ZΔx)
+    #  IΔr - IΔy = r₂ => Δy = Δr - r₂
+
+    w_y .= .-w_y .- Ux             # Δy = -r₃ - Ux
+    w_z = (w_z .- z .* w_x) ./ x   # Δz = X⁻¹(r₄ - ZΔx)
+    w_r .= w_y .- w_r              # Δr = Δy - r₂
 
     MadNLP.finish_aug_solve!(kkt, w)
     return true

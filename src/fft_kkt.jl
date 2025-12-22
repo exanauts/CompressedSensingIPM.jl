@@ -286,8 +286,8 @@ function MadNLP.build_kkt!(kkt::FFTKKTSystem)
     nlp = kkt.nlp
     nβ = nlp.nβ
     # Assemble preconditioner
-    Σ1 = view(kkt.pr_diag, 2*nβ+1:3*nβ)
-    Σ2 = view(kkt.pr_diag, 3*nβ+1:4*nβ)
+    Σ1 = view(kkt.pr_diag, 2*nβ+1:3*nβ)  # AM: Is it correct?!
+    Σ2 = view(kkt.pr_diag, 3*nβ+1:4*nβ)  # AM: Is it correct?!
 
     Λ1 = kkt.K.Λ1
     Λ2 = kkt.K.Λ2
