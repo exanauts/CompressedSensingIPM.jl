@@ -49,8 +49,10 @@ function ipm_example_1D(Nt::Int; kkt=FFTKKTSystem, gpu::Bool=false, gpu_arch::St
     parameters = FFTParameters(DFTdim, DFTsize, z0 |> AT, lambda, index_missing)
     if kkt == FFTKKTSystem
         nlp = FFTNLPModel{VT}(parameters; rdft)
-    else
+    elseif kkt == GondzioKKTSystem
         nlp = GondzioNLPModel{VT}(parameters; rdft)
+    else
+        error("Unknown KKT formulation.")
     end
 
     # Solve with MadNLP/CG
