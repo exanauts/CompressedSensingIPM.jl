@@ -309,6 +309,7 @@ end
 function MadNLP.solve_kkt!(kkt::FFTKKTSystem, w::MadNLP.AbstractKKTVector)
     nlp = kkt.nlp
     nβ = nlp.nβ
+
     # Build reduced KKT vector.
     MadNLP.reduce_rhs!(w.xp_lr, MadNLP.dual_lb(w), kkt.l_diag, w.xp_ur, MadNLP.dual_ub(w), kkt.u_diag)
 
