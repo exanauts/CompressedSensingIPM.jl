@@ -216,7 +216,7 @@ function MadNLP.mul!(y::VT, kkt::GondzioKKTSystem, x::VT, alpha::Number, beta::N
     nlp = kkt.nlp
     nβ = nlp.nβ
     parameters = nlp.parameters
-    buffer1 = kkt.buffer1
+    β = kkt.buffer1
 
     # FFT parameters
     DFTdim = parameters.DFTdim
@@ -250,12 +250,12 @@ function MadNLP.mul!(y::VT, kkt::GondzioKKTSystem, x::VT, alpha::Number, beta::N
     x_wp = view(_x, 2*nβ+2*m+1:3*nβ+2*m)
     x_wq = view(_x, 3*nβ+2*m+1:4*nβ+2*m)
 
-    buffer1 .= x_q .- x_p
+    β .= x_q .- x_p
     tmp = M_perpt_z(kkt.nlp.op_fft, x_y)
     y_p .= alpha .* (  tmp .- x_wp) .+ beta .* y_p
     y_q .= alpha .* (.-tmp .- x_wq) .+ beta .* y_q
     y_r .= alpha .* (x_r .- x_y) .+ beta .* y_r
-    tmp = M_perp_beta(kkt.nlp.op_fft, buffer1)
+    tmp = M_perp_beta(kkt.nlp.op_fft, β)
     y_y .= alpha .* (tmp .- x_r) .+ beta .* y_y
     y_w .= alpha .* (l_lower .* x_x .+ l_lower .* x_w) .+ beta .* y_w
 
@@ -360,14 +360,23 @@ function MadNLP.solve!(kkt::GondzioKKTSystem, w::MadNLP.AbstractKKTVector)
     #
     # If we eliminate Δr and Δz:
     #
+    # Δr = Δy + r₂
+    # Δz = X⁻¹(r₄ - ZΔx)
+    #
     # [  X⁻¹Z  -Uᵀ ] [ Δx ] = [ r₁ + X⁻¹r₄]
     # [ -U     -I  ] [ Δy ]   [ r₂ + r₃   ]
-    buffer1 .= p .- q
-    Ux = M_perpt_M_perp_vec(kkt.nlp.op_fft, buffer1)
+    #
+    # If we eliminate Δy:
+    #
+    #              Δy = -UΔx - r₂ - r₃
+    # (X⁻¹Z + UᵀU) Δx = r₁ + X⁻¹r₄ -Uᵀ(r₂ + r₃)
+    buffer3 = w_r + w_y  # need a dedicated buffer of size ncon!
+    tmp = M_perpt_z(kkt.nlp.op_fft, buffer3)
     rhs1 = view(rhs, 1:nβ)
     rhs2 = view(rhs, nβ+1:2*nβ)
-    rhs1 .=   nlp.M_perpt_z0 .- Ux .- lambda .+ mu ./ p
-    rhs2 .= .-nlp.M_perpt_z0 .+ Ux .- lambda .+ mu ./ q
+    rhs1 .= w_p .- buffer1
+    rhs2 .= w_q .+ buffer1
+    rhs .+= w_z ./ w_x
 
     # Solve with the Krylov solver (CG by default)
     P = kkt.nlp.preconditioner ? kkt.P : I
@@ -382,12 +391,14 @@ function MadNLP.solve!(kkt::GondzioKKTSystem, w::MadNLP.AbstractKKTVector)
     # [ -U  -I   0   0 ] [ Δy ]   [ r₃ ]
     # [  Z   0   0   X ] [ Δz ]   [ r₄ ]
     #
-    # -IΔr - UΔx = r₃ => Δr = -r₃ - Ux
+    # -IΔr - UΔx = r₃ => Δr = -r₃ - UΔx
     #  ZΔx + XΔz = r₄ => Δz = X⁻¹(r₄ - ZΔx)
     #  IΔr - IΔy = r₂ => Δy = Δr - r₂
 
     copy_w_r = copy(w_r)
-    w_r .= .-w_y .- Ux            # Δr = -r₃ - Ux
+    buffer .= w_p .- w_q
+    UΔx = M_perp_beta(kkt.nlp.op_fft, buffer1)
+    w_r .= .-w_y .- UΔx           # Δr = -r₃ - UΔx
     w_z = (w_z .- z .* w_x) ./ x  # Δz = X⁻¹(r₄ - ZΔx)
     w_y .= w_y .- copy_w_r        # Δy = Δy - r₂
 
