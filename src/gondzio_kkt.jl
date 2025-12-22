@@ -353,6 +353,15 @@ function MadNLP.solve!(kkt::GondzioKKTSystem, w::MadNLP.AbstractKKTVector)
     w_z = view(_w, 2*nβ+2*m+1:4*nβ+2*m)  # / z
 
     # Assemble right-hand side
+    # [  0   0  -Uᵀ -I ] [ Δx ]   [ r₁ ]
+    # [  0   I  -I   0 ] [ Δr ] = [ r₂ ]
+    # [ -U  -I   0   0 ] [ Δy ]   [ r₃ ]
+    # [  Z   0   0   X ] [ Δz ]   [ r₄ ]
+    #
+    # If we eliminate Δr and Δz:
+    #
+    # [  X⁻¹Z  -Uᵀ ] [ Δx ] = [ r₁ + X⁻¹r₄]
+    # [ -U     -I  ] [ Δy ]   [ r₂ + r₃   ]
     buffer1 .= p .- q
     Ux = M_perpt_M_perp_vec(kkt.nlp.op_fft, buffer1)
     rhs1 = view(rhs, 1:nβ)
@@ -373,13 +382,14 @@ function MadNLP.solve!(kkt::GondzioKKTSystem, w::MadNLP.AbstractKKTVector)
     # [ -U  -I   0   0 ] [ Δy ]   [ r₃ ]
     # [  Z   0   0   X ] [ Δz ]   [ r₄ ]
     #
-    # -IΔy - UΔx = r₃ => Δy = -r₃ - Ux
+    # -IΔr - UΔx = r₃ => Δr = -r₃ - Ux
     #  ZΔx + XΔz = r₄ => Δz = X⁻¹(r₄ - ZΔx)
     #  IΔr - IΔy = r₂ => Δy = Δr - r₂
 
-    w_y .= .-w_y .- Ux             # Δy = -r₃ - Ux
-    w_z = (w_z .- z .* w_x) ./ x   # Δz = X⁻¹(r₄ - ZΔx)
-    w_r .= w_y .- w_r              # Δr = Δy - r₂
+    copy_w_r = copy(w_r)
+    w_r .= .-w_y .- Ux            # Δr = -r₃ - Ux
+    w_z = (w_z .- z .* w_x) ./ x  # Δz = X⁻¹(r₄ - ZΔx)
+    w_y .= w_y .- copy_w_r        # Δy = Δy - r₂
 
     MadNLP.finish_aug_solve!(kkt, w)
     return true
