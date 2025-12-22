@@ -100,7 +100,6 @@ function NLPModels.cons!(nlp::GondzioNLPModel, x::AbstractVector, c::AbstractVec
     theta_x = view(x, 1:2*nβ)
     diff_x = view(x, 1:nβ) - view(x, nβ+1:2*nβ)
     Ux = M_perp_beta(nlp.op_fft, diff_x)
-    # c .= Ux .+ theta_r .- b
     c .= b .- Ux .- theta_r 
     return c
 end

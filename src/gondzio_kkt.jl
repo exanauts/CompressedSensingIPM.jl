@@ -302,12 +302,14 @@ function MadNLP.build_kkt!(kkt::GondzioKKTSystem)
     q = view(kkt.l_diag, nβ+1:2*nβ)
     Wp = view(kkt.l_lower, 1:nβ)
     Wq = view(kkt.l_lower, nβ+1:2*nβ)
+    reg_p = view(kkt.pr_diag, 1:nβ)
+    req_q = view(kkt.pr_diag, nβ+1:2*nβ)
 
-    InvP_Wp  = kkt.K.InvP_Wp
+    InvP_Wp = kkt.K.InvP_Wp
     InvQ_Wq = kkt.K.InvQ_Wq
 
-    InvP_Wp .= Wp ./ p
-    InvQ_Wq .= Wq ./ q
+    InvP_Wp .= Wp ./ (p .+ reg_p)
+    InvQ_Wq .= Wq ./ (q .+ reg_q)
 
     # Update values in Gondzio Preconditioner
     kkt.P.P22 .= 1.0 ./ ((1.0 .+ InvQ_Wq) .- 1.0 ./ (1.0 .+ InvP_Wp))
