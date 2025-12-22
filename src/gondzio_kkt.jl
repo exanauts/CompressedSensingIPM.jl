@@ -303,7 +303,7 @@ function MadNLP.build_kkt!(kkt::GondzioKKTSystem)
     Wp = view(kkt.l_lower, 1:nβ)
     Wq = view(kkt.l_lower, nβ+1:2*nβ)
     reg_p = view(kkt.pr_diag, 1:nβ)
-    req_q = view(kkt.pr_diag, nβ+1:2*nβ)
+    reg_q = view(kkt.pr_diag, nβ+1:2*nβ)
 
     InvP_Wp = kkt.K.InvP_Wp
     InvQ_Wq = kkt.K.InvQ_Wq
