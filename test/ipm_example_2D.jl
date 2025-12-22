@@ -69,7 +69,13 @@ function ipm_example_2D(Nt::Int, Ns::Int; kkt=FFTKKTSystem, gpu::Bool=false, gpu
     t2 = time()
 
     if check
-        beta_MadNLP = results.solution[1:Nt*Ns]
+        if kkt == FFTKKTSystem
+            beta_MadNLP = results.solution[1:Nt*Ns]
+        elseif kkt == GondzioKKTSystem
+            beta_MadNLP = results.solution[1:Nt*Ns] - results.solution[Nt*Ns+1:2*Nt*Ns]
+        else
+            error("We don't know how to recover β from the current KKT formulation.")
+        end
         beta_true = DFT_to_beta(DFTdim, DFTsize, w |> AT)
         @test norm(beta_true - beta_MadNLP) ≤ 1e-6
     end
