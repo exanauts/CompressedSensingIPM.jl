@@ -298,8 +298,8 @@ function MadNLP.build_kkt!(kkt::GondzioKKTSystem)
     buffer1 = kkt.buffer1
 
     # Assemble preconditioner
-    p = view(kkt.pr_diag, 1:nβ)       # it is wrong!
-    q = view(kkt.pr_diag, nβ+1:2*nβ)  # it is wrong!
+    p = view(kkt.l_diag, 1:nβ)       # it is wrong!
+    q = view(kkt.l_diag, nβ+1:2*nβ)  # it is wrong!
     Wp = view(kkt.l_lower, 1:nβ)
     Wq = view(kkt.l_lower, nβ+1:2*nβ)
 
@@ -338,9 +338,9 @@ function MadNLP.solve!(kkt::GondzioKKTSystem, w::MadNLP.AbstractKKTVector)
     rhs = kkt.buffer2
 
     # Variables
-    p = view(kkt.pr_diag, 1:nβ)            # it is wrong!
-    q = view(kkt.pr_diag, nβ+1:2*nβ)       # it is wrong!
-    r = view(kkt.pr_diag, 2*nβ+1:2*nβ+m)   # it is wrong!
+    p = view(kkt.l_diag, 1:nβ)            # it is wrong!    
+    q = view(kkt.l_diag, nβ+1:2*nβ)       # it is wrong!
+    r = view(kkt.l_diag, 2*nβ+1:2*nβ+m)   # it is wrong!
     y = kkt.du_diag                        # it is wrong!
     _w_ = kkt.l_lower
 
