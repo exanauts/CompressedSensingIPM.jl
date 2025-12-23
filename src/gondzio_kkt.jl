@@ -257,7 +257,7 @@ function MadNLP.mul!(y::VT, kkt::GondzioKKTSystem, x::VT, alpha::Number, beta::N
     y_r .= alpha .* (x_r .- x_y) .+ beta .* y_r
     tmp = M_perp_beta(kkt.nlp.op_fft, β)
     y_y .= alpha .* (tmp .- x_r) .+ beta .* y_y
-    y_w .= alpha .* (l_lower .* x_x .+ l_lower .* x_w) .+ beta .* y_w
+    y_w .= alpha .* (kkt.l_lower .* x_x .+ kkt.l_lower .* x_w) .+ beta .* y_w
 
     MadNLP._kktmul!(y, x, kkt.reg, kkt.du_diag, kkt.l_lower, kkt.u_lower, kkt.l_diag, kkt.u_diag, alpha, beta)
 
