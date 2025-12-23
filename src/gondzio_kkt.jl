@@ -398,7 +398,7 @@ function MadNLP.solve!(kkt::GondzioKKTSystem, w::MadNLP.AbstractKKTVector)
     #  IΔr - IΔy = r₂ => Δy = Δr - r₂
 
     copy_w_r = copy(w_r)
-    buffer .= w_p .- w_q
+    buffer1 .= w_p .- w_q
     UΔx = M_perp_beta(kkt.nlp.op_fft, buffer1)
     w_r .= .-w_y .- UΔx           # Δr = -r₃ - UΔx
     w_z = (w_z .- z .* w_x) ./ x  # Δz = X⁻¹(r₄ - ZΔx)
