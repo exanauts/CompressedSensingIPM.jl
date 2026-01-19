@@ -307,7 +307,7 @@ function MadNLP.build_kkt!(kkt::GondzioKKTSystem)
     InvQ_Wq .= 1.0 ./ (1.0 .+ reg_q)
 
     # Update values in Gondzio Preconditioner
-    kkt.P.P22 .= 1.0 ./ (1.0 .+ req_q .- InvP_Wp)
+    kkt.P.P22 .= 1.0 ./ (1.0 .+ reg_q .- InvP_Wp)
     S = kkt.P.P22
 
     kkt.P.P12 .= InvP_Wp .* S
