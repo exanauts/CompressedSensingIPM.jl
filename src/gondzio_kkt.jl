@@ -295,30 +295,23 @@ function MadNLP.build_kkt!(kkt::GondzioKKTSystem)
     nβ = nlp.nβ
     n = NLPModels.get_nvar(nlp)
     m = NLPModels.get_ncon(nlp)
-    buffer1 = kkt.buffer1
 
     # Assemble preconditioner
-    p = view(kkt.l_diag, 1:nβ)
-    q = view(kkt.l_diag, nβ+1:2*nβ)
-    Wp = view(kkt.l_lower, 1:nβ)
-    Wq = view(kkt.l_lower, nβ+1:2*nβ)
     reg_p = view(kkt.pr_diag, 1:nβ)
     reg_q = view(kkt.pr_diag, nβ+1:2*nβ)
 
     InvP_Wp = kkt.K.InvP_Wp
     InvQ_Wq = kkt.K.InvQ_Wq
 
-    InvP_Wp .= Wp ./ (p .+ reg_p)
-    InvQ_Wq .= Wq ./ (q .+ reg_q)
+    InvP_Wp .= 1.0 ./ (1.0 .+ reg_p)
+    InvQ_Wq .= 1.0 ./ (1.0 .+ reg_q)
 
     # Update values in Gondzio Preconditioner
-    kkt.P.P22 .= 1.0 ./ ((1.0 .+ InvQ_Wq) .- 1.0 ./ (1.0 .+ InvP_Wp))
+    kkt.P.P22 .= 1.0 ./ (1.0 .+ req_q .- InvP_Wp)
     S = kkt.P.P22
 
-    buffer1 .= 1.0 ./ (1 .+ InvP_Wp)
-
-    kkt.P.P12 .= buffer1 .* S
-    kkt.P.P11 .= buffer1 .+ buffer1 .* S .* buffer1
+    kkt.P.P12 .= InvP_Wp .* S
+    kkt.P.P11 .= InvP_Wp .+ InvP_Wp .* S .* InvP_Wp
     return
 end
 
