@@ -2,7 +2,7 @@
     Operator for matrix
 
     [MᵀM + P^{-1}W_p    - MᵀM]
-    [MᵀM      MᵀM + Q^{-1}W_q]
+    [-MᵀM      MᵀM + Q^{-1}W_q]
 
     ...
 =#
@@ -15,9 +15,9 @@ struct CondensedGondzioKKTSystem{T,VT,NLP} <: AbstractMatrix{T}
 end
 
 function CondensedGondzioKKTSystem{T,VT}(nlp::GondzioNLPModel{T,VT}) where {T,VT}
-    buffer = VT(undef, nlp.nβ)
-    InvP_Wp = VT(undef, nlp.nβ)
-    InvQ_Wq = VT(undef, nlp.nβ)
+    buffer = VT(undef, nlp.nβ)  ; fill!(buffer, zero(T))
+    InvP_Wp = VT(undef, nlp.nβ) ; fill!(InvP_Wp, zero(T))
+    InvQ_Wq = VT(undef, nlp.nβ) ; fill!(InvQ_Wq, zero(T))
     NLP = typeof(nlp)
     return CondensedGondzioKKTSystem{T,VT,NLP}(nlp, buffer, InvP_Wp, InvQ_Wq)
 end
@@ -37,7 +37,6 @@ function LinearAlgebra.mul!(y::AbstractVector, K::CondensedGondzioKKTSystem, x::
     lambda = parameters.lambda
     index_missing = parameters.index_missing
 
-    
     p_y = view(y, 1:nβ)
     q_y = view(y, nβ+1:2*nβ)
     p_x = view(x, 1:nβ)
@@ -48,8 +47,8 @@ function LinearAlgebra.mul!(y::AbstractVector, K::CondensedGondzioKKTSystem, x::
     diff_x .= p_x .- q_x
     y_diff = M_perpt_M_perp_vec(nlp.op_fft, diff_x)
 
-    p_y .= alpha .* K.InvP_Wp .* p_x .+ y_diff .+ beta .* p_y
-    q_y .= alpha .* K.InvQ_Wq .* p_y .- y_diff .+ beta .* q_y
+    p_y .= alpha .* (K.InvP_Wp .* p_x .+ y_diff) .+ beta .* p_y
+    q_y .= alpha .* (K.InvQ_Wq .* q_x .- y_diff) .+ beta .* q_y
     return y
 end
 
@@ -88,8 +87,8 @@ function LinearAlgebra.mul!(y::AbstractVector, P::GondzioPreconditioner, x::Abst
     x_p  = view(x, 1:nβ)
     x_q  = view(x, nβ+1:2*nβ)
 
-    y_p .= alpha .* P.P11 .* x_p + P.P12 .* x_q .+ beta .* y_p
-    y_q .= alpha .* P.P12 .* x_p + P.P22 .* x_q .+ beta .* y_q
+    y_p .= alpha .* (P.P11 .* x_p + P.P12 .* x_q) .+ beta .* y_p
+    y_q .= alpha .* (P.P12 .* x_p + P.P22 .* x_q) .+ beta .* y_q
     return y
 end
 
@@ -230,34 +229,25 @@ function MadNLP.mul!(y::VT, kkt::GondzioKKTSystem, x::VT, alpha::Number, beta::N
     _x = MadNLP.full(x)
     _y = MadNLP.full(y)
 
-    y_x = view(_y, 1:2*nβ)
-    y_r = view(_y, 2*nβ+1:2*nβ+m)
-    y_y = view(_y, 2*nβ+m+1:2*nβ+2*m)
-    y_w = view(_y, 2*nβ+2*m+1:4*nβ+2*m)
-
+    # Unpack LHS
     y_p = view(_y, 1:nβ)
     y_q = view(_y, nβ+1:2*nβ)
-    y_wp = view(_y, 2*nβ+2*m+1:3*nβ+2*m)
-    y_wq = view(_y, 3*nβ+2*m+1:4*nβ+2*m)
+    y_r = view(_y, 2*nβ+1:2*nβ+m)
+    y_y = view(_y, 2*nβ+m+1:2*nβ+2*m)
 
-    x_x = view(_x, 1:2*nβ)
-    x_r = view(_x, 2*nβ+1:2*nβ+m)
-    x_y = view(_x, 2*nβ+m+1:2*nβ+2*m)
-    x_w = view(_x, 2*nβ+2*m+1:4*nβ+2*m)
-
+    # Unpack RHS
     x_p = view(_x, 1:nβ)
     x_q = view(_x, nβ+1:2*nβ)
-    x_wp = view(_x, 2*nβ+2*m+1:3*nβ+2*m)
-    x_wq = view(_x, 3*nβ+2*m+1:4*nβ+2*m)
+    x_r = view(_x, 2*nβ+1:2*nβ+m)
+    x_y = view(_x, 2*nβ+m+1:2*nβ+2*m)
 
     β .= x_q .- x_p
     tmp = M_perpt_z(kkt.nlp.op_fft, x_y)
-    y_p .= alpha .* (  tmp .- x_wp) .+ beta .* y_p
-    y_q .= alpha .* (.-tmp .- x_wq) .+ beta .* y_q
+    y_p .= .-alpha .* tmp .+ beta .* y_p
+    y_q .= alpha .* tmp .+ beta .* y_q
     y_r .= alpha .* (x_r .- x_y) .+ beta .* y_r
     tmp = M_perp_beta(kkt.nlp.op_fft, β)
     y_y .= alpha .* (tmp .- x_r) .+ beta .* y_y
-    y_w .= alpha .* (kkt.l_lower .* x_x .+ kkt.l_lower .* x_w) .+ beta .* y_w
 
     MadNLP._kktmul!(y, x, kkt.reg, kkt.du_diag, kkt.l_lower, kkt.u_lower, kkt.l_diag, kkt.u_diag, alpha, beta)
 
@@ -270,15 +260,18 @@ function MadNLP.jtprod!(
     x::AbstractVector,
 ) where {T, VI, VT, MT}
     nlp = kkt.nlp
+    n = NLPModels.get_nvar(nlp)
     nβ = nlp.nβ
 
     tmp = M_perpt_z(kkt.nlp.op_fft, x)
 
-    y1 = view(y, 1:nβ)
-    y2 = view(y, nβ+1:2*nβ)
+    yp = view(y, 1:nβ)
+    yq = view(y, nβ+1:2*nβ)
+    yr = view(y, 2*nβ+1:n)
 
-    y1 .= .-tmp
-    y2 .= tmp
+    yp .= .-tmp
+    yq .= tmp
+    yr .= .-x
     return y
 end
 
@@ -304,14 +297,17 @@ function MadNLP.build_kkt!(kkt::GondzioKKTSystem)
     InvQ_Wq = kkt.K.InvQ_Wq
 
     InvP_Wp .= 1.0 ./ (1.0 .+ reg_p)
-    InvQ_Wq .= 1.0 ./ (1.0 .+ reg_q)
 
     # Update values in Gondzio Preconditioner
-    kkt.P.P22 .= 1.0 ./ (1.0 .+ reg_q .- InvP_Wp)
     S = kkt.P.P22
+    S .= 1.0 ./ (1.0 .+ reg_q .- InvP_Wp)
 
     kkt.P.P12 .= InvP_Wp .* S
     kkt.P.P11 .= InvP_Wp .+ InvP_Wp .* S .* InvP_Wp
+
+    # Update values in operator
+    InvP_Wp .= reg_p
+    InvQ_Wq .= reg_q
     return
 end
 
@@ -327,16 +323,10 @@ function MadNLP.solve!(kkt::GondzioKKTSystem, w::MadNLP.AbstractKKTVector)
     lambda = parameters.lambda
     mu = kkt.reg
     m = NLPModels.get_ncon(nlp)
- 
+
     # Buffers
     buffer1 = kkt.buffer1
     rhs = kkt.buffer2
-
-    # Variables
-    p = view(kkt.l_diag, 1:nβ)
-    q = view(kkt.l_diag, nβ+1:2*nβ)
-    x = view(kkt.l_diag, 1:2*nβ)
-    z = kkt.l_lower  # It is w in our notes!
 
     # Unpack right-hand-side
     _w = MadNLP.full(w)
@@ -345,18 +335,15 @@ function MadNLP.solve!(kkt::GondzioKKTSystem, w::MadNLP.AbstractKKTVector)
     w_q = view(_w, nβ+1:2*nβ)            # / q
     w_r = view(_w, 2*nβ+1:2*nβ+m)        # / r
     w_y = view(_w, 2*nβ+m+1:2*nβ+2*m)    # / y
-    w_z = view(_w, 2*nβ+2*m+1:4*nβ+2*m)  # / z
 
     # Assemble right-hand side
-    # [  0   0  -Uᵀ -I ] [ Δx ]   [ r₁ ]
-    # [  0   I  -I   0 ] [ Δr ] = [ r₂ ]
-    # [ -U  -I   0   0 ] [ Δy ]   [ r₃ ]
-    # [  Z   0   0   X ] [ Δz ]   [ r₄ ]
+    # [  X⁻¹Z   0  -Uᵀ] [ Δx ]   [ r₁ ]
+    # [  0      I  -I ] [ Δr ] = [ r₂ ]
+    # [ -U     -I   0 ] [ Δy ]   [ r₃ ]
     #
-    # If we eliminate Δr and Δz:
+    # If we eliminate Δr:
     #
     # Δr = Δy + r₂
-    # Δz = X⁻¹(r₄ - ZΔx)
     #
     # [  X⁻¹Z  -Uᵀ ] [ Δx ] = [ r₁ + X⁻¹r₄]
     # [ -U     -I  ] [ Δy ]   [ r₂ + r₃   ]
@@ -364,14 +351,13 @@ function MadNLP.solve!(kkt::GondzioKKTSystem, w::MadNLP.AbstractKKTVector)
     # If we eliminate Δy:
     #
     #              Δy = -UΔx - r₂ - r₃
-    # (X⁻¹Z + UᵀU) Δx = r₁ + X⁻¹r₄ -Uᵀ(r₂ + r₃)
+    # (X⁻¹Z + UᵀU) Δx = r₁ - Uᵀ(r₂ + r₃)
     buffer3 = w_r + w_y  # need a dedicated buffer of size ncon!
     tmp = M_perpt_z(kkt.nlp.op_fft, buffer3)
     rhs1 = view(rhs, 1:nβ)
     rhs2 = view(rhs, nβ+1:2*nβ)
     rhs1 .= w_p .- tmp
     rhs2 .= w_q .+ tmp
-    rhs .+= w_z ./ w_x
 
     # Solve with the Krylov solver (CG by default)
     P = kkt.nlp.preconditioner ? kkt.P : I
@@ -379,23 +365,17 @@ function MadNLP.solve!(kkt::GondzioKKTSystem, w::MadNLP.AbstractKKTVector)
     w_x .= Krylov.solution(kkt.linear_solver)
     push!(kkt.krylov_iterations, kkt.linear_solver |> Krylov.iteration_count)
     push!(kkt.krylov_timer, kkt.linear_solver |> Krylov.elapsed_time)
-    
+
     # Unpack solution
-    # [  0   0  -Uᵀ -I ] [ Δx ]   [ r₁ ]
-    # [  0   I  -I   0 ] [ Δr ] = [ r₂ ]
-    # [ -U  -I   0   0 ] [ Δy ]   [ r₃ ]
-    # [  Z   0   0   X ] [ Δz ]   [ r₄ ]
     #
     # -IΔr - UΔx = r₃ => Δr = -r₃ - UΔx
-    #  ZΔx + XΔz = r₄ => Δz = X⁻¹(r₄ - ZΔx)
     #  IΔr - IΔy = r₂ => Δy = Δr - r₂
 
     copy_w_r = copy(w_r)
     buffer1 .= w_p .- w_q
     UΔx = M_perp_beta(kkt.nlp.op_fft, buffer1)
     w_r .= .-w_y .- UΔx           # Δr = -r₃ - UΔx
-    w_z = (w_z .- z .* w_x) ./ x  # Δz = X⁻¹(r₄ - ZΔx)
-    w_y .= w_y .- copy_w_r        # Δy = Δy - r₂
+    w_y .= w_r .- copy_w_r        # Δy = Δr - r₂
 
     MadNLP.finish_aug_solve!(kkt, w)
     return true
