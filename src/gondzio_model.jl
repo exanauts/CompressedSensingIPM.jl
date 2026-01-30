@@ -18,7 +18,7 @@ function GondzioNLPModel{VT}(parameters::FFTParameters;
     DFTsize = parameters.DFTsize  # problem dimension
     index_missing = parameters.index_missing
     nβ = prod(DFTsize)
-    m = nβ - length(index_missing)
+    m = nβ
 
     nvar = 2 * nβ + m
     ncon = m
@@ -75,7 +75,6 @@ function NLPModels.grad!(nlp::GondzioNLPModel, x::AbstractVector, g::AbstractVec
     DFTdim = nlp.parameters.DFTdim
     DFTsize = nlp.parameters.DFTsize
     lambda = nlp.parameters.lambda
-    index_missing = nlp.parameters.index_missing
     nvar = nlp.meta.nvar
 
     nβ = nlp.nβ
@@ -92,12 +91,10 @@ function NLPModels.cons!(nlp::GondzioNLPModel, x::AbstractVector, c::AbstractVec
     DFTsize = nlp.parameters.DFTsize
     lambda = nlp.parameters.lambda
     nβ = nlp.nβ
-    index_missing = nlp.parameters.index_missing
     nvar = nlp.meta.nvar
 
     theta_r = view(x, 2*nβ+1:nvar)
-    b = nlp.M_perpt_z0
-    theta_x = view(x, 1:2*nβ)
+    b = nlp.parameters.z0
     diff_x = view(x, 1:nβ) - view(x, nβ+1:2*nβ)
     Ux = M_perp_beta(nlp.op_fft, diff_x)
     c .= b .- Ux .- theta_r
