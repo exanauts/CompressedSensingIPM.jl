@@ -1,7 +1,7 @@
 #=
     Operator for matrix
 
-    [MᵀM + P^{-1}W_p    - MᵀM]
+    [MᵀM + P^{-1}W_p     - MᵀM]
     [-MᵀM      MᵀM + Q^{-1}W_q]
 
     ...
