@@ -60,6 +60,14 @@ function FFTNLPModel{VT}(parameters::FFTParameters;
         nnzh = 0, # div(nβ * (nβ + 1), 2),
         minimize = true,
         islp = false,
+        variable_bounds_analysis = false,
+        constraint_bounds_analysis = false,
+        grad_available = true,
+        jac_available = false,
+        hess_available = false,
+        jprod_available = false,
+        jtprod_available = false,
+        hprod_available = false,
         name = "CompressedSensing-$(DFTdim)D",
     )
 
