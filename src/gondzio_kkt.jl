@@ -121,7 +121,6 @@ end
 function MadNLP.create_kkt_system(
     ::Type{GondzioKKTSystem},
     cb::MadNLP.AbstractCallback{T, VT},
-    ind_cons,
     linear_solver::Type;
     opt_linear_solver=MadNLP.default_options(linear_solver),
     hessian_approximation=MadNLP.ExactHessian,
@@ -130,8 +129,8 @@ function MadNLP.create_kkt_system(
     # Load original model
     nlp = cb.nlp
     nβ = nlp.nβ
-    nlb, nub = length(ind_cons.ind_lb), length(ind_cons.ind_ub)
-    n_ineq = length(ind_cons.ind_ineq)
+    nlb, nub = length(cb.ind_lb), length(cb.ind_ub)
+    n_ineq = length(cb.ind_ineq)
 
     # Number of variables, including slacks
     n = NLPModels.get_nvar(nlp) + n_ineq
@@ -158,7 +157,7 @@ function MadNLP.create_kkt_system(
     return GondzioKKTSystem{T, VI, VT, typeof(K), typeof(workspace), typeof(nlp)}(
         nlp, K, P,
         reg, pr_diag, du_diag, l_diag, u_diag, l_lower, u_lower,
-        ind_cons.ind_lb, ind_cons.ind_ub,
+        cb.ind_lb, cb.ind_ub,
         buffer1, buffer2,
         workspace, Int[], Float64[],
     )
@@ -311,7 +310,7 @@ function MadNLP.build_kkt!(kkt::GondzioKKTSystem)
     return
 end
 
-function MadNLP.solve!(kkt::GondzioKKTSystem, w::MadNLP.AbstractKKTVector)
+function MadNLP.solve_kkt!(kkt::GondzioKKTSystem, w::MadNLP.AbstractKKTVector)
     nlp = kkt.nlp
     nβ = nlp.nβ
 
