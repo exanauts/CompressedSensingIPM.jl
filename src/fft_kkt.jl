@@ -286,8 +286,8 @@ function MadNLP.build_kkt!(kkt::FFTKKTSystem)
     nlp = kkt.nlp
     nβ = nlp.nβ
     # Assemble preconditioner
-    Σ1 = view(kkt.pr_diag, 2*nβ+1:3*nβ)
-    Σ2 = view(kkt.pr_diag, 3*nβ+1:4*nβ)
+    Σ1 = view(kkt.pr_diag, 2*nβ+1:3*nβ)  # AM: Is it correct?!
+    Σ2 = view(kkt.pr_diag, 3*nβ+1:4*nβ)  # AM: Is it correct?!
 
     Λ1 = kkt.K.Λ1
     Λ2 = kkt.K.Λ2
@@ -309,6 +309,7 @@ end
 function MadNLP.solve_kkt!(kkt::FFTKKTSystem, w::MadNLP.AbstractKKTVector)
     nlp = kkt.nlp
     nβ = nlp.nβ
+
     # Build reduced KKT vector.
     MadNLP.reduce_rhs!(w.xp_lr, MadNLP.dual_lb(w), kkt.l_diag, w.xp_ur, MadNLP.dual_ub(w), kkt.u_diag)
 
@@ -358,28 +359,4 @@ function MadNLP.factorize_wrapper!(
     MadNLP.build_kkt!(solver.kkt)
     # No factorization needed
     return true
-end
-
-#=
-    Uncomment to have custom control on iterative refinement
-=#
-
-# function MadNLP.solve_refine_wrapper!(
-#     d,
-#     solver::MadNLP.MadNLPSolver{T,Vector{T},Vector{Int},KKT},
-#     p,
-#     w,
-# ) where {T,KKT<:FFTKKTSystem{T,Vector{Int},Vector{T}}}
-#     result = false
-#     kkt = solver.kkt
-#     copyto!(MadNLP.full(d), MadNLP.full(p))
-#     MadNLP.solve!(kkt, d)
-#     return true
-# end
-
-function ipm_solve!(solver::MadNLP.MadNLPSolver)
-    MadNLP.print_init(solver)
-    MadNLP.initialize!(solver)
-    MadNLP.regular!(solver)
-    return MadNLP.MadNLPExecutionStats(solver)
 end

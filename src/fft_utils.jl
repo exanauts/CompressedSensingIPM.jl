@@ -1,3 +1,18 @@
+mutable struct FFTParameters{AT,N,IM}
+    DFTdim::Int64
+    DFTsize::NTuple{N,Int64}
+    z0::AT
+    lambda::Float64
+    index_missing::IM
+
+    function FFTParameters(DFTdim, DFTsize, z0, lambda, index_missing)
+        AT = typeof(z0)
+        IM = typeof(index_missing)
+        N = DFTdim
+        new{AT,N,IM}(DFTdim, DFTsize, z0, lambda, index_missing)
+    end
+end
+
 struct FFTOperator{R,C,OP,N,IM}
     buffer_real::R
     buffer_complex1::C

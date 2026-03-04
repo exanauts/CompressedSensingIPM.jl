@@ -1,5 +1,5 @@
 ## 1D
-function ipm_example_1D(Nt::Int; gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false, check::Bool=false)
+function ipm_example_1D(Nt::Int; kkt=FFTKKTSystem, gpu::Bool=false, gpu_arch::String="cuda", rdft::Bool=false, check::Bool=false)
     t = collect(0:(Nt-1))
 
     print("Generate x: ")
@@ -47,14 +47,20 @@ function ipm_example_1D(Nt::Int; gpu::Bool=false, gpu_arch::String="cuda", rdft:
 
     lambda = check ? 0 : 1
     parameters = FFTParameters(DFTdim, DFTsize, z0 |> AT, lambda, index_missing)
-    nlp = FFTNLPModel{VT}(parameters; rdft)
+    if kkt == FFTKKTSystem
+        nlp = FFTNLPModel{VT}(parameters; rdft)
+    elseif kkt == GondzioKKTSystem
+        nlp = GondzioNLPModel{VT}(parameters; rdft)
+    else
+        error("Unknown KKT formulation.")
+    end
 
     # Solve with MadNLP/CG
     t1 = time()
     solver = MadNLP.MadNLPSolver(
         nlp;
         max_iter=2000,
-        kkt_system=FFTKKTSystem,
+        kkt_system=kkt,
         nlp_scaling=false,
         print_level=MadNLP.INFO,
         dual_initialized=true,
@@ -66,7 +72,13 @@ function ipm_example_1D(Nt::Int; gpu::Bool=false, gpu_arch::String="cuda", rdft:
     t2 = time()
 
     if check
-        beta_MadNLP = results.solution[1:Nt]
+        if kkt == FFTKKTSystem
+            beta_MadNLP = results.solution[1:Nt]
+        elseif kkt == GondzioKKTSystem
+            beta_MadNLP = results.solution[1:Nt] - results.solution[Nt+1:2*Nt]
+        else
+            error("We don't know how to recover β from the current KKT formulation.")
+        end
         beta_true = DFT_to_beta(DFTdim, DFTsize, w |> AT)
         @test norm(beta_true - beta_MadNLP) ≤ 1e-6
     end
