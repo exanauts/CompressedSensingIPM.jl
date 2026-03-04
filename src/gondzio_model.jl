@@ -23,7 +23,7 @@ function GondzioNLPModel{VT}(parameters::FFTParameters;
     nvar = 2 * nβ + m
     ncon = m
     x0 = VT(undef, nvar) ; fill!(x0, zero(T))
-    y0 = VT(undef, ncon) ; fill!(x0, zero(T))
+    y0 = VT(undef, ncon) ; fill!(y0, zero(T))
     lvar = VT(undef, nvar)
     view(lvar, 1:2*nβ) .= 0
     view(lvar, 2*nβ+1:nvar) .= -Inf
@@ -105,6 +105,6 @@ function NLPModels.cons!(nlp::GondzioNLPModel, x::AbstractVector, c::AbstractVec
     b = nlp.parameters.z0
     diff_x = view(x, 1:nβ) - view(x, nβ+1:2*nβ)
     Ux = M_perp_beta(nlp.op_fft, diff_x)
-    c .= b .- Ux .- theta_r
+    c .= vec(b) .- vec(Ux) .- theta_r
     return c
 end

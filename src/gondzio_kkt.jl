@@ -241,12 +241,12 @@ function MadNLP.mul!(y::VT, kkt::GondzioKKTSystem, x::VT, alpha::Number, beta::N
     x_y = view(_x, 2*nβ+m+1:2*nβ+2*m)
 
     β .= x_q .- x_p
-    tmp = M_perpt_z(kkt.nlp.op_fft, x_y)
+    tmp = M_perpt_z(kkt.nlp.op_fft, reshape(x_y, parameters.DFTsize))
     y_p .= .-alpha .* tmp .+ beta .* y_p
     y_q .= alpha .* tmp .+ beta .* y_q
     y_r .= alpha .* (x_r .- x_y) .+ beta .* y_r
     tmp = M_perp_beta(kkt.nlp.op_fft, β)
-    y_y .= alpha .* (tmp .- x_r) .+ beta .* y_y
+    y_y .= alpha .* (vec(tmp) .- x_r) .+ beta .* y_y
 
     MadNLP._kktmul!(y, x, kkt.reg, kkt.du_diag, kkt.l_lower, kkt.u_lower, kkt.l_diag, kkt.u_diag, alpha, beta)
 
@@ -262,7 +262,7 @@ function MadNLP.jtprod!(
     n = NLPModels.get_nvar(nlp)
     nβ = nlp.nβ
 
-    tmp = M_perpt_z(kkt.nlp.op_fft, x)
+    tmp = M_perpt_z(kkt.nlp.op_fft, reshape(x, nlp.parameters.DFTsize))
 
     yp = view(y, 1:nβ)
     yq = view(y, nβ+1:2*nβ)
@@ -352,7 +352,7 @@ function MadNLP.solve_kkt!(kkt::GondzioKKTSystem, w::MadNLP.AbstractKKTVector)
     #              Δy = -UΔx - r₂ - r₃
     # (X⁻¹Z + UᵀU) Δx = r₁ - Uᵀ(r₂ + r₃)
     buffer3 = w_r + w_y  # need a dedicated buffer of size ncon!
-    tmp = M_perpt_z(kkt.nlp.op_fft, buffer3)
+    tmp = M_perpt_z(kkt.nlp.op_fft, reshape(buffer3, nlp.parameters.DFTsize))
     rhs1 = view(rhs, 1:nβ)
     rhs2 = view(rhs, nβ+1:2*nβ)
     rhs1 .= w_p .- tmp
@@ -373,7 +373,7 @@ function MadNLP.solve_kkt!(kkt::GondzioKKTSystem, w::MadNLP.AbstractKKTVector)
     copy_w_r = copy(w_r)
     buffer1 .= w_p .- w_q
     UΔx = M_perp_beta(kkt.nlp.op_fft, buffer1)
-    w_r .= .-w_y .- UΔx           # Δr = -r₃ - UΔx
+    w_r .= .-w_y .- vec(UΔx)      # Δr = -r₃ - UΔx
     w_y .= w_r .- copy_w_r        # Δy = Δr - r₂
 
     MadNLP.finish_aug_solve!(kkt, w)
