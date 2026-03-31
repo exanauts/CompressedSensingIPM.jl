@@ -111,8 +111,9 @@ struct GondzioKKTSystem{T, VI, VT, MT, LS, NLP} <: MadNLP.AbstractReducedKKTSyst
     ind_lb::VI
     ind_ub::VI
     # Buffers
-    buffer1::VT  # # dimension nβ
+    buffer1::VT  # dimension nβ
     buffer2::VT  # dimension 2 * nβ
+    buffer3::VT  # dimension nβ (for zeroing missing indices)
     linear_solver::LS
     krylov_iterations::Vector{Int}
     krylov_timer::Vector{Float64}
@@ -149,6 +150,7 @@ function MadNLP.create_kkt_system(
 
     buffer1 = VT(undef, nβ)
     buffer2 = VT(undef, 2*nβ)
+    buffer3 = VT(undef, nβ)
 
     K = CondensedGondzioKKTSystem{T, VT}(nlp)
     P = GondzioPreconditioner{T, VT}(nlp.nβ)
@@ -158,7 +160,7 @@ function MadNLP.create_kkt_system(
         nlp, K, P,
         reg, pr_diag, du_diag, l_diag, u_diag, l_lower, u_lower,
         cb.ind_lb, cb.ind_ub,
-        buffer1, buffer2,
+        buffer1, buffer2, buffer3,
         workspace, Int[], Float64[],
     )
 end
@@ -173,8 +175,8 @@ Base.eltype(kkt::GondzioKKTSystem{T}) where T = T
 function Base.size(kkt::GondzioKKTSystem)
     n_lb = length(kkt.l_diag)
     n_ub = length(kkt.u_diag)
-    n = NLPModels.get_nvar(nlp)
-    m = NLPModels.get_ncon(nlp)
+    n = NLPModels.get_nvar(kkt.nlp)
+    m = NLPModels.get_ncon(kkt.nlp)
     N = n + m + n_lb + n_ub
     return (N, N)
 end
@@ -241,7 +243,11 @@ function MadNLP.mul!(y::VT, kkt::GondzioKKTSystem, x::VT, alpha::Number, beta::N
     x_y = view(_x, 2*nβ+m+1:2*nβ+2*m)
 
     β .= x_q .- x_p
-    tmp = M_perpt_z(kkt.nlp.op_fft, reshape(x_y, parameters.DFTsize))
+    # Zero missing indices before M_perpt_z: need U^T * M_perp * y, not U^T * y
+    buffer3 = kkt.buffer3
+    buffer3 .= x_y
+    view(buffer3, index_missing) .= 0
+    tmp = M_perpt_z(kkt.nlp.op_fft, reshape(buffer3, parameters.DFTsize))
     y_p .= .-alpha .* tmp .+ beta .* y_p
     y_q .= alpha .* tmp .+ beta .* y_q
     y_r .= alpha .* (x_r .- x_y) .+ beta .* y_r
@@ -262,7 +268,11 @@ function MadNLP.jtprod!(
     n = NLPModels.get_nvar(nlp)
     nβ = nlp.nβ
 
-    tmp = M_perpt_z(kkt.nlp.op_fft, reshape(x, nlp.parameters.DFTsize))
+    # Zero missing indices before M_perpt_z: need U^T * M_perp * x, not U^T * x
+    buffer = kkt.buffer1
+    buffer .= x
+    view(buffer, nlp.parameters.index_missing) .= 0
+    tmp = M_perpt_z(kkt.nlp.op_fft, reshape(buffer, nlp.parameters.DFTsize))
 
     yp = view(y, 1:nβ)
     yq = view(y, nβ+1:2*nβ)
@@ -351,8 +361,10 @@ function MadNLP.solve_kkt!(kkt::GondzioKKTSystem, w::MadNLP.AbstractKKTVector)
     #
     #              Δy = -UΔx - r₂ - r₃
     # (X⁻¹Z + UᵀU) Δx = r₁ - Uᵀ(r₂ + r₃)
-    buffer3 = w_r + w_y  # need a dedicated buffer of size ncon!
-    tmp = M_perpt_z(kkt.nlp.op_fft, reshape(buffer3, nlp.parameters.DFTsize))
+    buffer3_local = w_r + w_y  # need a dedicated buffer of size ncon!
+    # Zero missing indices before M_perpt_z: need U^T * M_perp * (...), not U^T * (...)
+    view(buffer3_local, nlp.parameters.index_missing) .= 0
+    tmp = M_perpt_z(kkt.nlp.op_fft, reshape(buffer3_local, nlp.parameters.DFTsize))
     rhs1 = view(rhs, 1:nβ)
     rhs2 = view(rhs, nβ+1:2*nβ)
     rhs1 .= w_p .- tmp
