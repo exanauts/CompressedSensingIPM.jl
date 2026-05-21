@@ -231,7 +231,7 @@ for n in sizes
     # build a valid hermitian spectrum from a real signal
     tmp = rand(Float64, n)
     ytmp = Vector{ComplexF64}(undef, n ÷ 2 + 1)
-    p_init = plan_dft_r2c(n, tmp, ytmp); execute!(p_init, tmp, ytmp)
+    p_init = plan_dft_r2c(n, tmp, ytmp); execute!(p_init, tmp, ytmp); finalize(p_init)
     x_cpu = ytmp
     y_cpu = Vector{Float64}(undef, n)
     plan_cpu = plan_dft_c2r(n, x_cpu, y_cpu)
@@ -291,7 +291,7 @@ for n in sizes
     # build a valid hermitian spectrum
     tmp = rand(Float64, n)
     ro_tmp = Vector{Float64}(undef, m); io_tmp = Vector{Float64}(undef, m)
-    p_init = plan_split_dft_r2c(n, tmp, ro_tmp, io_tmp); execute!(p_init, tmp, ro_tmp, io_tmp)
+    p_init = plan_split_dft_r2c(n, tmp, ro_tmp, io_tmp); execute!(p_init, tmp, ro_tmp, io_tmp); finalize(p_init)
     ri_cpu = ro_tmp;  ii_cpu = io_tmp
     out_cpu = Vector{Float64}(undef, n)
     plan_cpu = plan_split_dft_c2r(n, ri_cpu, ii_cpu, out_cpu)
