@@ -10,11 +10,13 @@ HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
 LaplaceInterpolation = "afb1b68e-e51f-4e49-a799-0e085170423d"
 LazyArtifacts = "4af54fe1-eca0-43a8-85a7-787d91b784e3"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-MadNLP = "2621e9c9-9eb4-46b1-8089-e8c72242dfb6"
-MadNLPGPU = "d72a61cc-809d-412f-99be-fd81f4b8a598"
 NPZ = "15e1cf62-19b3-5cfa-8e77-841668bca605"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [sources]
 LaplaceInterpolation = {rev = "master", url = "https://github.com/vishwas1984/LaplaceInterpolation.jl"}
+
+[compat]
+AMDGPU = "2.4.0"
+CUDA = "5.11.2"
