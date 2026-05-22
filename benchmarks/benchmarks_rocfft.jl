@@ -525,10 +525,10 @@ for n in sizes
     FFTW.unsafe_execute!(p_init, tmp, x_cpu)
     finalize(p_init)
     y_cpu  = Array{Float64}(undef, dims...)
-    p_cpu  = FFTW.plan_irfft(x_cpu, n; flags=FFTW.ESTIMATE)
+    p_cpu  = FFTW.plan_brfft(x_cpu, n; flags=FFTW.ESTIMATE)
     FFTW.unsafe_execute!(p_cpu, x_cpu, y_cpu)
     t_exe_cpu  = @belapsed FFTW.unsafe_execute!($p_cpu, $x_cpu, $y_cpu) samples=ns evals=1
-    t_plan_cpu = @belapsed (p = FFTW.plan_irfft($x_cpu, $n; flags=FFTW.ESTIMATE); finalize(p)) samples=ns evals=1
+    t_plan_cpu = @belapsed (p = FFTW.plan_brfft($x_cpu, $n; flags=FFTW.ESTIMATE); finalize(p)) samples=ns evals=1
 
     x_gpu = ROCArray(x_cpu)
     y_gpu = ROCArray{Float64}(undef, dims...)
