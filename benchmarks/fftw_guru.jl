@@ -203,25 +203,117 @@ function execute!(p::InterleavedC2RPlan,
 end
 
 function execute!(p::SplitC2CPlan,
-                  ri::Vector{Float64}, ii::Vector{Float64},
-                  ro::Vector{Float64}, io::Vector{Float64})
+                  ri::AbstractArray{Float64}, ii::AbstractArray{Float64},
+                  ro::AbstractArray{Float64}, io::AbstractArray{Float64})
     ccall((:fftw_execute_split_dft, FFTW.libfftw3), Cvoid,
           (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}),
           p.ptr, ri, ii, ro, io)
 end
 
 function execute!(p::SplitR2CPlan,
-                  x::Vector{Float64},
-                  ro::Vector{Float64}, io::Vector{Float64})
+                  x::AbstractArray{Float64},
+                  ro::AbstractArray{Float64}, io::AbstractArray{Float64})
     ccall((:fftw_execute_split_dft_r2c, FFTW.libfftw3), Cvoid,
           (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}),
           p.ptr, x, ro, io)
 end
 
 function execute!(p::SplitC2RPlan,
-                  ri::Vector{Float64}, ii::Vector{Float64},
-                  x::Vector{Float64})
+                  ri::AbstractArray{Float64}, ii::AbstractArray{Float64},
+                  x::AbstractArray{Float64})
     ccall((:fftw_execute_split_dft_c2r, FFTW.libfftw3), Cvoid,
           (Ptr{Cvoid}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}),
           p.ptr, ri, ii, x)
+end
+
+# ─── multi-dim split plan constructors ───────────────────────────────────────
+# Column-major strides for NxN...xN arrays.
+
+function _iodims_c2c_nd(dims::NTuple{D,Int}) where D
+    strides = ones(Int, D)
+    for i in 2:D; strides[i] = strides[i-1] * dims[i-1]; end
+    [_fftw_iodim(Cint(dims[i]), Cint(strides[i]), Cint(strides[i])) for i in 1:D]
+end
+
+# R2C: input NxN...xN, output (n÷2+1)xN...xN (first dim halved).
+function _iodims_r2c_nd(dims::NTuple{D,Int}) where D
+    m = dims[1] ÷ 2 + 1
+    out_dims = (m, dims[2:end]...)
+    is = ones(Int, D);  os = ones(Int, D)
+    for i in 2:D
+        is[i] = is[i-1] * dims[i-1]
+        os[i] = os[i-1] * out_dims[i-1]
+    end
+    [_fftw_iodim(Cint(dims[i]), Cint(is[i]), Cint(os[i])) for i in 1:D]
+end
+
+# C2R: inverse of R2C (input hermitian (n÷2+1)xN...xN, output NxN...xN).
+function _iodims_c2r_nd(dims::NTuple{D,Int}) where D
+    m = dims[1] ÷ 2 + 1
+    in_dims = (m, dims[2:end]...)
+    is = ones(Int, D);  os = ones(Int, D)
+    for i in 2:D
+        is[i] = is[i-1] * in_dims[i-1]
+        os[i] = os[i-1] * dims[i-1]
+    end
+    [_fftw_iodim(Cint(dims[i]), Cint(is[i]), Cint(os[i])) for i in 1:D]
+end
+
+"""
+    plan_split_dft_nd(dims, ri, ii, ro, io) → SplitC2CPlan
+
+C2C split (planar) FFT plan for ND arrays (always forward).
+Backward: call `execute!(plan, ii, ri, io, ro)`.
+"""
+function plan_split_dft_nd(dims::NTuple{D,Int},
+                            ri::AbstractArray{Float64,D}, ii::AbstractArray{Float64,D},
+                            ro::AbstractArray{Float64,D}, io::AbstractArray{Float64,D}) where D
+    fftw_dims = _iodims_c2c_nd(dims)
+    ptr = GC.@preserve fftw_dims ccall(
+        (:fftw_plan_guru_split_dft, FFTW.libfftw3), Ptr{Cvoid},
+        (Cint, Ptr{_fftw_iodim}, Cint, Ptr{_fftw_iodim},
+         Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}, Cuint),
+        D, fftw_dims, 0, C_NULL, ri, ii, ro, io, _FFTW_ESTIMATE,
+    )
+    ptr == C_NULL && error("fftw_plan_guru_split_dft failed for dims=$dims")
+    return SplitC2CPlan(ptr, prod(dims))
+end
+
+"""
+    plan_split_dft_r2c_nd(dims, x, ro, io) → SplitR2CPlan
+
+R2C split ND: real input `dims` → split hermitian output `(ro, io)` of shape `(dims[1]÷2+1, dims[2:end]...)`.
+"""
+function plan_split_dft_r2c_nd(dims::NTuple{D,Int},
+                                x::AbstractArray{Float64,D},
+                                ro::AbstractArray{Float64}, io::AbstractArray{Float64}) where D
+    fftw_dims = _iodims_r2c_nd(dims)
+    ptr = GC.@preserve fftw_dims ccall(
+        (:fftw_plan_guru_split_dft_r2c, FFTW.libfftw3), Ptr{Cvoid},
+        (Cint, Ptr{_fftw_iodim}, Cint, Ptr{_fftw_iodim},
+         Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}, Cuint),
+        D, fftw_dims, 0, C_NULL, x, ro, io, _FFTW_ESTIMATE,
+    )
+    ptr == C_NULL && error("fftw_plan_guru_split_dft_r2c failed for dims=$dims")
+    return SplitR2CPlan(ptr, prod(dims))
+end
+
+"""
+    plan_split_dft_c2r_nd(dims, ri, ii, x) → SplitC2RPlan
+
+C2R split ND: split hermitian input `(ri, ii)` of shape `(dims[1]÷2+1, dims[2:end]...)` → real output `dims`.
+Output is unnormalized.
+"""
+function plan_split_dft_c2r_nd(dims::NTuple{D,Int},
+                                ri::AbstractArray{Float64}, ii::AbstractArray{Float64},
+                                x::AbstractArray{Float64,D}) where D
+    fftw_dims = _iodims_c2r_nd(dims)
+    ptr = GC.@preserve fftw_dims ccall(
+        (:fftw_plan_guru_split_dft_c2r, FFTW.libfftw3), Ptr{Cvoid},
+        (Cint, Ptr{_fftw_iodim}, Cint, Ptr{_fftw_iodim},
+         Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}, Cuint),
+        D, fftw_dims, 0, C_NULL, ri, ii, x, _FFTW_ESTIMATE,
+    )
+    ptr == C_NULL && error("fftw_plan_guru_split_dft_c2r failed for dims=$dims")
+    return SplitC2RPlan(ptr, prod(dims))
 end
