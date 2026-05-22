@@ -1,4 +1,4 @@
-using AMDGPU, FFTW, BenchmarkTools
+using AMDGPU, FFTW, BenchmarkTools, DelimitedFiles
 import AMDGPU.rocFFT
 
 include("fftw_guru.jl")
@@ -94,6 +94,32 @@ function bench_params(n::Int)
     return (3, 10)
 end
 
+# ─── results collector ───────────────────────────────────────────────────────
+
+const results = NamedTuple[]
+
+function record!(transform, layout, n,
+                 execute_cpu, plan_cpu, execute_gpu, plan_gpu)
+    tag = "$transform $n"
+    println("$tag -- EXECUTE_CPU   -- $execute_cpu")
+    println("$tag -- PLAN_CPU      -- $plan_cpu")
+    println("$tag -- EXECUTE_GPU   -- $execute_gpu")
+    println("$tag -- PLAN_GPU      -- $plan_gpu")
+    println("$tag -- EXECUTE_RATIO -- $(execute_cpu / execute_gpu)")
+    println("$tag -- PLAN_RATIO    -- $(plan_cpu / plan_gpu)")
+    push!(results, (
+        transform     = transform,
+        layout        = layout,
+        n             = n,
+        execute_cpu   = execute_cpu,
+        plan_cpu      = plan_cpu,
+        execute_gpu   = execute_gpu,
+        plan_gpu      = plan_gpu,
+        execute_ratio = execute_cpu / execute_gpu,
+        plan_ratio    = plan_cpu / plan_gpu,
+    ))
+end
+
 # ─── Benchmarks ──────────────────────────────────────────────────────────────
 
 ### C2C forward — interleaved ###
@@ -104,25 +130,20 @@ for n in sizes
     y_cpu = Vector{ComplexF64}(undef, n)
     plan_cpu = plan_dft(n, x_cpu, y_cpu, _FFTW_FORWARD)
     execute!(plan_cpu, x_cpu, y_cpu)
-    timer_cpu      = @belapsed execute!($plan_cpu, $x_cpu, $y_cpu) samples=ns evals=1
-    timer_plan_cpu = @belapsed (p = plan_dft($n, $x_cpu, $y_cpu, _FFTW_FORWARD); finalize(p)) samples=ns evals=1
-    println("c2c_fwd $n -- CPU      -- $timer_cpu")
-    println("c2c_fwd $n -- PLAN_CPU -- $timer_plan_cpu")
+    t_exe_cpu  = @belapsed execute!($plan_cpu, $x_cpu, $y_cpu) samples=ns evals=1
+    t_plan_cpu = @belapsed (p = plan_dft($n, $x_cpu, $y_cpu, _FFTW_FORWARD); finalize(p)) samples=ns evals=1
 
     x_gpu = ROCVector{ComplexF64}(x_cpu)
     y_gpu = ROCVector{ComplexF64}(undef, n)
     plan_gpu = RocFFTPlan(rocFFT.rocfft_transform_type_complex_forward, n)
     in_ptrs  = [Ptr{Cvoid}(pointer(x_gpu))]
     out_ptrs = [Ptr{Cvoid}(pointer(y_gpu))]
-    timer_gpu      = gpu_belapsed(() -> execute!(plan_gpu, in_ptrs, out_ptrs); nwarmup=nw, nsamples=ns)
-    timer_plan_gpu = gpu_belapsed(nwarmup=nw, nsamples=ns) do
-        p = RocFFTPlan(rocFFT.rocfft_transform_type_complex_forward, n)
-        finalize(p)
+    t_exe_gpu  = gpu_belapsed(() -> execute!(plan_gpu, in_ptrs, out_ptrs); nwarmup=nw, nsamples=ns)
+    t_plan_gpu = gpu_belapsed(nwarmup=nw, nsamples=ns) do
+        p = RocFFTPlan(rocFFT.rocfft_transform_type_complex_forward, n); finalize(p)
     end
-    println("c2c_fwd $n -- GPU      -- $timer_gpu")
-    println("c2c_fwd $n -- PLAN_GPU -- $timer_plan_gpu")
-    println("c2c_fwd $n -- RATIO    -- $(timer_cpu / timer_gpu)")
 
+    record!("c2c_fwd", "interleaved", n, t_exe_cpu, t_plan_cpu, t_exe_gpu, t_plan_gpu)
     finalize(plan_cpu); finalize(plan_gpu)
     AMDGPU.unsafe_free!(x_gpu); AMDGPU.unsafe_free!(y_gpu)
 end
@@ -135,25 +156,20 @@ for n in sizes
     y_cpu = Vector{ComplexF64}(undef, n)
     plan_cpu = plan_dft(n, x_cpu, y_cpu, _FFTW_BACKWARD)
     execute!(plan_cpu, x_cpu, y_cpu)
-    timer_cpu      = @belapsed execute!($plan_cpu, $x_cpu, $y_cpu) samples=ns evals=1
-    timer_plan_cpu = @belapsed (p = plan_dft($n, $x_cpu, $y_cpu, _FFTW_BACKWARD); finalize(p)) samples=ns evals=1
-    println("c2c_inv $n -- CPU      -- $timer_cpu")
-    println("c2c_inv $n -- PLAN_CPU -- $timer_plan_cpu")
+    t_exe_cpu  = @belapsed execute!($plan_cpu, $x_cpu, $y_cpu) samples=ns evals=1
+    t_plan_cpu = @belapsed (p = plan_dft($n, $x_cpu, $y_cpu, _FFTW_BACKWARD); finalize(p)) samples=ns evals=1
 
     x_gpu = ROCVector{ComplexF64}(x_cpu)
     y_gpu = ROCVector{ComplexF64}(undef, n)
     plan_gpu = RocFFTPlan(rocFFT.rocfft_transform_type_complex_inverse, n)
     in_ptrs  = [Ptr{Cvoid}(pointer(x_gpu))]
     out_ptrs = [Ptr{Cvoid}(pointer(y_gpu))]
-    timer_gpu      = gpu_belapsed(() -> execute!(plan_gpu, in_ptrs, out_ptrs); nwarmup=nw, nsamples=ns)
-    timer_plan_gpu = gpu_belapsed(nwarmup=nw, nsamples=ns) do
-        p = RocFFTPlan(rocFFT.rocfft_transform_type_complex_inverse, n)
-        finalize(p)
+    t_exe_gpu  = gpu_belapsed(() -> execute!(plan_gpu, in_ptrs, out_ptrs); nwarmup=nw, nsamples=ns)
+    t_plan_gpu = gpu_belapsed(nwarmup=nw, nsamples=ns) do
+        p = RocFFTPlan(rocFFT.rocfft_transform_type_complex_inverse, n); finalize(p)
     end
-    println("c2c_inv $n -- GPU      -- $timer_gpu")
-    println("c2c_inv $n -- PLAN_GPU -- $timer_plan_gpu")
-    println("c2c_inv $n -- RATIO    -- $(timer_cpu / timer_gpu)")
 
+    record!("c2c_inv", "interleaved", n, t_exe_cpu, t_plan_cpu, t_exe_gpu, t_plan_gpu)
     finalize(plan_cpu); finalize(plan_gpu)
     AMDGPU.unsafe_free!(x_gpu); AMDGPU.unsafe_free!(y_gpu)
 end
@@ -166,10 +182,8 @@ for n in sizes
     ro_cpu = Vector{Float64}(undef, n);  io_cpu = Vector{Float64}(undef, n)
     plan_cpu = plan_split_dft(n, ri_cpu, ii_cpu, ro_cpu, io_cpu)
     execute!(plan_cpu, ri_cpu, ii_cpu, ro_cpu, io_cpu)
-    timer_cpu      = @belapsed execute!($plan_cpu, $ri_cpu, $ii_cpu, $ro_cpu, $io_cpu) samples=ns evals=1
-    timer_plan_cpu = @belapsed (p = plan_split_dft($n, $ri_cpu, $ii_cpu, $ro_cpu, $io_cpu); finalize(p)) samples=ns evals=1
-    println("c2c_fwd_split $n -- CPU      -- $timer_cpu")
-    println("c2c_fwd_split $n -- PLAN_CPU -- $timer_plan_cpu")
+    t_exe_cpu  = @belapsed execute!($plan_cpu, $ri_cpu, $ii_cpu, $ro_cpu, $io_cpu) samples=ns evals=1
+    t_plan_cpu = @belapsed (p = plan_split_dft($n, $ri_cpu, $ii_cpu, $ro_cpu, $io_cpu); finalize(p)) samples=ns evals=1
 
     ri_gpu = ROCVector{Float64}(ri_cpu);  ii_gpu = ROCVector{Float64}(ii_cpu)
     ro_gpu = ROCVector{Float64}(undef, n);  io_gpu = ROCVector{Float64}(undef, n)
@@ -178,17 +192,14 @@ for n in sizes
                           out_type = rocFFT.rocfft_array_type_complex_planar)
     in_ptrs  = [Ptr{Cvoid}(pointer(ri_gpu)), Ptr{Cvoid}(pointer(ii_gpu))]
     out_ptrs = [Ptr{Cvoid}(pointer(ro_gpu)), Ptr{Cvoid}(pointer(io_gpu))]
-    timer_gpu      = gpu_belapsed(() -> execute!(plan_gpu, in_ptrs, out_ptrs); nwarmup=nw, nsamples=ns)
-    timer_plan_gpu = gpu_belapsed(nwarmup=nw, nsamples=ns) do
+    t_exe_gpu  = gpu_belapsed(() -> execute!(plan_gpu, in_ptrs, out_ptrs); nwarmup=nw, nsamples=ns)
+    t_plan_gpu = gpu_belapsed(nwarmup=nw, nsamples=ns) do
         p = RocFFTPlan(rocFFT.rocfft_transform_type_complex_forward, n;
                        in_type  = rocFFT.rocfft_array_type_complex_planar,
-                       out_type = rocFFT.rocfft_array_type_complex_planar)
-        finalize(p)
+                       out_type = rocFFT.rocfft_array_type_complex_planar); finalize(p)
     end
-    println("c2c_fwd_split $n -- GPU      -- $timer_gpu")
-    println("c2c_fwd_split $n -- PLAN_GPU -- $timer_plan_gpu")
-    println("c2c_fwd_split $n -- RATIO    -- $(timer_cpu / timer_gpu)")
 
+    record!("c2c_fwd", "split", n, t_exe_cpu, t_plan_cpu, t_exe_gpu, t_plan_gpu)
     finalize(plan_cpu); finalize(plan_gpu)
     for buf in (ri_gpu, ii_gpu, ro_gpu, io_gpu); AMDGPU.unsafe_free!(buf); end
 end
@@ -203,10 +214,8 @@ for n in sizes
     ro_cpu = Vector{Float64}(undef, n);  io_cpu = Vector{Float64}(undef, n)
     plan_cpu = plan_split_dft(n, ii_cpu, ri_cpu, io_cpu, ro_cpu)
     execute!(plan_cpu, ii_cpu, ri_cpu, io_cpu, ro_cpu)
-    timer_cpu      = @belapsed execute!($plan_cpu, $ii_cpu, $ri_cpu, $io_cpu, $ro_cpu) samples=ns evals=1
-    timer_plan_cpu = @belapsed (p = plan_split_dft($n, $ii_cpu, $ri_cpu, $io_cpu, $ro_cpu); finalize(p)) samples=ns evals=1
-    println("c2c_inv_split $n -- CPU      -- $timer_cpu")
-    println("c2c_inv_split $n -- PLAN_CPU -- $timer_plan_cpu")
+    t_exe_cpu  = @belapsed execute!($plan_cpu, $ii_cpu, $ri_cpu, $io_cpu, $ro_cpu) samples=ns evals=1
+    t_plan_cpu = @belapsed (p = plan_split_dft($n, $ii_cpu, $ri_cpu, $io_cpu, $ro_cpu); finalize(p)) samples=ns evals=1
 
     ri_gpu = ROCVector{Float64}(ri_cpu);  ii_gpu = ROCVector{Float64}(ii_cpu)
     ro_gpu = ROCVector{Float64}(undef, n);  io_gpu = ROCVector{Float64}(undef, n)
@@ -215,17 +224,14 @@ for n in sizes
                           out_type = rocFFT.rocfft_array_type_complex_planar)
     in_ptrs  = [Ptr{Cvoid}(pointer(ri_gpu)), Ptr{Cvoid}(pointer(ii_gpu))]
     out_ptrs = [Ptr{Cvoid}(pointer(ro_gpu)), Ptr{Cvoid}(pointer(io_gpu))]
-    timer_gpu      = gpu_belapsed(() -> execute!(plan_gpu, in_ptrs, out_ptrs); nwarmup=nw, nsamples=ns)
-    timer_plan_gpu = gpu_belapsed(nwarmup=nw, nsamples=ns) do
+    t_exe_gpu  = gpu_belapsed(() -> execute!(plan_gpu, in_ptrs, out_ptrs); nwarmup=nw, nsamples=ns)
+    t_plan_gpu = gpu_belapsed(nwarmup=nw, nsamples=ns) do
         p = RocFFTPlan(rocFFT.rocfft_transform_type_complex_inverse, n;
                        in_type  = rocFFT.rocfft_array_type_complex_planar,
-                       out_type = rocFFT.rocfft_array_type_complex_planar)
-        finalize(p)
+                       out_type = rocFFT.rocfft_array_type_complex_planar); finalize(p)
     end
-    println("c2c_inv_split $n -- GPU      -- $timer_gpu")
-    println("c2c_inv_split $n -- PLAN_GPU -- $timer_plan_gpu")
-    println("c2c_inv_split $n -- RATIO    -- $(timer_cpu / timer_gpu)")
 
+    record!("c2c_inv", "split", n, t_exe_cpu, t_plan_cpu, t_exe_gpu, t_plan_gpu)
     finalize(plan_cpu); finalize(plan_gpu)
     for buf in (ri_gpu, ii_gpu, ro_gpu, io_gpu); AMDGPU.unsafe_free!(buf); end
 end
@@ -238,10 +244,8 @@ for n in sizes
     y_cpu = Vector{ComplexF64}(undef, n ÷ 2 + 1)
     plan_cpu = plan_dft_r2c(n, x_cpu, y_cpu)
     execute!(plan_cpu, x_cpu, y_cpu)
-    timer_cpu      = @belapsed execute!($plan_cpu, $x_cpu, $y_cpu) samples=ns evals=1
-    timer_plan_cpu = @belapsed (p = plan_dft_r2c($n, $x_cpu, $y_cpu); finalize(p)) samples=ns evals=1
-    println("r2c_interleaved $n -- CPU      -- $timer_cpu")
-    println("r2c_interleaved $n -- PLAN_CPU -- $timer_plan_cpu")
+    t_exe_cpu  = @belapsed execute!($plan_cpu, $x_cpu, $y_cpu) samples=ns evals=1
+    t_plan_cpu = @belapsed (p = plan_dft_r2c($n, $x_cpu, $y_cpu); finalize(p)) samples=ns evals=1
 
     x_gpu = ROCVector{Float64}(x_cpu)
     y_gpu = ROCVector{ComplexF64}(undef, n ÷ 2 + 1)
@@ -250,17 +254,14 @@ for n in sizes
                           out_type = rocFFT.rocfft_array_type_hermitian_interleaved)
     in_ptrs  = [Ptr{Cvoid}(pointer(x_gpu))]
     out_ptrs = [Ptr{Cvoid}(pointer(y_gpu))]
-    timer_gpu      = gpu_belapsed(() -> execute!(plan_gpu, in_ptrs, out_ptrs); nwarmup=nw, nsamples=ns)
-    timer_plan_gpu = gpu_belapsed(nwarmup=nw, nsamples=ns) do
+    t_exe_gpu  = gpu_belapsed(() -> execute!(plan_gpu, in_ptrs, out_ptrs); nwarmup=nw, nsamples=ns)
+    t_plan_gpu = gpu_belapsed(nwarmup=nw, nsamples=ns) do
         p = RocFFTPlan(rocFFT.rocfft_transform_type_real_forward, n;
                        in_type  = rocFFT.rocfft_array_type_real,
-                       out_type = rocFFT.rocfft_array_type_hermitian_interleaved)
-        finalize(p)
+                       out_type = rocFFT.rocfft_array_type_hermitian_interleaved); finalize(p)
     end
-    println("r2c_interleaved $n -- GPU      -- $timer_gpu")
-    println("r2c_interleaved $n -- PLAN_GPU -- $timer_plan_gpu")
-    println("r2c_interleaved $n -- RATIO    -- $(timer_cpu / timer_gpu)")
 
+    record!("r2c", "interleaved", n, t_exe_cpu, t_plan_cpu, t_exe_gpu, t_plan_gpu)
     finalize(plan_cpu); finalize(plan_gpu)
     AMDGPU.unsafe_free!(x_gpu); AMDGPU.unsafe_free!(y_gpu)
 end
@@ -269,7 +270,6 @@ end
 println("\n=== C2R (hermitian_interleaved → real) ===")
 for n in sizes
     nw, ns = bench_params(n)
-    # build a valid hermitian spectrum from a real signal
     tmp = rand(Float64, n)
     ytmp = Vector{ComplexF64}(undef, n ÷ 2 + 1)
     p_init = plan_dft_r2c(n, tmp, ytmp); execute!(p_init, tmp, ytmp); finalize(p_init)
@@ -277,10 +277,8 @@ for n in sizes
     y_cpu = Vector{Float64}(undef, n)
     plan_cpu = plan_dft_c2r(n, x_cpu, y_cpu)
     execute!(plan_cpu, x_cpu, y_cpu)
-    timer_cpu      = @belapsed execute!($plan_cpu, $x_cpu, $y_cpu) samples=ns evals=1
-    timer_plan_cpu = @belapsed (p = plan_dft_c2r($n, $x_cpu, $y_cpu); finalize(p)) samples=ns evals=1
-    println("c2r_interleaved $n -- CPU      -- $timer_cpu")
-    println("c2r_interleaved $n -- PLAN_CPU -- $timer_plan_cpu")
+    t_exe_cpu  = @belapsed execute!($plan_cpu, $x_cpu, $y_cpu) samples=ns evals=1
+    t_plan_cpu = @belapsed (p = plan_dft_c2r($n, $x_cpu, $y_cpu); finalize(p)) samples=ns evals=1
 
     x_gpu = ROCVector{ComplexF64}(x_cpu)
     y_gpu = ROCVector{Float64}(undef, n)
@@ -289,17 +287,14 @@ for n in sizes
                           out_type = rocFFT.rocfft_array_type_real)
     in_ptrs  = [Ptr{Cvoid}(pointer(x_gpu))]
     out_ptrs = [Ptr{Cvoid}(pointer(y_gpu))]
-    timer_gpu      = gpu_belapsed(() -> execute!(plan_gpu, in_ptrs, out_ptrs); nwarmup=nw, nsamples=ns)
-    timer_plan_gpu = gpu_belapsed(nwarmup=nw, nsamples=ns) do
+    t_exe_gpu  = gpu_belapsed(() -> execute!(plan_gpu, in_ptrs, out_ptrs); nwarmup=nw, nsamples=ns)
+    t_plan_gpu = gpu_belapsed(nwarmup=nw, nsamples=ns) do
         p = RocFFTPlan(rocFFT.rocfft_transform_type_real_inverse, n;
                        in_type  = rocFFT.rocfft_array_type_hermitian_interleaved,
-                       out_type = rocFFT.rocfft_array_type_real)
-        finalize(p)
+                       out_type = rocFFT.rocfft_array_type_real); finalize(p)
     end
-    println("c2r_interleaved $n -- GPU      -- $timer_gpu")
-    println("c2r_interleaved $n -- PLAN_GPU -- $timer_plan_gpu")
-    println("c2r_interleaved $n -- RATIO    -- $(timer_cpu / timer_gpu)")
 
+    record!("c2r", "interleaved", n, t_exe_cpu, t_plan_cpu, t_exe_gpu, t_plan_gpu)
     finalize(plan_cpu); finalize(plan_gpu)
     AMDGPU.unsafe_free!(x_gpu); AMDGPU.unsafe_free!(y_gpu)
 end
@@ -314,10 +309,8 @@ for n in sizes
     io_cpu = Vector{Float64}(undef, m)
     plan_cpu = plan_split_dft_r2c(n, x_cpu, ro_cpu, io_cpu)
     execute!(plan_cpu, x_cpu, ro_cpu, io_cpu)
-    timer_cpu      = @belapsed execute!($plan_cpu, $x_cpu, $ro_cpu, $io_cpu) samples=ns evals=1
-    timer_plan_cpu = @belapsed (p = plan_split_dft_r2c($n, $x_cpu, $ro_cpu, $io_cpu); finalize(p)) samples=ns evals=1
-    println("r2c_split $n -- CPU      -- $timer_cpu")
-    println("r2c_split $n -- PLAN_CPU -- $timer_plan_cpu")
+    t_exe_cpu  = @belapsed execute!($plan_cpu, $x_cpu, $ro_cpu, $io_cpu) samples=ns evals=1
+    t_plan_cpu = @belapsed (p = plan_split_dft_r2c($n, $x_cpu, $ro_cpu, $io_cpu); finalize(p)) samples=ns evals=1
 
     x_gpu  = ROCVector{Float64}(x_cpu)
     yr_gpu = ROCVector{Float64}(undef, m)
@@ -327,17 +320,14 @@ for n in sizes
                           out_type = rocFFT.rocfft_array_type_hermitian_planar)
     in_ptrs  = [Ptr{Cvoid}(pointer(x_gpu))]
     out_ptrs = [Ptr{Cvoid}(pointer(yr_gpu)), Ptr{Cvoid}(pointer(yi_gpu))]
-    timer_gpu      = gpu_belapsed(() -> execute!(plan_gpu, in_ptrs, out_ptrs); nwarmup=nw, nsamples=ns)
-    timer_plan_gpu = gpu_belapsed(nwarmup=nw, nsamples=ns) do
+    t_exe_gpu  = gpu_belapsed(() -> execute!(plan_gpu, in_ptrs, out_ptrs); nwarmup=nw, nsamples=ns)
+    t_plan_gpu = gpu_belapsed(nwarmup=nw, nsamples=ns) do
         p = RocFFTPlan(rocFFT.rocfft_transform_type_real_forward, n;
                        in_type  = rocFFT.rocfft_array_type_real,
-                       out_type = rocFFT.rocfft_array_type_hermitian_planar)
-        finalize(p)
+                       out_type = rocFFT.rocfft_array_type_hermitian_planar); finalize(p)
     end
-    println("r2c_split $n -- GPU      -- $timer_gpu")
-    println("r2c_split $n -- PLAN_GPU -- $timer_plan_gpu")
-    println("r2c_split $n -- RATIO    -- $(timer_cpu / timer_gpu)")
 
+    record!("r2c", "split", n, t_exe_cpu, t_plan_cpu, t_exe_gpu, t_plan_gpu)
     finalize(plan_cpu); finalize(plan_gpu)
     for buf in (x_gpu, yr_gpu, yi_gpu); AMDGPU.unsafe_free!(buf); end
 end
@@ -347,7 +337,6 @@ println("\n=== C2R (hermitian_planar / split → real) ===")
 for n in sizes
     nw, ns = bench_params(n)
     m = n ÷ 2 + 1
-    # build a valid hermitian spectrum
     tmp = rand(Float64, n)
     ro_tmp = Vector{Float64}(undef, m); io_tmp = Vector{Float64}(undef, m)
     p_init = plan_split_dft_r2c(n, tmp, ro_tmp, io_tmp); execute!(p_init, tmp, ro_tmp, io_tmp); finalize(p_init)
@@ -355,10 +344,8 @@ for n in sizes
     out_cpu = Vector{Float64}(undef, n)
     plan_cpu = plan_split_dft_c2r(n, ri_cpu, ii_cpu, out_cpu)
     execute!(plan_cpu, ri_cpu, ii_cpu, out_cpu)
-    timer_cpu      = @belapsed execute!($plan_cpu, $ri_cpu, $ii_cpu, $out_cpu) samples=ns evals=1
-    timer_plan_cpu = @belapsed (p = plan_split_dft_c2r($n, $ri_cpu, $ii_cpu, $out_cpu); finalize(p)) samples=ns evals=1
-    println("c2r_split $n -- CPU      -- $timer_cpu")
-    println("c2r_split $n -- PLAN_CPU -- $timer_plan_cpu")
+    t_exe_cpu  = @belapsed execute!($plan_cpu, $ri_cpu, $ii_cpu, $out_cpu) samples=ns evals=1
+    t_plan_cpu = @belapsed (p = plan_split_dft_c2r($n, $ri_cpu, $ii_cpu, $out_cpu); finalize(p)) samples=ns evals=1
 
     yr_gpu  = ROCVector{Float64}(ri_cpu)
     yi_gpu  = ROCVector{Float64}(ii_cpu)
@@ -368,17 +355,53 @@ for n in sizes
                           out_type = rocFFT.rocfft_array_type_real)
     in_ptrs  = [Ptr{Cvoid}(pointer(yr_gpu)), Ptr{Cvoid}(pointer(yi_gpu))]
     out_ptrs = [Ptr{Cvoid}(pointer(out_gpu))]
-    timer_gpu      = gpu_belapsed(() -> execute!(plan_gpu, in_ptrs, out_ptrs); nwarmup=nw, nsamples=ns)
-    timer_plan_gpu = gpu_belapsed(nwarmup=nw, nsamples=ns) do
+    t_exe_gpu  = gpu_belapsed(() -> execute!(plan_gpu, in_ptrs, out_ptrs); nwarmup=nw, nsamples=ns)
+    t_plan_gpu = gpu_belapsed(nwarmup=nw, nsamples=ns) do
         p = RocFFTPlan(rocFFT.rocfft_transform_type_real_inverse, n;
                        in_type  = rocFFT.rocfft_array_type_hermitian_planar,
-                       out_type = rocFFT.rocfft_array_type_real)
-        finalize(p)
+                       out_type = rocFFT.rocfft_array_type_real); finalize(p)
     end
-    println("c2r_split $n -- GPU      -- $timer_gpu")
-    println("c2r_split $n -- PLAN_GPU -- $timer_plan_gpu")
-    println("c2r_split $n -- RATIO    -- $(timer_cpu / timer_gpu)")
 
+    record!("c2r", "split", n, t_exe_cpu, t_plan_cpu, t_exe_gpu, t_plan_gpu)
     finalize(plan_cpu); finalize(plan_gpu)
     for buf in (yr_gpu, yi_gpu, out_gpu); AMDGPU.unsafe_free!(buf); end
 end
+
+# ─── Save results ─────────────────────────────────────────────────────────────
+
+println("\nSaving results...")
+
+header = ["transform" "layout" "n" "execute_cpu" "plan_cpu" "execute_gpu" "plan_gpu" "execute_ratio" "plan_ratio"]
+data = hcat(
+    [r.transform     for r in results],
+    [r.layout        for r in results],
+    [r.n             for r in results],
+    [r.execute_cpu   for r in results],
+    [r.plan_cpu      for r in results],
+    [r.execute_gpu   for r in results],
+    [r.plan_gpu      for r in results],
+    [r.execute_ratio for r in results],
+    [r.plan_ratio    for r in results],
+)
+writedlm("results_rocfft.csv", vcat(header, data), ',')
+println("Results saved to results_rocfft.csv ($(length(results)) rows)")
+
+# ─── Load and plot results ────────────────────────────────────────────────────
+# using DelimitedFiles, Plots
+#
+# data, header = readdlm("results_rocfft.csv", ',', header=true)
+# header = vec(header)
+#
+# transform_col   = data[:, findfirst(==("transform"),   header)]
+# layout_col      = data[:, findfirst(==("layout"),       header)]
+# n_col           = Int.(data[:, findfirst(==("n"),        header)])
+# exe_cpu_col     = Float64.(data[:, findfirst(==("execute_cpu"),   header)])
+# exe_gpu_col     = Float64.(data[:, findfirst(==("execute_gpu"),   header)])
+# exe_ratio_col   = Float64.(data[:, findfirst(==("execute_ratio"), header)])
+# plan_gpu_col    = Float64.(data[:, findfirst(==("plan_gpu"),      header)])
+#
+# # Example: plot execute_ratio vs n for c2c_fwd interleaved
+# mask = (transform_col .== "c2c_fwd") .& (layout_col .== "interleaved")
+# plot(n_col[mask], exe_ratio_col[mask];
+#      xscale=:log2, xlabel="n", ylabel="CPU time / GPU time",
+#      title="C2C forward interleaved — execute ratio", legend=false, marker=:circle)
