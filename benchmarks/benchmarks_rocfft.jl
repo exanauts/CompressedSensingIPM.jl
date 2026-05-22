@@ -104,11 +104,11 @@ function gpu_belapsed(f; nwarmup::Int = 3, nsamples::Int = 10)
 end
 
 # Adaptive sample counts based on total element count N = prod(dims):
-#   N < 2^20  →  (nwarmup=3, nsamples=10)
-#   2^20 ≤ N < 2^24  →  (2, 5)
-#   N ≥ 2^24  →  (1, 3)
-bench_params(dims::NTuple) = prod(dims) >= 2^24 ? (1, 3) :
-                              prod(dims) >= 2^20 ? (2, 5) : (3, 10)
+#   N < 2^20  →  (nwarmup=5, nsamples=15)
+#   2^20 ≤ N < 2^24  →  (3, 10)
+#   N ≥ 2^24  →  (2, 7)
+bench_params(dims::NTuple) = prod(dims) >= 2^24 ? (2,  7) :
+                              prod(dims) >= 2^20 ? (3, 10) : (5, 15)
 bench_params(n::Int) = bench_params((n,))
 
 # ─── results collector ───────────────────────────────────────────────────────
