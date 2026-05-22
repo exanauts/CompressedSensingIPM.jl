@@ -170,11 +170,11 @@ function layout_comparison(int_data, split_data, label)
     (ratio_cpu=ratio_cpu, ratio_gpu=ratio_gpu, n=ns)
 end
 
-function plot_layout_ratios(comparisons, prefix)
-    p_cpu = plot(title="Interleaved / Split — execute time CPU\n(<1 = interleaved faster)",
+function plot_layout_ratios(comparisons, prefix, group_title)
+    p_cpu = plot(title="$group_title — interleaved / split  CPU\n(<1 = interleaved faster)",
                  xlabel=xlabel_str, ylabel="ratio",
                  xscale=:log2, legend=:topleft, size=(900, 550))
-    p_gpu = plot(title="Interleaved / Split — execute time GPU\n(<1 = interleaved faster)",
+    p_gpu = plot(title="$group_title — interleaved / split  GPU\n(<1 = interleaved faster)",
                  xlabel=xlabel_str, ylabel="ratio",
                  xscale=:log2, legend=:topleft, size=(900, 550))
 
@@ -209,7 +209,7 @@ let pfx = "plot_$(DIM)d"
 
     r_c2c_fwd = layout_comparison(c2c_fwd_int_d, c2c_fwd_split_d, "C2C fwd")
     r_c2c_inv = layout_comparison(c2c_inv_int_d, c2c_inv_split_d, "C2C inv")
-    plot_layout_ratios([("C2C fwd", r_c2c_fwd), ("C2C inv", r_c2c_inv)], "$(pfx)_c2c")
+    plot_layout_ratios([("C2C fwd", r_c2c_fwd), ("C2C inv", r_c2c_inv)], "$(pfx)_c2c", "$(DIM)D C2C")
 
     r2c_int_d   = extract("r2c", "interleaved")
     r2c_split_d = extract("r2c", "split")
@@ -218,5 +218,5 @@ let pfx = "plot_$(DIM)d"
 
     r_r2c = layout_comparison(r2c_int_d, r2c_split_d, "R2C")
     r_c2r = layout_comparison(c2r_int_d, c2r_split_d, "C2R")
-    plot_layout_ratios([("R2C", r_r2c), ("C2R", r_c2r)], "$(pfx)_r2c_c2r")
+    plot_layout_ratios([("R2C", r_r2c), ("C2R", r_c2r)], "$(pfx)_r2c_c2r", "$(DIM)D R2C/C2R")
 end
